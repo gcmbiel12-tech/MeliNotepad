@@ -1,16 +1,7 @@
+
 /**
  * scanner.js
- * Encapsula o acesso à câmera e a leitura de código de barras/QR Code.
- *
- * Usa a BarcodeDetector nativa do navegador (Shape Detection API).
- * Suporte real (out/2026): Chrome/Edge/Samsung Internet em Android, e Chrome
- * desktop em parte das plataformas. Firefox não suporta. Safari mantém a API
- * desativada por padrão. Por isso a digitação manual (ver app.js) é sempre
- * o caminho garantido, nunca apenas um extra.
- *
- * Acessar a câmera exige um "contexto seguro": HTTPS, ou http://localhost
- * durante o desenvolvimento. Em qualquer outro endereço http:// o navegador
- * bloqueia getUserMedia silenciosamente ou com erro de permissão.
+ * Acesso à câmera e leitura de códigos de barras/QR Code.
  */
 (function (global) {
   'use strict';
@@ -19,123 +10,262 @@
   var detector = null;
   var loopAtivo = false;
   var rafId = null;
+  var erroFrames = 0;
+  var ultimoCodigo = '';
+  var ultimoTempoCodigo = 0;
+
+  var FORMATOS_DESEJADOS = [
+    'qr_code',
+    'ean_13',
+    'ean_8',
+    'code_128',
+    'code_39',
+    'upc_a',
+    'upc_e',
+    'itf'
+  ];
 
   function contextoSeguro() {
     return global.isSecureContext === true;
   }
 
   function cameraSuportada() {
-    return !!(global.navigator && global.navigator.mediaDevices && global.navigator.mediaDevices.getUserMedia);
+    return !!(
+      global.navigator &&
+      global.navigator.mediaDevices &&
+      global.navigator.mediaDevices.getUserMedia
+    );
   }
 
   function barcodeDetectorSuportado() {
-    return typeof global.BarcodeDetector === 'function';
+    return (
+      typeof global.BarcodeDetector === 'function' &&
+      typeof global.BarcodeDetector.getSupportedFormats === 'function'
+    );
   }
 
-  /** Lista as câmeras disponíveis (rótulos só ficam legíveis após a permissão ser concedida). */
   function listarCameras() {
-    if (!cameraSuportada() || !global.navigator.mediaDevices.enumerateDevices) {
+    if (
+      !cameraSuportada() ||
+      !global.navigator.mediaDevices.enumerateDevices
+    ) {
       return Promise.resolve([]);
     }
-    return global.navigator.mediaDevices.enumerateDevices().then(function (devices) {
-      return devices.filter(function (d) { return d.kind === 'videoinput'; });
-    }).catch(function () {
-      return [];
-    });
+
+    return global.navigator.mediaDevices.enumerateDevices()
+      .then(function (devices) {
+        return devices.filter(function (d) {
+          return d.kind === 'videoinput';
+        });
+      })
+      .catch(function () {
+        return [];
+      });
   }
 
-  /**
-   * Inicia a câmera e o loop de detecção.
-   * @param {HTMLVideoElement} videoEl
-   * @param {string} [deviceId] - id de um dispositivo específico (opcional)
-   * @param {function(string, string): void} onDetect - chamado com (valor, formato) a cada código novo
-   * @param {function(string): void} onError - chamado com uma mensagem amigável em caso de falha
-   * @returns {Promise<void>}
-   */
   function iniciar(videoEl, deviceId, onDetect, onError) {
+    pararInterno();
+
     if (!contextoSeguro()) {
-      onError('A leitura pela câmera exige uma conexão segura (HTTPS) ou acesso via localhost. Use a digitação manual nesta conexão.');
-      return Promise.reject(new Error('contexto inseguro'));
+      var erroSeguro = new Error(
+        'A câmera exige HTTPS ou acesso via localhost.'
+      );
+      onError(erroSeguro.message);
+      return Promise.reject(erroSeguro);
     }
+
     if (!cameraSuportada()) {
-      onError('Este navegador não oferece acesso à câmera. Use a digitação manual.');
-      return Promise.reject(new Error('getUserMedia indisponível'));
+      var erroCamera = new Error(
+        'Este navegador não oferece acesso à câmera.'
+      );
+      onError(erroCamera.message);
+      return Promise.reject(erroCamera);
     }
+
     if (!barcodeDetectorSuportado()) {
-      onError('Este navegador não é compatível com a leitura automática de códigos. Use a digitação manual.');
-      return Promise.reject(new Error('BarcodeDetector indisponível'));
+      var erroDetector = new Error(
+        'Este navegador não oferece suporte completo à leitura automática. ' +
+        'Use um navegador compatível ou digite o código manualmente.'
+      );
+      onError(erroDetector.message);
+      return Promise.reject(erroDetector);
     }
 
     var constraints = {
-      video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: 'environment' } },
+      video: deviceId
+        ? { deviceId: { exact: deviceId } }
+        : {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
       audio: false
     };
 
-    return global.navigator.mediaDevices.getUserMedia(constraints).then(function (stream) {
-      streamAtual = stream;
-      videoEl.srcObject = stream;
-      return videoEl.play();
-    }).then(function () {
-      try {
-        detector = new global.BarcodeDetector();
-      } catch (e) {
-        detector = new global.BarcodeDetector({
-          formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'itf']
+    return global.navigator.mediaDevices
+      .getUserMedia(constraints)
+      .then(function (stream) {
+        streamAtual = stream;
+        videoEl.srcObject = stream;
+        videoEl.setAttribute('playsinline', '');
+        videoEl.muted = true;
+
+        return videoEl.play();
+      })
+      .then(function () {
+        return global.BarcodeDetector.getSupportedFormats();
+      })
+      .then(function (suportados) {
+        var formatos = FORMATOS_DESEJADOS.filter(function (formato) {
+          return suportados.indexOf(formato) !== -1;
         });
-      }
-      loopAtivo = true;
-      agendarDeteccao(videoEl, onDetect, onError);
-    }).catch(function (e) {
-      var msg = 'Não foi possível acessar a câmera.';
-      if (e && e.name === 'NotAllowedError') {
-        msg = 'Permissão de câmera negada. Autorize o acesso nas configurações do navegador ou use a digitação manual.';
-      } else if (e && e.name === 'NotFoundError') {
-        msg = 'Nenhuma câmera foi encontrada neste dispositivo. Use a digitação manual.';
-      } else if (e && e.name === 'NotReadableError') {
-        msg = 'A câmera está sendo usada por outro aplicativo. Feche-o e tente novamente, ou use a digitação manual.';
-      }
-      onError(msg);
-      pararInterno();
-      throw e;
-    });
+
+        if (formatos.length === 0) {
+          throw new Error(
+            'A câmera abriu, mas o navegador não informou formatos ' +
+            'de código compatíveis para leitura.'
+          );
+        }
+
+        detector = new global.BarcodeDetector({
+          formats: formatos
+        });
+
+        console.info(
+          '[MeliNotepad] Formatos de leitura disponíveis:',
+          formatos
+        );
+
+        erroFrames = 0;
+        ultimoCodigo = '';
+        ultimoTempoCodigo = 0;
+        loopAtivo = true;
+
+        agendarDeteccao(videoEl, onDetect, onError);
+      })
+      .catch(function (e) {
+        pararInterno();
+
+        var msg;
+
+        if (e && e.name === 'NotAllowedError') {
+          msg =
+            'Permissão de câmera negada. Autorize o acesso à câmera ' +
+            'nas configurações do navegador.';
+        } else if (e && e.name === 'NotFoundError') {
+          msg = 'Nenhuma câmera foi encontrada neste dispositivo.';
+        } else if (e && e.name === 'NotReadableError') {
+          msg =
+            'A câmera está sendo usada por outro aplicativo. ' +
+            'Feche-o e tente novamente.';
+        } else if (e && e.name === 'OverconstrainedError') {
+          msg =
+            'A câmera selecionada não atende aos requisitos. ' +
+            'Tente selecionar outra câmera.';
+        } else {
+          msg = 'Falha ao iniciar a leitura: ' +
+            (e && e.message ? e.message : 'erro desconhecido');
+        }
+
+        onError(msg);
+        throw e;
+      });
   }
 
   function agendarDeteccao(videoEl, onDetect, onError) {
-    if (!loopAtivo) return;
-    detector.detect(videoEl).then(function (codigos) {
-      if (codigos && codigos.length > 0) {
-        var c = codigos[0];
-        onDetect(c.rawValue, c.format || 'desconhecido');
-      }
-    }).catch(function () {
-      // Falhas pontuais de um único frame não devem interromper a leitura;
-      // apenas tentamos novamente no próximo quadro.
-    }).then(function () {
-      if (loopAtivo) {
-        rafId = global.requestAnimationFrame(function () { agendarDeteccao(videoEl, onDetect, onError); });
-      }
-    });
+    if (!loopAtivo || !detector) return;
+
+    if (
+      videoEl.readyState < 2 ||
+      videoEl.videoWidth === 0 ||
+      videoEl.videoHeight === 0
+    ) {
+      rafId = global.requestAnimationFrame(function () {
+        agendarDeteccao(videoEl, onDetect, onError);
+      });
+      return;
+    }
+
+    detector.detect(videoEl)
+      .then(function (codigos) {
+        erroFrames = 0;
+
+        if (!codigos || codigos.length === 0) return;
+
+        var codigo = codigos[0];
+        var valor = codigo.rawValue;
+
+        if (!valor) return;
+
+        var agora = Date.now();
+
+        // Evita registrar repetidamente o mesmo código
+        // enquanto ele permanece diante da câmera.
+        if (
+          valor === ultimoCodigo &&
+          agora - ultimoTempoCodigo < 2000
+        ) {
+          return;
+        }
+
+        ultimoCodigo = valor;
+        ultimoTempoCodigo = agora;
+
+        onDetect(valor, codigo.format || 'desconhecido');
+      })
+      .catch(function (e) {
+        erroFrames++;
+
+        // Não interrompe por uma falha isolada de leitura.
+        // Após várias falhas consecutivas, informa o problema.
+        if (erroFrames === 10) {
+          console.warn(
+            '[MeliNotepad] Falhas consecutivas na detecção:',
+            e
+          );
+
+          if (onError) {
+            onError(
+              'A câmera está aberta, mas o leitor está encontrando ' +
+              'falhas ao processar as imagens. Tente fechar e abrir ' +
+              'a câmera novamente.'
+            );
+          }
+        }
+      })
+      .then(function () {
+        if (loopAtivo) {
+          rafId = global.requestAnimationFrame(function () {
+            agendarDeteccao(videoEl, onDetect, onError);
+          });
+        }
+      });
   }
 
   function pararInterno() {
     loopAtivo = false;
-    if (rafId) {
+
+    if (rafId !== null) {
       global.cancelAnimationFrame(rafId);
       rafId = null;
     }
+
     if (streamAtual) {
-      streamAtual.getTracks().forEach(function (t) { t.stop(); });
+      streamAtual.getTracks().forEach(function (track) {
+        track.stop();
+      });
       streamAtual = null;
     }
+
     detector = null;
   }
 
-  /** Para a câmera e o loop de detecção, liberando o dispositivo. */
   function parar() {
     pararInterno();
   }
 
   global.MeliNotepad = global.MeliNotepad || {};
+
   global.MeliNotepad.Scanner = {
     contextoSeguro: contextoSeguro,
     cameraSuportada: cameraSuportada,
