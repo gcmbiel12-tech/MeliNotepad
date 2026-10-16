@@ -107,7 +107,7 @@
     var status = contarStatus(sessao.occurrences);
     return {
       nomeApp: 'MeliNotepad',
-      sessaoId: sessao.id,
+      sessaoId: '',
       data: U.formatarData(sessao.startTime),
       horaFim: sessao.endTime ? U.formatarHora(sessao.endTime) : '—',
       estado: sessao.status === C.SESSION_STATUS.FINALIZADA ? 'Finalizada' : 'Em andamento',

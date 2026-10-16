@@ -13,7 +13,7 @@
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v2.4';
+var CACHE_VERSION = 'v2.5';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [
@@ -26,10 +26,12 @@ var ARQUIVOS_ESSENCIAIS = [
   './js/scanner.js',
   './js/report.js',
   './js/app.js',
+  './js/tradutor.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
+
 
 self.addEventListener('install', function (evento) {
   evento.waitUntil(
