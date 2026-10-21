@@ -118,6 +118,49 @@
       'T' + doisDigitos(d.getHours()) + ':' + doisDigitos(d.getMinutes());
   }
 
+
+  /**
+   * Interpreta o conteúdo bruto lido de um QR Code / código de barras.
+   * - Conteúdo com cara de JSON ({, [ ou "): extrai SOMENTE o campo "id"
+   *   (ex.: {"id":"48197332782","t":"lm"} -> "48197332782").
+   * - Qualquer outro texto (número simples, alfanumérico): é o próprio código.
+   * O identificador é sempre devolvido como TEXTO (zeros à esquerda preservados).
+   * Retorna { ok:true, id, origem:'json'|'direto' } ou { ok:false, motivo }.
+   */
+  function extrairIdentificadorDeCodigo(bruto) {
+    if (typeof bruto !== 'string') return { ok: false, motivo: 'Conteúdo vazio.' };
+    var texto = bruto.trim();
+    if (!texto) return { ok: false, motivo: 'Conteúdo vazio.' };
+
+    function idValido(valor) {
+      if (typeof valor === 'number') {
+        // Número JSON: só inteiros seguros (zeros à esquerda só existem em texto).
+        return Number.isSafeInteger(valor) && valor >= 0 ? String(valor) : null;
+      }
+      if (typeof valor !== 'string') return null;
+      var t = valor.trim();
+      if (!t || t.length > 128 || /[\u0000-\u001f\u007f]/.test(t)) return null;
+      return t;
+    }
+
+    var primeiro = texto.charAt(0);
+    if (primeiro === '{' || primeiro === '[' || primeiro === '"') {
+      var obj;
+      try { obj = JSON.parse(texto); } catch (e) {
+        return { ok: false, motivo: 'O conteúdo parece JSON, mas é inválido.' };
+      }
+      var candidato = (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj.id : obj;
+      if (candidato !== null && typeof candidato === 'object') candidato = undefined;
+      var id = idValido(candidato);
+      if (id === null) return { ok: false, motivo: 'O conteúdo não traz um "id" válido.' };
+      return { ok: true, id: id, origem: 'json' };
+    }
+
+    var direto = idValido(texto);
+    if (direto === null) return { ok: false, motivo: 'O código contém caracteres inválidos ou é longo demais.' };
+    return { ok: true, id: direto, origem: 'direto' };
+  }
+
   /** Valida se um valor é um inteiro não negativo (aceita string numérica). */
   function ehInteiroNaoNegativo(valor) {
     if (valor === '' || valor === null || valor === undefined) return false;
@@ -153,6 +196,7 @@
     emojiPorHorario: emojiPorHorario,
     paraDatetimeLocal: paraDatetimeLocal,
     ehInteiroNaoNegativo: ehInteiroNaoNegativo,
+    extrairIdentificadorDeCodigo: extrairIdentificadorDeCodigo,
     normalizarTexto: normalizarTexto,
     normalizarCodigoParaComparacao: normalizarCodigoParaComparacao
   };

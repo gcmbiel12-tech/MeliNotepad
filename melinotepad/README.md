@@ -1,4 +1,20 @@
-# MeliNotepad
+# MeliOps (antes MeliNotepad)
+
+> **Estado desta entrega (parcial)** — leia antes de publicar.
+>
+> | Área | Situação |
+> |---|---|
+> | NEX | Preservado. A suíte de regressão (31 cenários) passou na última execução, **antes** das alterações finais (service worker, marcador do XPT, README); não foi reexecutada depois. |
+> | Controle de Intervalos | Implementado. Passou em 18 cenários de ponta a ponta e 17 unitários na última execução (antes dos ajustes finais; não reexecutado). Dados só neste aparelho. |
+> | XPT | **Não concluído.** As regras (`js/xpt-regras.js`) estão prontas e testadas (21 unitários); a tela, a foto do HAND + lacre e os relatórios ainda não. A aba mostra "em desenvolvimento" e não grava dados. O trabalho parcial da tela está em `wip/` (não é carregado). |
+> | Leitura de QR | `{"id":"…","t":"lm"}` passa a extrair só o `id`. Coberto por testes unitários da função. **Não foi testado passando pelo scanner nem com câmera real.** |
+> | Sincronização entre aparelhos | **Não existe.** Tudo fica no armazenamento local de cada aparelho. |
+> | Fotos em outros aparelhos | Dependem de um serviço de armazenamento ainda não escolhido nem autorizado. |
+>
+> **Testes:** ver `tests/LEIA-ME.md`. **Nome:** só os textos visíveis foram renomeados; identificadores técnicos (`window.MeliNotepad`, chaves do LocalStorage, nome do cache) foram mantidos de propósito para não perder dados existentes. O app já instalado no celular continua com o nome antigo até ser reinstalado.
+>
+> As seções abaixo descrevem o NEX (versão anterior) e continuam válidas para ele.
+
 
 Aplicativo web (PWA) para **registrar, acompanhar e finalizar ocorrências** durante a auditoria e conferência de rotas NEX. Substitui o registro manual (papel, mensagens soltas) por uma lista organizada, com categorias fixas, status, filtros, relatório final e exportação em PDF.
 

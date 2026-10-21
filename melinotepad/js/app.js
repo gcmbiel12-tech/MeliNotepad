@@ -559,6 +559,10 @@
     $.selectCategoria.focus();
   }
 
+  function aoCodigoNaoReconhecido(bruto, motivo) {
+    $.avisoCamera.textContent = 'Código não reconhecido (' + motivo + ') Nada foi preenchido; aponte para outro código ou digite manualmente.';
+  }
+
   function aoErroCamera(mensagem) {
     resetarUiCamera();
     $.avisoCamera.textContent = mensagem;
@@ -574,7 +578,7 @@
     $.btnAbrirCamera.hidden = true;
     $.btnFecharCamera.hidden = false;
 
-    Scanner.iniciar($.videoCamera, null, aoDetectarCodigo, aoErroCamera).then(function () {
+    Scanner.iniciar($.videoCamera, null, aoDetectarCodigo, aoErroCamera, aoCodigoNaoReconhecido).then(function () {
       return Scanner.listarCameras();
     }).then(function (cameras) {
       if (cameras.length > 1) {
@@ -600,7 +604,7 @@
   function aoTrocarCamera() {
     var deviceId = $.selectCamera.value;
     Scanner.parar();
-    Scanner.iniciar($.videoCamera, deviceId, aoDetectarCodigo, aoErroCamera);
+    Scanner.iniciar($.videoCamera, deviceId, aoDetectarCodigo, aoErroCamera, aoCodigoNaoReconhecido);
   }
 
   // -----------------------------------------------------------------------
@@ -643,6 +647,15 @@
     radios.forEach(function (r) { r.checked = false; });
   }
 
+  // Códigos digitados/colados (ou enviados por leitor externo que "digita" no campo)
+  // passam pela mesma interpretação da câmera: JSON válido -> só o "id"; JSON
+  // inválido ou sem "id" é recusado. Códigos comuns seguem exatamente como digitados.
+  function interpretarCodigoDigitado(textoNormalizado) {
+    var leitura = U.extrairIdentificadorDeCodigo(textoNormalizado);
+    if (!leitura.ok) return { ok: false, motivo: leitura.motivo };
+    return { ok: true, codigo: leitura.origem === 'json' ? leitura.id : textoNormalizado };
+  }
+
   function aoEnviarRegistrarOcorrencia(e) {
     e.preventDefault();
     if (registrandoOcorrencia) return;
@@ -664,6 +677,12 @@
       toast('Selecione o status da ocorrência: Pendente ou Resolvido.', 'erro');
       return;
     }
+    var leituraCodigo = interpretarCodigoDigitado(codigo);
+    if (!leituraCodigo.ok) {
+      toast('Código não reconhecido: ' + leituraCodigo.motivo + ' Nada foi registrado.', 'erro');
+      return;
+    }
+    codigo = leituraCodigo.codigo;
 
     registrandoOcorrencia = true;
 
@@ -761,6 +780,12 @@
       toast('Informe o código e a categoria.', 'erro');
       return;
     }
+    var leituraEdicao = interpretarCodigoDigitado(codigo);
+    if (!leituraEdicao.ok) {
+      toast('Código não reconhecido: ' + leituraEdicao.motivo + ' Nada foi alterado.', 'erro');
+      return;
+    }
+    codigo = leituraEdicao.codigo;
 
     ocorrencia.code = codigo;
     ocorrencia.category = categoria;
@@ -961,7 +986,7 @@
     var a = document.createElement('a');
     var hoje = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = 'melinotepad_backup_' + hoje + '.json';
+    a.download = 'meliops_backup_' + hoje + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

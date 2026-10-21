@@ -1,0 +1,12 @@
+# dependências e artefatos de teste
+node_modules/
+tests/node_modules/
+tests/test-results/
+# segredos e ambiente (nunca versionar)
+.env
+.env.*
+!.env.example
+# Vercel / sistema
+.vercel/
+.DS_Store
+*.log

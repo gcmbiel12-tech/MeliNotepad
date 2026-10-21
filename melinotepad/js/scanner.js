@@ -13,6 +13,7 @@
   var erroFrames = 0;
   var ultimoCodigo = '';
   var ultimoTempoCodigo = 0;
+  var callbackNaoReconhecido = null;
 
   var FORMATOS_DESEJADOS = [
     'qr_code',
@@ -63,8 +64,11 @@
       });
   }
 
-  function iniciar(videoEl, deviceId, onDetect, onError) {
+  // onNaoReconhecido (opcional): chamado quando o conteúdo lido não é um código
+  // utilizável (ex.: JSON sem "id"). A leitura continua; nada é entregue a onDetect.
+  function iniciar(videoEl, deviceId, onDetect, onError, onNaoReconhecido) {
     pararInterno();
+    callbackNaoReconhecido = typeof onNaoReconhecido === 'function' ? onNaoReconhecido : null;
 
     if (!contextoSeguro()) {
       var erroSeguro = new Error(
@@ -211,7 +215,15 @@
         ultimoCodigo = valor;
         ultimoTempoCodigo = agora;
 
-        onDetect(valor, codigo.format || 'desconhecido');
+        // Interpreta o conteúdo (ex.: {"id":"4819...","t":"lm"} -> "4819...") ANTES de
+        // qualquer campo ser preenchido ou registro ser criado.
+        var Utils = global.MeliNotepad && global.MeliNotepad.Utils;
+        var leitura = Utils ? Utils.extrairIdentificadorDeCodigo(valor) : { ok: true, id: valor };
+        if (!leitura.ok) {
+          if (callbackNaoReconhecido) callbackNaoReconhecido(valor, leitura.motivo);
+          return;
+        }
+        onDetect(leitura.id, codigo.format || 'desconhecido');
       })
       .catch(function (e) {
         erroFrames++;

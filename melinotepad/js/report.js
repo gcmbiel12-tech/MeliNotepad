@@ -61,7 +61,7 @@
     var teveAlgumaOcorrencia = status.total > 0;
 
     var linhas = [];
-    linhas.push('📦 *MeliNotepad* — Conferência NEX');
+    linhas.push('📦 *MeliOps* — Conferência NEX');
     linhas.push(divisoria);
     linhas.push('');
     linhas.push(emojiSaudacao + ' *' + saudacao + '*');
@@ -106,8 +106,8 @@
     var porCategoria = contarPorCategoria(sessao.occurrences);
     var status = contarStatus(sessao.occurrences);
     return {
-      nomeApp: 'MeliNotepad',
-      sessaoId: '',
+      nomeApp: 'MeliOps',
+      sessaoId: sessao.id,
       data: U.formatarData(sessao.startTime),
       horaFim: sessao.endTime ? U.formatarHora(sessao.endTime) : '—',
       estado: sessao.status === C.SESSION_STATUS.FINALIZADA ? 'Finalizada' : 'Em andamento',
@@ -136,7 +136,7 @@
   function nomeArquivoSugerido(sessao) {
     var data = (sessao.startTime || new Date().toISOString()).slice(0, 10);
     var idCurto = (sessao.id || 'sessao').replace(/^sess_/, '').slice(0, 8);
-    return 'MeliNotepad_' + data + '_' + idCurto;
+    return 'MeliOps_' + data + '_' + idCurto;
   }
 
   global.MeliNotepad = global.MeliNotepad || {};

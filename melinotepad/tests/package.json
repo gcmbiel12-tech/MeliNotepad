@@ -1,0 +1,11 @@
+{
+  "name": "meliops-testes",
+  "private": true,
+  "description": "Testes de desenvolvimento (não fazem parte do app publicado).",
+  "scripts": {
+    "unit": "node --test unit/*.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

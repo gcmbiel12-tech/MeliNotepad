@@ -1,7 +1,7 @@
 {
-  "name": "MeliNotepad — Conferência de rotas NEX",
-  "short_name": "MeliNotepad",
-  "description": "Registro, acompanhamento e finalização de ocorrências na auditoria e conferência de rotas NEX.",
+  "name": "MeliOps — NEX, XPT e Intervalos",
+  "short_name": "MeliOps",
+  "description": "MeliOps: conferência NEX, operação XPT e controle de intervalos dos funcionários.",
   "lang": "pt-BR",
   "start_url": ".",
   "scope": "./",

@@ -13,25 +13,32 @@
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v2.5';
+var CACHE_VERSION = 'v3';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [
   './',
   './index.html',
   './css/styles.css',
+  './css/modulos.css',
   './js/constants.js',
   './js/utils.js',
   './js/storage.js',
   './js/scanner.js',
   './js/report.js',
   './js/app.js',
-  './js/tradutor.js',
+  './js/modulo-store.js',
+  './js/shell.js',
+  './js/intervalos-regras.js',
+  './js/intervalos.js',
+  './js/xpt-regras.js',
+  './js/fotos.js',
+  './js/impressao.js',
+  './js/xpt.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
-
 
 self.addEventListener('install', function (evento) {
   evento.waitUntil(
@@ -104,10 +111,10 @@ self.addEventListener('fetch', function (evento) {
           return new Response(
             '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">' +
             '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-            '<title>MeliNotepad — sem conexão</title></head>' +
+            '<title>MeliOps — sem conexão</title></head>' +
             '<body style="font-family:sans-serif;padding:24px;max-width:480px;margin:0 auto">' +
             '<h1>Sem conexão</h1>' +
-            '<p>Não foi possível carregar o MeliNotepad agora, e esta página ainda não está ' +
+            '<p>Não foi possível carregar o MeliOps agora, e esta página ainda não está ' +
             'disponível para uso offline neste aparelho.</p>' +
             '<p>Conecte-se à internet e abra o app de novo para que ele termine de ' +
             'preparar o uso offline.</p>' +
