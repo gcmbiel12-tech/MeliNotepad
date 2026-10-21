@@ -10,3 +10,6 @@ tests/test-results/
 .vercel/
 .DS_Store
 *.log
+
+/wip/
+/inventario-melinotepad.csv

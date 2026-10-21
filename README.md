@@ -1,4 +1,4 @@
-# MeliOps (antes MeliNotepad)
+﻿# MeliOps (antes MeliNotepad)
 
 > **Estado desta entrega (parcial)** — leia antes de publicar.
 >
@@ -43,7 +43,7 @@ Esta é a **primeira versão funcional**: HTML + CSS + JavaScript puro, sem fram
 ## 1. Estrutura de arquivos
 
 ```
-melinotepad/
+
 ├── index.html              Estrutura da interface (telas, formulários, diálogos)
 ├── manifest.json            Manifesto da PWA (nome, ícones, cores, modo de exibição)
 ├── service-worker.js        Cache dos arquivos estáticos para uso offline
@@ -71,7 +71,7 @@ melinotepad/
 
 ## 2. Como abrir e executar no VS Code
 
-1. Abra a pasta `melinotepad/` no VS Code (`Arquivo > Abrir Pasta...`).
+1. Abra a pasta MeliNotepad no VS Code (`Arquivo > Abrir Pasta...`).
 2. Instale a extensão **Live Server** (de Ritwick Dey), se ainda não tiver — é gratuita, está na aba de Extensões do VS Code.
 3. Clique com o botão direito em `index.html` e escolha **"Open with Live Server"** (ou clique em "Go Live" na barra inferior).
 4. O navegador abrirá algo como `http://127.0.0.1:5500/index.html`.
@@ -80,8 +80,9 @@ Não é necessário `npm install`, build, ou qualquer outra etapa — é HTML/CS
 
 **Alternativa sem extensão**, usando o terminal integrado do VS Code (requer Python, já instalado na maioria dos sistemas):
 
+Na raiz da pasta do projeto, execute:
+
 ```bash
-cd melinotepad
 python3 -m http.server 8080
 ```
 
