@@ -268,7 +268,7 @@
   function relatorioBasico(op) {
     var U = NS.Utils, t = totais(op), a = resumoAuditoria(op.gaiolas), q = op.quantidades, L = [];
     var hm = function (isoStr) { return U.formatarHora(new Date(isoStr)); };
-    L.push('📦 *MeliOps* — Expedição XPT');
+    L.push('📦 *MeliNotepad* — Expedição XPT');
     L.push('━━━━━━━━━━━━━━━━'); L.push('');
     L.push('📅 *Operação de ' + U.formatarData(new Date(op.inicioAt)) + '*');
     var h = ['Início: ' + hm(op.inicioAt)];

@@ -12,7 +12,7 @@
 
   var store = NS.ModStore.criar({ chave: 'melinotepad_intervalos_v1', rotulo: 'Intervalos', padrao: R.padrao, validar: R.validarDados });
   var estado = R.padrao(), avisoArmazenamento = null;
-  var el = {}, ui = { aba: 'ativos', assinatura: '', busca: '', filtro: { func: '', data: '', setor: '*' } };
+  var el = {}, ui = { aba: 'ativos', assinatura: '', busca: '', filtro: { func: '', periodo: 'todos', data: '', inicio: '', fim: '', setor: '*', busca: '' } };
   var novo = null, detalhe = null;
 
   function agora() { return U.agora().getTime(); }
@@ -306,12 +306,14 @@
 
   function filtrarHistorico() {
     var f = ui.filtro;
-    return estado.intervalos.filter(function (i) { return i.status === 'encerrado'; }).filter(function (i) {
+    return U.consultarHistorico(estado.intervalos.filter(function (i) { return i.status === 'encerrado'; }), {
+      campoData: 'saidaAt', periodo: f.periodo, data: f.data, inicio: f.inicio, fim: f.fim, busca: f.busca,
+      buscar: function (i) { return i.funcionarioNome; }
+    }).filter(function (i) {
       if (f.func && i.funcionarioId !== f.func) return false;
-      if (f.data && dataLocal(Date.parse(i.saidaAt)) !== f.data) return false;
       if (f.setor !== '*' && (f.setor === '' ? !!i.setor : R.normalizar(i.setor) !== R.normalizar(f.setor))) return false;
       return true;
-    }).sort(function (a, b) { return Date.parse(b.saidaAt) - Date.parse(a.saidaAt); });
+    });
   }
 
   function renderHistorico() {
@@ -321,16 +323,25 @@
     el.fFunc.value = ui.filtro.func;
     UI.limpar(el.fSetor); el.fSetor.appendChild(h('option', { value: '*', text: 'Todos os setores' })); el.fSetor.appendChild(h('option', { value: '', text: '(sem setor)' }));
     estado.setores.forEach(function (s) { el.fSetor.appendChild(h('option', { value: s, text: s })); });
-    el.fSetor.value = ui.filtro.setor; el.fData.value = ui.filtro.data;
+    el.fSetor.value = ui.filtro.setor; el.fData.value = ui.filtro.data; el.fPeriodo.value = ui.filtro.periodo;
+    el.fInicio.value = ui.filtro.inicio; el.fFim.value = ui.filtro.fim; el.fBusca.value = ui.filtro.busca;
+    el.fData.parentElement.hidden = ui.filtro.periodo !== 'data';
+    el.fInicio.parentElement.hidden = el.fFim.parentElement.hidden = ui.filtro.periodo !== 'intervalo';
     var itens = filtrarHistorico(); UI.limpar(el.corpoHist);
+    var diaAtual = null;
     itens.forEach(function (i) {
       var av = R.avaliar(i, agora()), s = Date.parse(i.saidaAt), r = Date.parse(i.retornoRealAt);
-      var real = dataLocal(r) === dataLocal(s) ? hhmm(r) : U.formatarData(new Date(r)) + ' ' + hhmm(r);
+      var dia = U.dataOperacional(i.saidaAt);
+      if (dia !== diaAtual) {
+        diaAtual = dia;
+        el.corpoHist.appendChild(h('tr', { class: 'historico-grupo-dia' }, [h('th', { scope: 'rowgroup', colspan: '9', text: U.formatarDataOperacional(i.saidaAt) })]));
+      }
+      var real = U.dataOperacional(i.retornoRealAt) === dia ? U.formatarHoraOperacional(new Date(r)) : U.formatarDataOperacional(new Date(r)) + ' ' + U.formatarHoraOperacional(new Date(r));
       var alt = i.alteracoes.length ? h('details', {}, [h('summary', { text: i.alteracoes.length + ' alteração(ões)' }),
-        h('ul', { class: 'interv-alteracoes' }, i.alteracoes.map(function (a) { return h('li', { text: U.formatarDataHora(new Date(a.em)) + ' · ' + nomeCampo(a.campo) + ': ' + valorCampo(a.campo, a.de) + ' → ' + valorCampo(a.campo, a.para) }); }))]) : '—';
+        h('ul', { class: 'interv-alteracoes' }, i.alteracoes.map(function (a) { return h('li', { text: U.formatarDataHoraOperacional(new Date(a.em)) + ' · ' + nomeCampo(a.campo) + ': ' + valorCampo(a.campo, a.de) + ' → ' + valorCampo(a.campo, a.para) }); }))]) : '—';
       el.corpoHist.appendChild(h('tr', { dataset: { id: i.id } }, [
-        h('td', { text: i.funcionarioNome }), h('td', { text: i.setor || '—' }), h('td', { text: U.formatarData(new Date(s)) }), h('td', { text: hhmm(s) }),
-        h('td', { text: i.duracaoPrevistaMin + ' min' }), h('td', { text: hhmm(Date.parse(i.retornoPrevistoAt)) }), h('td', { text: real }),
+        h('td', { text: i.funcionarioNome }), h('td', { text: i.setor || '—' }), h('td', { text: U.formatarDataOperacional(new Date(s)) }), h('td', { text: U.formatarHoraOperacional(new Date(s)) }),
+        h('td', { text: i.duracaoPrevistaMin + ' min' }), h('td', { text: U.formatarHoraOperacional(new Date(i.retornoPrevistoAt)) }), h('td', { text: real }),
         h('td', { text: av.excedido ? 'Excedeu em ' + (av.minutos - av.limite) + ' min (' + av.minutos + ' min no total)' : 'No prazo (' + av.minutos + ' min)' }), h('td', {}, [alt])
       ]));
     });
@@ -338,7 +349,7 @@
     el.vazioHist.hidden = itens.length > 0;
   }
   function nomeCampo(c) { return { duracaoPrevistaMin: 'duração prevista', saidaAt: 'HR saída', retornoPrevistoAt: 'HR entrada prevista' }[c] || c; }
-  function valorCampo(c, v) { return c === 'duracaoPrevistaMin' ? v + ' min' : hhmm(Date.parse(v)); }
+  function valorCampo(c, v) { return c === 'duracaoPrevistaMin' ? v + ' min' : U.formatarHoraOperacional(new Date(Date.parse(v))); }
 
   function renderAba() {
     ABAS.forEach(function (a) { el['s_' + a[0]].hidden = a[0] !== ui.aba; });
@@ -352,7 +363,7 @@
   // ------------------------------------------------------------------ backup do módulo
   function exportar() {
     recarregar();
-    UI.baixarArquivo('meliops_intervalos_' + dataLocal(agora()) + '.json', NS.ModStore.exportarJson('intervalos', estado));
+    UI.baixarArquivo('melinotepad_intervalos_' + dataLocal(agora()) + '.json', NS.ModStore.exportarJson('intervalos', estado));
     UI.avisar('Backup de Intervalos exportado.', 'sucesso');
   }
   function importar(arquivo) {
@@ -425,16 +436,24 @@
 
     // --- Histórico
     el.fFunc = h('select', { id: 'hs-func' }); el.fSetor = h('select', { id: 'hs-setor' }); el.fData = h('input', { type: 'date', id: 'hs-data' });
+    el.fPeriodo = h('select', { id: 'hs-periodo' }, [['todos', 'Todo o histórico'], ['hoje', 'Hoje'], ['ontem', 'Ontem'], ['data', 'Data específica'], ['intervalo', 'Intervalo de datas']].map(function (x) { return h('option', { value: x[0], text: x[1] }); }));
+    el.fInicio = h('input', { type: 'date', id: 'hs-inicio' }); el.fFim = h('input', { type: 'date', id: 'hs-fim' });
+    el.fBusca = h('input', { type: 'search', id: 'hs-busca', placeholder: 'Buscar funcionário', 'aria-label': 'Buscar funcionário no histórico' });
     el.fFunc.addEventListener('change', function () { ui.filtro.func = el.fFunc.value; renderHistorico(); });
     el.fSetor.addEventListener('change', function () { ui.filtro.setor = el.fSetor.value; renderHistorico(); });
-    el.fData.addEventListener('change', function () { ui.filtro.data = el.fData.value; renderHistorico(); });
+    el.fPeriodo.addEventListener('change', function () { ui.filtro.periodo = el.fPeriodo.value; renderHistorico(); });
+    el.fData.addEventListener('change', function () { ui.filtro.data = el.fData.value; if (el.fData.value) ui.filtro.periodo = 'data'; renderHistorico(); });
+    el.fInicio.addEventListener('change', function () { ui.filtro.inicio = el.fInicio.value; renderHistorico(); });
+    el.fFim.addEventListener('change', function () { ui.filtro.fim = el.fFim.value; renderHistorico(); });
+    el.fBusca.addEventListener('input', function () { ui.filtro.busca = el.fBusca.value; renderHistorico(); });
     el.corpoHist = h('tbody', { id: 'hs-corpo' }); el.contHist = h('p', { class: 'texto-apoio', id: 'hs-contagem' }); el.vazioHist = h('p', { class: 'texto-apoio', id: 'hs-vazio', text: 'Nenhum intervalo encerrado com estes filtros.' });
     var arq = h('input', { type: 'file', accept: 'application/json', hidden: true, id: 'iv-arquivo' });
     arq.addEventListener('change', function () { var f = arq.files && arq.files[0]; arq.value = ''; if (f) importar(f); });
+    el.relatorioHist = h('div', { id: 'iv-relatorio-historico', class: 'relatorio-seletor' });
     el.s_historico = h('section', { id: 'interv-historico', class: 'modulo', hidden: true }, [
-      h('div', { class: 'cartao' }, [h('h3', { text: 'Histórico de intervalos' }),
-        h('div', { class: 'interv-filtros' }, [UI.campo('Funcionário', el.fFunc), UI.campo('Data da saída', el.fData), UI.campo('Setor', el.fSetor),
-          h('button', { type: 'button', class: 'botao botao--texto', id: 'hs-limpar', text: 'Limpar filtros', onclick: function () { ui.filtro = { func: '', data: '', setor: '*' }; renderHistorico(); } })]),
+      h('div', { class: 'cartao' }, [h('h3', { text: 'Histórico de intervalos' }), el.relatorioHist,
+          h('div', { class: 'interv-filtros' }, [UI.campo('Funcionário', el.fFunc), UI.campo('Período da saída', el.fPeriodo), UI.campo('Data da saída', el.fData), UI.campo('De', el.fInicio), UI.campo('Até', el.fFim), UI.campo('Buscar funcionário', el.fBusca), UI.campo('Setor', el.fSetor),
+          h('button', { type: 'button', class: 'botao botao--texto', id: 'hs-limpar', text: 'Limpar filtros', onclick: function () { ui.filtro = { func: '', periodo: 'todos', data: '', inicio: '', fim: '', setor: '*', busca: '' }; renderHistorico(); } })]),
         el.contHist, el.vazioHist,
         h('div', { class: 'tabela-rolavel' }, [h('table', { class: 'tabela-modulo tabela-hist' }, [h('thead', {}, [h('tr', {}, ['Funcionário', 'Setor', 'Data', 'Saída', 'Prevista', 'Retorno previsto', 'Retorno real', 'Situação', 'Alterações'].map(function (t) { return h('th', { scope: 'col', text: t }); }))]), el.corpoHist])])]),
       h('div', { class: 'cartao' }, [h('h3', { text: 'Backup de Intervalos' }),
@@ -459,6 +478,27 @@
 
   function init() {
     recarregar(); montar(); renderTudo(true);
+    NS.RelatoriosHistorico.iniciarInterface(el.relatorioHist, 'Intervalos', function () { return estado.intervalos; }, function (registros) {
+      var f = ui.filtro, termo = f.busca.trim().toLocaleLowerCase('pt-BR');
+      return registros.filter(function (i) {
+        if (f.func && i.funcionarioId !== f.func) return false;
+        if (f.setor !== '*' && (f.setor === '' ? !!i.setor : R.normalizar(i.setor) !== R.normalizar(f.setor))) return false;
+        return !termo || String(i.funcionarioNome || '').toLocaleLowerCase('pt-BR').indexOf(termo) !== -1;
+      });
+    }, function () {
+      var f = ui.filtro;
+      if (f.periodo === 'data' && f.data) return { periodo: 'dia', inicio: f.data };
+      if (f.periodo === 'intervalo' && f.inicio && f.fim) return { periodo: 'intervalo', inicio: f.inicio, fim: f.fim };
+      if (f.periodo === 'hoje') return { periodo: 'dia', inicio: U.dataHojeOperacional(new Date(agora())) };
+      if (f.periodo === 'ontem') return { periodo: 'dia', inicio: U.deslocarDataOperacional(U.dataHojeOperacional(new Date(agora())), -1) };
+      return { periodo: 'todo', tipo: 'resumido' };
+    }, function () {
+      var f = ui.filtro, rotulos = [];
+      if (f.func) { var func = funcionarioPorId(f.func); if (func) rotulos.push('Funcionário: ' + func.nome); }
+      if (f.setor !== '*') rotulos.push('Setor: ' + (f.setor || '(sem setor)'));
+      if (f.busca.trim()) rotulos.push('Nome contém “' + f.busca.trim() + '”');
+      return rotulos.join(', ');
+    });
     store.ouvirOutrasAbas(function () { recarregar(); if (!novo && !detalhe) renderTudo(true); });
     document.addEventListener('melios:modulo', function (e) { if (e.detail.modulo === 'intervalos') { recarregar(); renderTudo(true); } });
     document.addEventListener('visibilitychange', tick);

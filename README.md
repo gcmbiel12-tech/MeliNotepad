@@ -1,4 +1,4 @@
-﻿# MeliOps (antes MeliNotepad)
+﻿# MeliNotepad
 
 > **Estado desta entrega (parcial)** — leia antes de publicar.
 >

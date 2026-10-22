@@ -13,6 +13,8 @@
   var Storage = window.MeliNotepad.Storage;
   var Scanner = window.MeliNotepad.Scanner;
   var Report = window.MeliNotepad.Report;
+  var Relatorios = window.MeliNotepad.RelatoriosHistorico;
+  var relatorioUiNex = null;
 
   // -----------------------------------------------------------------------
   // Estado em memória
@@ -22,7 +24,8 @@
     filtros: { categoria: '', status: '', codigo: '' },
     editandoOcorrenciaId: null,
     importPendente: null,
-    historicoAbertoId: null
+    historicoAbertoId: null,
+    filtroHistorico: { periodo: 'todos', data: '', inicio: '', fim: '', busca: '' }
   };
 
   // Trava de reentrância simples: impede que um clique duplo real (dois
@@ -53,6 +56,9 @@
       'btn-pre-visualizar', 'btn-finalizar-sessao', 'painel-relatorio', 'texto-relatorio',
       'area-copia-manual',
       'lista-historico', 'historico-vazio',
+      'historico-sem-resultados', 'historico-periodo', 'historico-data', 'historico-data-wrap',
+      'historico-inicio', 'historico-fim', 'historico-inicio-wrap', 'historico-fim-wrap', 'historico-busca', 'historico-limpar',
+      'nex-relatorio-historico',
       'detalhe-historico', 'detalhe-historico-info', 'detalhe-historico-ocorrencias', 'detalhe-historico-relatorio',
       'btn-fechar-detalhe-historico', 'btn-copiar-resumo-historico', 'btn-gerar-pdf-historico', 'aviso-copiar-historico',
       'btn-restaurar-relatorio-historico', 'btn-excluir-sessao-historico',
@@ -199,7 +205,7 @@
     $.painelSessaoAtiva.hidden = !sessao;
     if (!sessao) return;
 
-    $.infoData.textContent = U.formatarData(sessao.startTime);
+    $.infoData.textContent = U.formatarDataOperacional(sessao.startTime);
     $.infoSacas.textContent = U.formatarNumeroBR(sessao.sacas);
     $.infoPacotes.textContent = U.formatarNumeroBR(sessao.pacotes);
   }
@@ -318,14 +324,31 @@
   // -----------------------------------------------------------------------
 
   function renderHistoricoLista() {
-    var historico = estado.dados.history.slice().sort(function (a, b) {
-      return new Date(b.endTime || b.startTime) - new Date(a.endTime || a.startTime);
+    var f = estado.filtroHistorico;
+    var todos = estado.dados.history.slice();
+    var historico = U.consultarHistorico(todos, {
+      periodo: f.periodo, data: f.data, inicio: f.inicio, fim: f.fim, busca: f.busca,
+      campoData: 'startTime', buscar: function (sessao) {
+        return (sessao.occurrences || []).map(function (o) { return o.code || ''; }).join(' ');
+      }
     });
 
     while ($.listaHistorico.firstChild) $.listaHistorico.removeChild($.listaHistorico.firstChild);
-    $.historicoVazio.hidden = historico.length > 0;
+    $.historicoVazio.hidden = todos.length > 0;
+    $.historicoSemResultados.hidden = todos.length === 0 || historico.length > 0;
+    $.historicoDataWrap.hidden = f.periodo !== 'data';
+    $.historicoInicioWrap.hidden = $.historicoFimWrap.hidden = f.periodo !== 'intervalo';
 
+    var diaAtual = null;
     historico.forEach(function (sessao) {
+      var dia = U.dataOperacional(sessao.startTime);
+      if (dia !== diaAtual) {
+        diaAtual = dia;
+        var grupo = document.createElement('li');
+        grupo.className = 'historico-grupo-dia';
+        grupo.textContent = U.formatarDataOperacional(sessao.startTime);
+        $.listaHistorico.appendChild(grupo);
+      }
       var status = Report.contarStatus(sessao.occurrences);
       var li = document.createElement('li');
       li.className = 'item-historico';
@@ -337,7 +360,7 @@
 
       var linha1 = document.createElement('span');
       linha1.className = 'item-historico__data';
-      linha1.textContent = U.formatarData(sessao.startTime) + ' • Finalizado às ' + (sessao.endTime ? U.formatarHora(sessao.endTime) : '—');
+      linha1.textContent = U.formatarDataOperacional(sessao.startTime) + ' • Iniciado às ' + U.formatarHoraOperacional(sessao.startTime) + ' • Finalizado às ' + (sessao.endTime ? U.formatarHoraOperacional(sessao.endTime) : '—');
       botao.appendChild(linha1);
 
       var linha2 = document.createElement('span');
@@ -358,7 +381,7 @@
 
     while ($.detalheHistoricoInfo.firstChild) $.detalheHistoricoInfo.removeChild($.detalheHistoricoInfo.firstChild);
     var campos = [
-      ['Data', U.formatarData(sessao.startTime)],
+      ['Data', U.formatarDataOperacional(sessao.startTime)],
       ['Finalização', sessao.endTime ? U.formatarHora(sessao.endTime) : '—'],
       ['Sacas', U.formatarNumeroBR(sessao.sacas)],
       ['Pacotes', U.formatarNumeroBR(sessao.pacotes)]
@@ -408,7 +431,7 @@
     var status = Report.contarStatus(sessao.occurrences);
     confirmar({
       titulo: 'Excluir sessão do histórico',
-      mensagem: 'Excluir a conferência de ' + U.formatarData(sessao.startTime) + ' (' + status.total + ' ocorrência(s))? Esta ação não pode ser desfeita e não existe backup automático — exporte um backup antes, se precisar guardar esses dados.',
+      mensagem: 'Excluir a conferência de ' + U.formatarDataOperacional(sessao.startTime) + ' (' + status.total + ' ocorrência(s))? Esta ação não pode ser desfeita e não existe backup automático — exporte um backup antes, se precisar guardar esses dados.',
       confirmarLabel: 'Excluir sessão',
       cancelarLabel: 'Cancelar',
       perigo: true
@@ -910,71 +933,6 @@
   // Gerar PDF (via impressão do navegador)
   // -----------------------------------------------------------------------
 
-  function montarAreaImpressao(sessao) {
-    var d = Report.montarDadosCompletos(sessao);
-    var raiz = $.printArea;
-    while (raiz.firstChild) raiz.removeChild(raiz.firstChild);
-
-    function el(tag, classe, texto) {
-      var elemento = document.createElement(tag);
-      if (classe) elemento.className = classe;
-      if (texto !== undefined) elemento.textContent = texto;
-      return elemento;
-    }
-
-    raiz.appendChild(el('h1', 'print-titulo', d.nomeApp));
-
-    var infoSessao = el('p', 'print-info');
-    infoSessao.textContent = 'Sessão ' + d.sessaoId + ' • ' + d.estado + ' • Data: ' + d.data + ' • Finalização: ' + d.horaFim;
-    raiz.appendChild(infoSessao);
-
-    var totais = el('p', 'print-totais');
-    totais.textContent = 'Sacas: ' + d.sacas + '    Pacotes: ' + d.pacotes;
-    raiz.appendChild(totais);
-
-    d.categorias.forEach(function (cat) {
-      var bloco = el('section', 'print-categoria');
-      bloco.appendChild(el('h2', null, cat.label + ' (' + cat.quantidade + ')'));
-      if (cat.itens.length === 0) {
-        bloco.appendChild(el('p', 'print-zero', 'Zero'));
-      } else {
-        var ul = document.createElement('ul');
-        cat.itens.forEach(function (item) {
-          var li = document.createElement('li');
-          var principal = item.code + ' — ' + item.status;
-          li.textContent = item.nota ? principal + ' (Obs.: ' + item.nota + ')' : principal;
-          ul.appendChild(li);
-        });
-        bloco.appendChild(ul);
-      }
-      raiz.appendChild(bloco);
-    });
-
-    var resumoFinal = el('p', 'print-resumo');
-    resumoFinal.textContent = 'Total de ocorrências: ' + d.totalOcorrencias + '    Pendentes: ' + d.pendentes + '    Resolvidas: ' + d.resolvidas;
-    raiz.appendChild(resumoFinal);
-
-    raiz.appendChild(el('p', 'print-rodape', 'Nex Finalizado (' + d.horaFim + ')'));
-  }
-
-  function gerarPdf(sessao) {
-    montarAreaImpressao(sessao);
-    var tituloOriginal = document.title;
-    document.title = Report.nomeArquivoSugerido(sessao);
-
-    var restaurado = false;
-    function restaurar() {
-      if (restaurado) return;
-      restaurado = true;
-      document.title = tituloOriginal;
-      window.removeEventListener('afterprint', restaurar);
-    }
-    window.addEventListener('afterprint', restaurar);
-    setTimeout(restaurar, 3000);
-
-    window.print();
-  }
-
   // -----------------------------------------------------------------------
   // Backup: exportar / importar
   // -----------------------------------------------------------------------
@@ -984,9 +942,9 @@
     var blob = new Blob([texto], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    var hoje = new Date().toISOString().slice(0, 10);
+    var hoje = U.dataHojeOperacional(new Date());
     a.href = url;
-    a.download = 'meliops_backup_' + hoje + '.json';
+    a.download = 'melinotepad_backup_' + hoje + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1105,6 +1063,22 @@
       var botao = e.target.closest('.item-historico__botao');
       if (botao) abrirDetalheHistorico(botao.dataset.id);
     });
+    function atualizarFiltroHistorico() {
+      estado.filtroHistorico = {
+        periodo: $.historicoPeriodo.value, data: $.historicoData.value,
+        inicio: $.historicoInicio.value, fim: $.historicoFim.value, busca: $.historicoBusca.value
+      };
+      renderHistoricoLista();
+    }
+    $.historicoPeriodo.addEventListener('change', atualizarFiltroHistorico);
+    $.historicoData.addEventListener('change', atualizarFiltroHistorico);
+    $.historicoInicio.addEventListener('change', atualizarFiltroHistorico);
+    $.historicoFim.addEventListener('change', atualizarFiltroHistorico);
+    $.historicoBusca.addEventListener('input', atualizarFiltroHistorico);
+    $.historicoLimpar.addEventListener('click', function () {
+      $.historicoPeriodo.value = 'todos'; $.historicoData.value = ''; $.historicoInicio.value = ''; $.historicoFim.value = ''; $.historicoBusca.value = '';
+      atualizarFiltroHistorico();
+    });
     $.btnFecharDetalheHistorico.addEventListener('click', fecharDetalheHistorico);
     $.btnExcluirSessaoHistorico.addEventListener('click', excluirSessaoHistorico);
     $.btnRestaurarRelatorioHistorico.addEventListener('click', restaurarRelatorioHistorico);
@@ -1115,7 +1089,7 @@
     });
     $.btnGerarPdfHistorico.addEventListener('click', function () {
       var sessao = sessaoHistoricoAberta();
-      if (sessao) gerarPdf(sessao);
+      if (sessao && relatorioUiNex) relatorioUiNex.abrir({ periodo: 'dia', inicio: U.dataOperacional(sessao.startTime), tipo: 'detalhado' });
     });
 
     $.btnExportarBackup.addEventListener('click', exportarBackup);
@@ -1136,6 +1110,19 @@
   function init() {
     mapearElementos();
     carregarEstadoInicial();
+    var selector = function () {
+      var f = estado.filtroHistorico, hoje = U.dataHojeOperacional(new Date());
+      if (f.periodo === 'data' && f.data) return { periodo: 'dia', inicio: f.data, tipo: 'resumido' };
+      if (f.periodo === 'intervalo' && f.inicio && f.fim) return { periodo: 'intervalo', inicio: f.inicio, fim: f.fim, tipo: 'resumido' };
+      if (f.periodo === 'hoje') return { periodo: 'dia', inicio: hoje, tipo: 'resumido' };
+      if (f.periodo === 'ontem') return { periodo: 'dia', inicio: U.deslocarDataOperacional(hoje, -1), tipo: 'resumido' };
+      return { periodo: 'todo', tipo: 'resumido' };
+    };
+    relatorioUiNex = Relatorios.iniciarInterface($.nexRelatorioHistorico, 'NEX', function () { return estado.dados.history; }, function (registros) {
+      var busca = estado.filtroHistorico.busca.trim().toLocaleLowerCase('pt-BR');
+      if (!busca) return registros;
+      return registros.filter(function (s) { return (s.occurrences || []).some(function (o) { return String(o.code || '').toLocaleLowerCase('pt-BR').indexOf(busca) !== -1; }); });
+    }, selector, function () { var busca = estado.filtroHistorico.busca.trim(); return busca ? 'Código contém “' + busca + '”' : ''; });
     popularSelectCategorias($.selectCategoria, false);
     popularSelectCategorias($.filtroCategoria, true);
     popularSelectCategorias($.editCategoria, false);

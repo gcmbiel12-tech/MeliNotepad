@@ -29,6 +29,7 @@ const MIN = 60000;
     vermelho: !!tr.querySelector('.dot--vermelho'), verde: !!tr.querySelector('.dot--verde'),
     rotulo: tr.querySelector('.sr-only').textContent.trim()
   })));
+  const historico = async () => page.$$eval('#hs-corpo tr[data-id]', trs => trs.map(tr => tr.dataset.id));
   async function avancar(ms) { await page.clock.fastForward(ms); await page.clock.runFor(1000); }
   async function cadastrar(nome, setor) {
     await page.fill('#fn-nome', nome); await page.fill('#fn-setor', setor || '');
@@ -124,6 +125,7 @@ const MIN = 60000;
   });
 
   await etapa('Duração inválida é recusada com mensagem (não confirma)', async () => {
+    await page.evaluate(() => { document.getElementById('toast-container').innerHTML = ''; });
     await page.click('#iv-novo'); await page.fill('#iv-busca', 'José');
     await dlgNovo().locator('.lista-escolha__item', { hasText: 'José da Silva' }).click();
     await dlgNovo().getByLabel('Duração (min)').fill('0');
@@ -189,12 +191,12 @@ const MIN = 60000;
     await page.waitForFunction(() => document.getElementById('dlg-interv-detalhe').open === false);
     assert.strictEqual((await linhas()).length, antes - 1);
     await page.click('#iv-aba-historico');
-    assert.strictEqual(await page.$$eval('#hs-corpo tr', t => t.length), 1);
+    assert.strictEqual((await historico()).length, 1);
   });
 
   await etapa('Segundo intervalo do mesmo funcionário: registros independentes; histórico preserva os dois', async () => {
     await page.click('#iv-aba-ativos');
-    const primeiro = (await page.$$eval('#hs-corpo tr td:first-child', t => t.map(x => x.textContent)))[0];
+    const primeiro = (await page.$$eval('#hs-corpo tr[data-id] td:first-child', t => t.map(x => x.textContent)))[0];
     const busca = primeiro.split(' ')[0] + ' ' + (primeiro.split(' ')[1] || '');
     await page.click('#iv-novo'); await page.fill('#iv-busca', busca.trim());
     await dlgNovo().locator('.lista-escolha__item', { hasText: primeiro }).first().click();
@@ -204,37 +206,61 @@ const MIN = 60000;
     await page.click('#iv-corpo-ativos tr:has(button[data-campo=duracao]:text-is("0 min")) button[data-campo=nome]');
     await dlgDet().locator('#idt-retorno').click();
     await page.click('#iv-aba-historico');
-    const nomes = await page.$$eval('#hs-corpo tr td:first-child', t => t.map(x => x.textContent));
+    const nomes = await page.$$eval('#hs-corpo tr[data-id] td:first-child', t => t.map(x => x.textContent));
     assert.strictEqual(nomes.filter(n => n === primeiro).length, 2, 'dois registros do mesmo funcionário');
   });
 
   await etapa('Histórico: filtros por funcionário, data e setor; alterações aparecem', async () => {
-    const total = await page.$$eval('#hs-corpo tr', t => t.length);
+    const total = (await historico()).length;
     const idFunc = await page.$eval('#hs-func option:nth-child(2)', o => o.value);
     await page.selectOption('#hs-func', { index: 1 });
-    assert.ok((await page.$$eval('#hs-corpo tr', t => t.length)) <= total);
+    assert.ok((await historico()).length <= total);
     await page.click('#hs-limpar');
+    await page.selectOption('#hs-periodo', 'data');
     await page.fill('#hs-data', '2030-01-01');
-    assert.strictEqual(await page.$$eval('#hs-corpo tr', t => t.length), 0);
+    assert.strictEqual((await historico()).length, 0);
     await page.click('#hs-limpar');
+    await page.selectOption('#hs-periodo', 'data');
     await page.fill('#hs-data', '2026-10-14');
-    assert.strictEqual(await page.$$eval('#hs-corpo tr', t => t.length), total);
+    assert.strictEqual((await historico()).length, total);
     await page.click('#hs-limpar');
     await page.selectOption('#hs-setor', '');
-    assert.ok((await page.$$eval('#hs-corpo tr', t => t.length)) <= total);
+    assert.ok((await historico()).length <= total);
+    await page.click('#hs-limpar');
+    await page.selectOption('#hs-periodo', 'intervalo');
+    await page.fill('#hs-inicio', '2026-10-14'); await page.fill('#hs-fim', '2026-10-14');
+    assert.strictEqual((await historico()).length, total, 'o intervalo inclui os dois limites');
+    await page.selectOption('#hs-periodo', 'ontem');
+    assert.strictEqual((await historico()).length, 0, 'o filtro de ontem não mistura a data da saída');
+    await page.click('#hs-limpar');
     await page.click('#hs-limpar');
     assert.ok((await page.textContent('#hs-corpo')).includes('alteração'), 'a edição de HR entrada ficou registrada');
+    await page.evaluate(() => { window.print = () => { window.__printChamado = true; }; });
+    await page.locator('#iv-relatorio-historico button', { hasText: 'Preparar relatório' }).click();
+    await page.selectOption('#iv-relatorio-historico select[aria-label="Tipo de relatório"]', 'detalhado');
+    await page.locator('#iv-relatorio-historico button', { hasText: 'Ver prévia' }).click();
+    const previa = await page.textContent('#iv-relatorio-historico .relatorio-previa');
+    assert.ok(previa.includes('Módulo: Intervalos') && previa.includes('Registros: '), previa);
+    await page.locator('#iv-relatorio-historico button', { hasText: 'Imprimir / Salvar como PDF' }).click();
+    await page.waitForFunction(() => window.__printChamado === true);
+    const textoRelatorio = await page.textContent('#print-area');
+    assert.ok(textoRelatorio.includes('MeliNotepad') && textoRelatorio.includes('Detalhamento dos intervalos'));
+    assert.ok(textoRelatorio.includes('Duração prevista') && !textoRelatorio.includes('T21:00:00.000Z'));
+    assert.ok(textoRelatorio.includes('Tempo decorrido: 3 h 2 min') && !textoRelatorio.includes('NaN'));
+    const pdfReal = await page.pdf({ format: 'A4', printBackground: true });
+    assert.strictEqual(Buffer.from(pdfReal).subarray(0, 5).toString(), '%PDF-');
+    assert.ok(pdfReal.length > 1000);
   });
 
   await etapa('Persistência: recarregar a página mantém funcionários, ativos e histórico', async () => {
     const antesAtivos = (await linhas()).length;
-    const antesHist = await page.$$eval('#hs-corpo tr', t => t.length);
+    const antesHist = (await historico()).length;
     await page.reload();
     await page.clock.pauseAt(new Date(T0.getTime() + 600 * MIN));
     await page.click('.tab-modulo[data-modulo=intervalos]');
     assert.strictEqual((await linhas()).length, antesAtivos);
     await page.click('#iv-aba-historico');
-    assert.strictEqual(await page.$$eval('#hs-corpo tr', t => t.length), antesHist);
+    assert.strictEqual((await historico()).length, antesHist);
     await page.click('#iv-aba-funcionarios');
     assert.ok((await page.textContent('#fn-contagem')).startsWith('5 cadastrado'));
   });

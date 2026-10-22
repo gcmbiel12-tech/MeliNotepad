@@ -1,7 +1,7 @@
 /**
  * impressao.js
- * Impressão/PDF dos relatórios dos módulos novos, reaproveitando a folha #print-area
- * e as regras @media print já existentes (o NEX continua usando o seu próprio fluxo).
+ * Impressão/PDF dos relatórios de histórico do NEX e Intervalos, reaproveitando
+ * a folha #print-area e as regras @media print.
  * Espera as imagens carregarem antes de abrir a impressão.
  */
 (function (global) {

@@ -38,9 +38,8 @@
    * finalização, totais manuais e só as categorias que têm pelo menos uma
    * ocorrência (categorias zeradas ficam de fora — nada de "Zero" aqui).
    * Usa *negrito* e emoji (sintaxe nativa do WhatsApp) para ficar mais fácil
-   * de escanear num grupo. O PDF (ver montarDadosCompletos) continua mostrando
-   * as cinco categorias sempre, com "Zero" quando vazias — ele é o registro
-   * formal/completo da conferência, enquanto este texto é o aviso rápido.
+   * de escanear num grupo. Os relatórios PDF do histórico são montados pelo
+   * módulo relatorios-historico.js e oferecem formatos resumido e detalhado.
    */
   function gerarTextoRelatorio(sessao) {
     // Quando a sessão ainda não foi finalizada (prévia), usa o horário atual como
@@ -52,8 +51,9 @@
     // Formato DD/MM (sem ano) nesta linha, seguindo o modelo original pedido
     // ("Rotas Nex finalizadas hoje DD/MM às HH:MM"). A data completa com ano
     // continua disponível na identificação da sessão (tela) e no PDF.
-    var dataRef = U.formatarDataCurta(sessao.startTime);
-    var horaFinal = U.formatarHora(momentoReferencia);
+    var dataOperacional = U.dataOperacional(sessao.startTime);
+    var dataRef = dataOperacional.slice(8, 10) + '/' + dataOperacional.slice(5, 7);
+    var horaFinal = U.formatarHoraOperacional(momentoReferencia);
     var porCategoria = contarPorCategoria(sessao.occurrences);
     var status = contarStatus(sessao.occurrences);
 
@@ -61,7 +61,7 @@
     var teveAlgumaOcorrencia = status.total > 0;
 
     var linhas = [];
-    linhas.push('📦 *MeliOps* — Conferência NEX');
+    linhas.push('📦 *MeliNotepad* — Conferência NEX');
     linhas.push(divisoria);
     linhas.push('');
     linhas.push(emojiSaudacao + ' *' + saudacao + '*');
@@ -97,19 +97,17 @@
   }
 
   /**
-   * Monta os dados estruturados usados tanto na pré-visualização em tela
-   * quanto na folha impressa (PDF), incluindo observações e contagens —
-   * informações que o resumo de texto simples (acima) mantém de fora de
-   * propósito para continuar curto e fácil de colar em uma mensagem.
+   * Mantém uma representação estruturada de uma sessão para consumidores que
+   * precisam de seus campos operacionais e ocorrências completas.
    */
   function montarDadosCompletos(sessao) {
     var porCategoria = contarPorCategoria(sessao.occurrences);
     var status = contarStatus(sessao.occurrences);
     return {
-      nomeApp: 'MeliOps',
+      nomeApp: 'MeliNotepad',
       sessaoId: sessao.id,
-      data: U.formatarData(sessao.startTime),
-      horaFim: sessao.endTime ? U.formatarHora(sessao.endTime) : '—',
+      data: U.formatarDataOperacional(sessao.startTime),
+      horaFim: sessao.endTime ? U.formatarHoraOperacional(sessao.endTime) : '—',
       estado: sessao.status === C.SESSION_STATUS.FINALIZADA ? 'Finalizada' : 'Em andamento',
       sacas: U.formatarNumeroBR(sessao.sacas),
       pacotes: U.formatarNumeroBR(sessao.pacotes),
@@ -134,9 +132,9 @@
 
   /** Nome de arquivo sugerido (sem extensão), usado tanto no backup quanto no título da página antes de imprimir. */
   function nomeArquivoSugerido(sessao) {
-    var data = (sessao.startTime || new Date().toISOString()).slice(0, 10);
+    var data = U.dataOperacional(sessao.startTime || new Date());
     var idCurto = (sessao.id || 'sessao').replace(/^sess_/, '').slice(0, 8);
-    return 'MeliOps_' + data + '_' + idCurto;
+    return 'MeliNotepad_' + data + '_' + idCurto;
   }
 
   global.MeliNotepad = global.MeliNotepad || {};

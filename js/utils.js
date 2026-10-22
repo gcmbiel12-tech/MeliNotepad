@@ -31,6 +31,74 @@
     return n < 10 ? '0' + n : String(n);
   }
 
+  var FUSO_OPERACIONAL = 'America/Sao_Paulo';
+  function partesNoFuso(dataOuIso) {
+    var d = dataOuIso instanceof Date ? dataOuIso : new Date(dataOuIso);
+    if (isNaN(d.getTime())) return null;
+    var partes = new Intl.DateTimeFormat('en-CA', {
+      timeZone: FUSO_OPERACIONAL, year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).formatToParts(d);
+    var r = {};
+    partes.forEach(function (p) { if (p.type !== 'literal') r[p.type] = p.value; });
+    return r;
+  }
+
+  /** Data de calendário no fuso operacional, sem deslocamentos fixos de UTC. */
+  function dataOperacional(dataOuIso) {
+    var p = partesNoFuso(dataOuIso);
+    return p ? p.year + '-' + p.month + '-' + p.day : '';
+  }
+
+  function formatarDataOperacional(dataOuIso) {
+    var data = dataOperacional(dataOuIso);
+    return data ? data.slice(8, 10) + '/' + data.slice(5, 7) + '/' + data.slice(0, 4) : '--/--/----';
+  }
+
+  function formatarHoraOperacional(dataOuIso) {
+    var p = partesNoFuso(dataOuIso);
+    return p ? p.hour + ':' + p.minute : '--:--';
+  }
+
+  function formatarDataHoraOperacional(dataOuIso) {
+    return formatarDataOperacional(dataOuIso) + ' ' + formatarHoraOperacional(dataOuIso);
+  }
+
+  function deslocarDataOperacional(data, dias) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data || '')) return '';
+    var p = data.split('-').map(Number);
+    var d = new Date(Date.UTC(p[0], p[1] - 1, p[2] + dias));
+    return d.getUTCFullYear() + '-' + doisDigitos(d.getUTCMonth() + 1) + '-' + doisDigitos(d.getUTCDate());
+  }
+
+  function dataHojeOperacional(agora) { return dataOperacional(agora || new Date()); }
+
+  /** Datas ISO de calendário são comparadas inclusivamente; registros não são alterados. */
+  function dentroDoPeriodoOperacional(instante, inicio, fim, agora) {
+    var data = dataOperacional(instante);
+    if (!data) return false;
+    var min = inicio || '', max = fim || '';
+    if (inicio === 'hoje') min = max = dataHojeOperacional(agora);
+    if (inicio === 'ontem') min = max = deslocarDataOperacional(dataHojeOperacional(agora), -1);
+    return (!min || data >= min) && (!max || data <= max);
+  }
+
+  /** Consulta imutável de histórico; ordena pelo instante operacional fornecido. */
+  function consultarHistorico(registros, opcoes) {
+    var o = opcoes || {}, periodo = o.periodo || 'todos';
+    var inicio = periodo === 'hoje' ? 'hoje' : periodo === 'ontem' ? 'ontem' : periodo === 'data' ? o.data : periodo === 'intervalo' ? o.inicio : '';
+    var fim = periodo === 'data' ? o.data : periodo === 'intervalo' ? o.fim : '';
+    var busca = String(o.busca || '').trim().toLocaleLowerCase('pt-BR');
+    if ((periodo === 'data' && !inicio) || (periodo === 'intervalo' && (!inicio || !fim || inicio > fim))) return [];
+    return (registros || []).filter(function (r) {
+      var instante = r && r[o.campoData || 'startTime'];
+      if (inicio && !dentroDoPeriodoOperacional(instante, inicio, fim, o.agora)) return false;
+      return !busca || String((o.buscar && o.buscar(r)) || '').toLocaleLowerCase('pt-BR').indexOf(busca) !== -1;
+    }).slice().sort(function (a, b) {
+      return new Date(b[o.campoData || 'startTime']) - new Date(a[o.campoData || 'startTime']) || String(a.id || '').localeCompare(String(b.id || ''));
+    });
+  }
+
   /** Formata um Date (ou ISO string) como DD/MM/AAAA. */
   function formatarData(dataOuIso) {
     var d = dataOuIso instanceof Date ? dataOuIso : new Date(dataOuIso);
@@ -188,6 +256,14 @@
     gerarId: gerarId,
     agora: agora,
     formatarData: formatarData,
+    dataOperacional: dataOperacional,
+    dataHojeOperacional: dataHojeOperacional,
+    deslocarDataOperacional: deslocarDataOperacional,
+    dentroDoPeriodoOperacional: dentroDoPeriodoOperacional,
+    consultarHistorico: consultarHistorico,
+    formatarDataOperacional: formatarDataOperacional,
+    formatarHoraOperacional: formatarHoraOperacional,
+    formatarDataHoraOperacional: formatarDataHoraOperacional,
     formatarHora: formatarHora,
     formatarDataHora: formatarDataHora,
     formatarDataCurta: formatarDataCurta,

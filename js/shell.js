@@ -1,6 +1,6 @@
 /**
  * shell.js
- * Navegação entre as áreas do MeliOps (NEX, XPT, Intervalos).
+ * Navegação entre as áreas do MeliNotepad (NEX, XPT, Intervalos).
  * Só alterna a visibilidade: nenhuma área é recriada ou recarregada, então
  * formulários ainda não salvos e dados em tela são preservados ao trocar de área.
  */

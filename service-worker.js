@@ -13,7 +13,7 @@
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v3';
+var CACHE_VERSION = 'v4';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [
@@ -30,6 +30,7 @@ var ARQUIVOS_ESSENCIAIS = [
   './js/modulo-store.js',
   './js/shell.js',
   './js/intervalos-regras.js',
+  './js/relatorios-historico.js',
   './js/intervalos.js',
   './js/xpt-regras.js',
   './js/fotos.js',
@@ -111,10 +112,10 @@ self.addEventListener('fetch', function (evento) {
           return new Response(
             '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">' +
             '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-            '<title>MeliOps — sem conexão</title></head>' +
+            '<title>MeliNotepad — sem conexão</title></head>' +
             '<body style="font-family:sans-serif;padding:24px;max-width:480px;margin:0 auto">' +
             '<h1>Sem conexão</h1>' +
-            '<p>Não foi possível carregar o MeliOps agora, e esta página ainda não está ' +
+            '<p>Não foi possível carregar o MeliNotepad agora, e esta página ainda não está ' +
             'disponível para uso offline neste aparelho.</p>' +
             '<p>Conecte-se à internet e abra o app de novo para que ele termine de ' +
             'preparar o uso offline.</p>' +

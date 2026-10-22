@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MeliOps — NEX, XPT e Intervalos</title>
-<meta name="description" content="MeliOps: conferência NEX, operação XPT e controle de intervalos dos funcionários.">
+<title>MeliNotepad — NEX, XPT e Intervalos</title>
+<meta name="description" content="MeliNotepad: conferência NEX, operação XPT e controle de intervalos dos funcionários.">
 <meta name="theme-color" content="#FFD400">
-<meta name="application-name" content="MeliOps">
-<meta name="apple-mobile-web-app-title" content="MeliOps">
+<meta name="application-name" content="MeliNotepad">
+<meta name="apple-mobile-web-app-title" content="MeliNotepad">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
@@ -21,10 +21,10 @@
 <!-- ======================= CABEÇALHO ======================= -->
 <header class="app-header">
   <div class="app-header__marca">
-    <span class="app-header__nome">MeliOps</span>
+    <span class="app-header__nome">MeliNotepad</span>
     <span id="status-chip" class="chip chip--neutro" role="status" aria-live="polite">Sem sessão ativa</span>
   </div>
-  <nav class="nav-modulos" id="nav-modulos" aria-label="Áreas do MeliOps">
+  <nav class="nav-modulos" id="nav-modulos" aria-label="Áreas do MeliNotepad">
     <div class="nav-modulos__grupo" role="group" aria-label="Operacional">
       <button type="button" class="tab-modulo is-ativo" data-modulo="nex" aria-current="page">NEX</button>
       <button type="button" class="tab-modulo" data-modulo="xpt">XPT</button>
@@ -210,8 +210,23 @@
       <div class="cartao__cabecalho">
         <h2 id="titulo-historico">Sessões finalizadas</h2>
       </div>
+      <div class="filtros historico-filtros" role="search" aria-label="Filtros do histórico">
+        <label>Período
+          <select id="historico-periodo">
+            <option value="todos">Todo o histórico</option><option value="hoje">Hoje</option><option value="ontem">Ontem</option>
+            <option value="data">Data específica</option><option value="intervalo">Intervalo de datas</option>
+          </select>
+        </label>
+        <label id="historico-data-wrap" hidden>Data<input id="historico-data" type="date"></label>
+        <label id="historico-inicio-wrap" hidden>De<input id="historico-inicio" type="date"></label>
+        <label id="historico-fim-wrap" hidden>Até<input id="historico-fim" type="date"></label>
+        <label>Código<input id="historico-busca" type="search" placeholder="Buscar código" autocomplete="off"></label>
+        <button type="button" id="historico-limpar" class="botao botao--texto">Limpar filtros</button>
+      </div>
       <p id="historico-vazio" class="texto-apoio" hidden>Nenhuma conferência foi finalizada ainda.</p>
+      <p id="historico-sem-resultados" class="texto-apoio" hidden>Nenhuma conferência encontrada com estes filtros.</p>
       <ul id="lista-historico" class="lista-historico"></ul>
+      <div id="nex-relatorio-historico" class="relatorio-seletor"></div>
     </section>
 
     <section id="detalhe-historico" class="cartao" aria-labelledby="titulo-detalhe-historico" hidden>
@@ -232,14 +247,14 @@
       <textarea id="detalhe-historico-relatorio" class="texto-relatorio" rows="14"></textarea>
       <div class="acoes-form">
         <button type="button" id="btn-copiar-resumo-historico" class="botao botao--secundario">Copiar resumo</button>
-        <button type="button" id="btn-gerar-pdf-historico" class="botao botao--secundario">Gerar PDF</button>
+          <button type="button" id="btn-gerar-pdf-historico" class="botao botao--secundario">Preparar relatório PDF</button>
       </div>
       <p id="aviso-copiar-historico" class="texto-aviso" aria-live="polite"></p>
     </section>
 
     <section class="cartao" aria-labelledby="titulo-backup">
       <h2 id="titulo-backup">Backup dos dados</h2>
-      <p class="texto-apoio">O MeliOps guarda os dados do NEX apenas neste navegador (LocalStorage). XPT e Intervalos têm backup próprio, em cada módulo. Limpar os dados do navegador apaga os registros, e os dados não sincronizam sozinhos entre dispositivos. Exporte um backup regularmente.</p>
+      <p class="texto-apoio">O MeliNotepad guarda os dados do NEX apenas neste navegador (LocalStorage). XPT e Intervalos têm backup próprio, em cada módulo. Limpar os dados do navegador apaga os registros, e os dados não sincronizam sozinhos entre dispositivos. Exporte um backup regularmente.</p>
       <div class="acoes-form">
         <button type="button" id="btn-exportar-backup" class="botao botao--secundario">Exportar backup (JSON)</button>
         <button type="button" id="btn-importar-backup" class="botao botao--secundario">Importar backup (JSON)</button>
@@ -331,7 +346,7 @@
 <textarea id="area-copia-manual" class="area-copia-manual" readonly hidden aria-label="Texto do relatório para copiar manualmente"></textarea>
 
 <!-- ======================= ÁREA DE IMPRESSÃO (PDF) ======================= -->
-<!-- Preenchida dinamicamente por report.js/app.js antes de window.print(). -->
+<!-- Preenchida dinamicamente por relatorios-historico.js antes de window.print(). -->
 <div id="print-area" aria-hidden="true"></div>
 
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
@@ -341,10 +356,11 @@
 <script src="js/storage.js"></script>
 <script src="js/scanner.js"></script>
 <script src="js/report.js"></script>
-<script src="js/app.js"></script>
 <script src="js/modulo-store.js"></script>
 <script src="js/shell.js"></script>
 <script src="js/intervalos-regras.js"></script>
+<script src="js/relatorios-historico.js"></script>
+<script src="js/app.js"></script>
 <script src="js/intervalos.js"></script>
 <script src="js/xpt-regras.js"></script>
 <script src="js/fotos.js"></script>

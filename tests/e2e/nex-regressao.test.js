@@ -156,7 +156,7 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     assert.ok(!texto.includes('despachar'), 'categoria SEM ocorrência não deveria aparecer no texto: trecho = ' + texto);
     assert.ok(/\*Nex Finalizado \(\d{2}:\d{2}\)\*/.test(texto), 'rodapé em negrito ausente/mal formatado');
     assert.ok(/📊 \*4\* ocorrência/.test(texto), 'resumo de totais ausente: ' + texto);
-    assert.ok(texto.includes('*MeliOps* — Conferência NEX'), 'cabeçalho de marca ausente');
+    assert.ok(texto.includes('*MeliNotepad* — Conferência NEX'), 'cabeçalho de marca ausente');
   });
 
   let horarioFinalizacaoEscolhido;
@@ -168,7 +168,11 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     const valorPreenchido = await page.inputValue('#finalizar-horario');
     assert.ok(valorPreenchido.length > 0, 'horário deveria vir pré-preenchido');
 
-    horarioFinalizacaoEscolhido = '2026-10-12T20:22';
+    horarioFinalizacaoEscolhido = await page.evaluate(() => {
+      const d = new Date(Date.now() + 60_000);
+      const dois = n => String(n).padStart(2, '0');
+      return d.getFullYear() + '-' + dois(d.getMonth() + 1) + '-' + dois(d.getDate()) + 'T' + dois(d.getHours()) + ':' + dois(d.getMinutes());
+    });
     await page.fill('#finalizar-horario', horarioFinalizacaoEscolhido);
     await page.click('#form-finalizar button[type=submit]');
     await page.waitForSelector('#detalhe-historico:not([hidden])', { timeout: 3000 });
@@ -181,22 +185,27 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     const tag = await page.evaluate(() => document.getElementById('detalhe-historico-relatorio').tagName);
     assert.strictEqual(tag, 'TEXTAREA', 'relatório do histórico deveria ser uma textarea editável');
     const texto = await page.inputValue('#detalhe-historico-relatorio');
-    assert.ok(texto.includes('Nex Finalizado (20:22)'), 'deveria usar o horário manual exato informado: ' + texto);
+    assert.ok(texto.includes('Nex Finalizado (' + horarioFinalizacaoEscolhido.slice(11, 16) + ')'), 'deveria usar o horário manual exato informado: ' + texto);
     assert.ok(!texto.includes('despachar'), 'categoria zerada ainda não deveria aparecer no texto final');
   });
 
-  await etapa('PDF do histórico: mostra as 5 categorias (despachar com "Zero") e não traz "Início"', async () => {
+  await etapa('PDF do histórico: prévia detalhada, período e quantidade antes de imprimir', async () => {
     await page.evaluate(() => { window.print = () => { window.__printChamado = true; }; });
     await page.click('#btn-gerar-pdf-historico');
+    await page.locator('#nex-relatorio-historico button', { hasText: 'Ver prévia' }).click();
+    const previa = await page.textContent('#nex-relatorio-historico .relatorio-previa');
+    assert.ok(previa.includes('Módulo: NEX') && previa.includes('Período:') && previa.includes('Tipo: Detalhado') && previa.includes('Registros: 1'), previa);
+    await page.locator('#nex-relatorio-historico button', { hasText: 'Imprimir / Salvar como PDF' }).click();
+    await page.waitForFunction(() => window.__printChamado === true);
     const chamado = await page.evaluate(() => window.__printChamado === true);
     assert.ok(chamado, 'window.print deveria ter sido chamado');
-    const categorias = await page.$$eval('#print-area .print-categoria h2', els => els.map(e => e.textContent));
-    assert.strictEqual(categorias.length, 5, 'PDF deve manter as 5 categorias mesmo com uma zerada');
-    assert.ok(categorias.some(t => t.includes('despachar') && t.includes('(0)')), 'categoria zerada deveria aparecer no PDF com (0): ' + categorias.join(' | '));
-    const infoSessao = await page.$eval('#print-area .print-info', el => el.textContent);
-    assert.ok(!infoSessao.includes('Início'), 'PDF não deveria mais trazer "Início": ' + infoSessao);
-    const rodape = await page.$eval('#print-area .print-rodape', el => el.textContent);
-    assert.ok(rodape.includes('20:22'), 'rodapé do PDF deveria usar o horário manual de finalização: ' + rodape);
+    const textoPdf = await page.textContent('#print-area');
+    assert.ok(textoPdf.includes('MeliNotepad'), 'cabeçalho deve usar a marca correta');
+    assert.ok(textoPdf.includes('PKG') || textoPdf.includes('481'), 'detalhado deve incluir códigos operacionais');
+    assert.ok(textoPdf.includes('Sacas: 96') && textoPdf.includes('Pacotes: 7.007'), 'detalhado deve conter totais da sessão');
+    const pdfReal = await page.pdf({ format: 'A4', printBackground: true });
+    assert.strictEqual(Buffer.from(pdfReal).subarray(0, 5).toString(), '%PDF-', 'Chromium deve produzir um PDF válido usando o layout de impressão');
+    assert.ok(pdfReal.length > 1000, 'o PDF deve conter páginas e conteúdo');
   });
 
   await etapa('Editar o texto do relatório manualmente e copiar respeita a edição', async () => {
@@ -210,7 +219,7 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   await etapa('"Restaurar texto gerado" devolve o relatório original', async () => {
     await page.click('#btn-restaurar-relatorio-historico');
     const texto = await page.inputValue('#detalhe-historico-relatorio');
-    assert.ok(texto.includes('Nex Finalizado (20:22)'), 'texto restaurado deveria trazer o relatório gerado de novo');
+    assert.ok(texto.includes('Nex Finalizado (' + horarioFinalizacaoEscolhido.slice(11, 16) + ')'), 'texto restaurado deveria trazer o relatório gerado de novo');
     assert.ok(!texto.includes('reescrito pelo usuário'));
   });
 
@@ -294,6 +303,20 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     await page.waitForFunction(() => document.querySelectorAll('.item-historico__botao').length === 1);
     const idImportado = await page.evaluate(() => JSON.parse(localStorage.getItem('melinotepad_data_v1')).history[0].id);
     assert.strictEqual(idImportado, 'sess_importada');
+    const dataOperacional = await page.evaluate(() => {
+      const s = JSON.parse(localStorage.getItem('melinotepad_data_v1')).history[0];
+      const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(s.startTime));
+      const x = Object.fromEntries(p.filter(v => v.type !== 'literal').map(v => [v.type, v.value]));
+      return x.year + '-' + x.month + '-' + x.day;
+    });
+    await page.selectOption('#historico-periodo', 'data');
+    await page.fill('#historico-data', dataOperacional);
+    assert.strictEqual(await page.$$eval('.item-historico__botao', els => els.length), 1, 'data específica usa o startTime');
+    await page.fill('#historico-busca', 'CODIGO-INEXISTENTE');
+    assert.strictEqual(await page.$$eval('.item-historico__botao', els => els.length), 0);
+    assert.strictEqual(await page.isVisible('#historico-sem-resultados'), true);
+    await page.click('#historico-limpar');
+    assert.strictEqual(await page.$$eval('.item-historico__botao', els => els.length), 1);
   });
 
   await etapa('Excluir sessão do histórico pede confirmação e remove permanentemente', async () => {
