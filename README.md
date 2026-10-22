@@ -1,14 +1,14 @@
-﻿# MeliNotepad
+# MeliNotepad
 
-> **Estado desta entrega (parcial)** — leia antes de publicar.
+> **Estado desta entrega (em desenvolvimento)** — leia antes de publicar.
 >
-> | Área | Situação |
+> | Área | Situação verificada em 22/10/2026 |
 > |---|---|
-> | NEX | Preservado. A suíte de regressão (31 cenários) passou na última execução, **antes** das alterações finais (service worker, marcador do XPT, README); não foi reexecutada depois. |
-> | Controle de Intervalos | Implementado. Passou em 18 cenários de ponta a ponta e 17 unitários na última execução (antes dos ajustes finais; não reexecutado). Dados só neste aparelho. |
-> | XPT | **Não concluído.** As regras (`js/xpt-regras.js`) estão prontas e testadas (21 unitários); a tela, a foto do HAND + lacre e os relatórios ainda não. A aba mostra "em desenvolvimento" e não grava dados. O trabalho parcial da tela está em `wip/` (não é carregado). |
-> | Leitura de QR | `{"id":"…","t":"lm"}` passa a extrair só o `id`. Coberto por testes unitários da função. **Não foi testado passando pelo scanner nem com câmera real.** |
-> | Sincronização entre aparelhos | **Não existe.** Tudo fica no armazenamento local de cada aparelho. |
+> | NEX | Código preservado. Os testes unitários atuais passaram; os testes E2E não foram executados nesta etapa. |
+> | Controle de Intervalos | Regras e interface existentes preservadas. Testes unitários incluídos na suíte atual passaram; não houve teste E2E nesta etapa. Os dados continuam locais. |
+> | XPT | A interface operacional foi integrada em `js/xpt.js`: operações, quantidades, gaiolas/auditoria, ocorrências, veículos, associação de gaiolas e relatórios. Regras unitárias passaram. A interface ainda precisa de teste E2E; a fotografia é local e não sincroniza entre dispositivos. |
+> | Leitura de QR | `{"id":"…","t":"lm"}` extrai só o `id`, preservando zeros à esquerda. Os testes unitários passaram. Scanner e câmera real não foram testados nesta etapa. |
+> | Sincronização entre aparelhos | **Não implementada.** O aplicativo usa armazenamento local para os módulos operacionais. Não foi encontrada integração do frontend com Supabase Storage nem configuração de bucket no repositório. |
 > | Fotos em outros aparelhos | Dependem de um serviço de armazenamento ainda não escolhido nem autorizado. |
 >
 > **Testes:** ver `tests/LEIA-ME.md`. **Nome:** só os textos visíveis foram renomeados; identificadores técnicos (`window.MeliNotepad`, chaves do LocalStorage, nome do cache) foram mantidos de propósito para não perder dados existentes. O app já instalado no celular continua com o nome antigo até ser reinstalado.

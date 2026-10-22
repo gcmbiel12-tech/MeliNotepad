@@ -1,5 +1,5 @@
 /* =========================================================================
-   MeliOps — modulos.css
+   MeliNotepad — modulos.css
    Estilos das áreas novas (navegação, XPT e Intervalos). Arquivo separado para
    NÃO alterar o styles.css global; tudo reutiliza as variáveis e a paleta
    existentes (amarelo, azul, verde, laranja, vermelho, tinta, papel).
@@ -128,3 +128,97 @@ dialog.modal input[type="time"], dialog.modal input[type="date"], dialog.modal i
 }
 .modulo input[type="time"]:focus, .modulo input[type="date"]:focus, .modulo input[type="search"]:focus,
 dialog.modal input[type="time"]:focus, dialog.modal input[type="datetime-local"]:focus { border-color: var(--cor-azul); }
+
+
+/* MeliNotepad XPT: complementos visuais restritos ao módulo, sem alterar o NEX. */
+#modulo-xpt .xpt-abas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: 1rem 0;
+}
+#modulo-xpt .xpt-abas .btn-nav {
+  min-height: 2.75rem;
+}
+#modulo-xpt .xpt-foto-previa {
+  margin-top: .75rem;
+}
+#modulo-xpt .xpt-foto-previa img,
+#modulo-xpt .xpt-foto-relatorio,
+#print-area .xpt-foto-relatorio {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 420px;
+  height: auto;
+  object-fit: contain;
+  border-radius: .5rem;
+  border: 1px solid var(--borda, #d8d8d8);
+}
+#modulo-xpt .xpt-foto-container {
+  margin: 1rem 0;
+}
+#modulo-xpt .xpt-veiculo,
+#modulo-xpt .xpt-ocorrencia {
+  overflow-wrap: anywhere;
+}
+#modulo-xpt .xpt-lista-ocorrencias {
+  display: grid;
+  gap: .75rem;
+}
+@media (max-width: 600px) {
+  #modulo-xpt .xpt-abas {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #modulo-xpt .xpt-abas .btn-nav {
+    width: 100%;
+  }
+}
+
+#modulo-xpt [hidden],
+#print-area [hidden] {
+  display: none !important;
+}
+
+
+#modulo-xpt .xpt-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+#modulo-xpt .xpt-grid .campo {
+  min-width: 0;
+  margin-bottom: 0;
+}
+#modulo-xpt .xpt-previa {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  align-items: flex-start;
+}
+#modulo-xpt .xpt-previa table {
+  width: 100%;
+}
+#modulo-xpt .xpt-resumo {
+  font-weight: 600;
+  margin-block: .75rem;
+}
+#modulo-xpt .xpt-avisos {
+  padding-left: 1.25rem;
+}
+#modulo-xpt .xpt-botao-foto {
+  display: inline-flex;
+  align-items: center;
+  margin-block: .5rem;
+  cursor: pointer;
+}
+#modulo-xpt .xpt-lista-ocorrencias {
+  padding: 0;
+  list-style: none;
+}
+#print-area .xpt-foto-relatorio {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
