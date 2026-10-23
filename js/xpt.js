@@ -9,9 +9,10 @@
   'use strict';
   var NS = global.MeliNotepad, X = NS.XptRegras, U = NS.Utils, UI = NS.UI, F = NS.Fotos, Scanner = NS.Scanner, h = UI.h;
   var ABAS = [['gaiolas', 'Gaiolas e auditoria'], ['ocorrencias', 'Ocorrências'], ['veiculos', 'Veículos e carregamento'], ['quantidades', 'Quantidades'], ['relatorios', 'Relatórios']];
+  var ABA_PRINCIPAL = [['operacoes', 'Operações'], ['historico', 'Histórico']];
   var store = NS.ModStore.criar({ chave: 'melinotepad_xpt_v1', rotulo: 'XPT', padrao: X.padrao, validar: X.validarDados });
   var estado = X.padrao(), avisoArm = null, el = {};
-  var ui = { opId: null, aba: 'gaiolas', filtroAud: '*', busca: '', filtroOc: '*' };
+  var ui = { opId: null, tela: 'operacoes', histId: null, aba: 'gaiolas', filtroAud: '*', busca: '', filtroOc: '*' };
 
   function agora() { return U.agora().getTime(); }
   function hhmm(i) { return U.formatarHora(new Date(i)); }
@@ -148,6 +149,77 @@
         dialogoHorario({ titulo: 'Encerrar operação', texto: 'Encerrar é uma ação explícita e é diferente do fim do carregamento.', aviso: av.join(' '), rotuloCampo: 'Encerramento', confirmar: 'Encerrar operação',
           aoConfirmar: function (ms) { if (!mutarOp(function (x) { x.encerradaAt = new Date(ms).toISOString(); })) return false; renderTudo(); return true; } });
       } })]));
+  }
+
+  // ================================================================ histórico de operações encerradas
+  function operacoesHistorico() {
+    return estado.operacoes.filter(function (o) { return !!o.encerradaAt; }).sort(function (a, b) {
+      return Date.parse(b.encerradaAt) - Date.parse(a.encerradaAt);
+    });
+  }
+  function renderHistorico() {
+    if (!el.corpoHistorico) return;
+    var todos = operacoesHistorico(), termo = (el.histBusca.value || '').trim().toLocaleLowerCase();
+    var inicio = el.histInicio.value, fim = el.histFim.value;
+    var itens = todos.filter(function (o) {
+      var data = U.dataOperacional(o.encerradaAt || o.inicioAt || '');
+      var texto = [o.inicioAt, o.encerradaAt, o.fimCarregamentoAt, o.veiculos.map(function (v) { return [v.placa, v.motorista, (v.rotas || []).join(' ')].join(' '); }).join(' '), X.relatorioBasico(o)].join(' ').toLocaleLowerCase();
+      return (!inicio || data >= inicio) && (!fim || data <= fim) && (!termo || texto.indexOf(termo) >= 0);
+    });
+    UI.limpar(el.corpoHistorico);
+    el.histVazio.hidden = todos.length > 0;
+    el.histSemResultados.hidden = todos.length === 0 || itens.length > 0;
+    el.histContagem.textContent = itens.length + ' operação(ões) encerrada(s)';
+    itens.forEach(function (o) {
+      var tr = h('tr', {}, [
+        h('td', { text: U.formatarData(new Date(o.inicioAt)) }),
+        h('td', { text: hhmm(o.inicioAt) }),
+        h('td', { text: o.encerradaAt ? dataHora(o.encerradaAt) : '-' }),
+        h('td', { text: o.gaiolas.length }),
+        h('td', { text: o.veiculos.length }),
+        h('td', {}, [h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'detalhe-historico', id: o.id }, text: 'Ver detalhes' })])
+      ]);
+      el.corpoHistorico.appendChild(tr);
+    });
+  }
+  function abrirHistorico(id) {
+    var o = estado.operacoes.filter(function (x) { return x.id === id && !!x.encerradaAt; })[0];
+    if (!o) return;
+    ui.histId = id;
+    el.histDetalheTitulo.textContent = 'Operação de ' + U.formatarData(new Date(o.inicioAt));
+    el.histDetalheInfo.textContent = 'Início: ' + dataHora(o.inicioAt) + ' | Fim do carregamento: ' + (o.fimCarregamentoAt ? dataHora(o.fimCarregamentoAt) : 'não registrado') + ' | Encerrada: ' + dataHora(o.encerradaAt) + ' | Gaiolas: ' + o.gaiolas.length + ' | Veículos: ' + o.veiculos.length + ' | Ocorrências: ' + o.ocorrencias.length;
+    el.histRelatorio.value = X.relatorioBasico(o);
+    el.histDetalhe.hidden = false;
+    el.histRelatorio.focus();
+  }
+  function fecharHistoricoDetalhe() { ui.histId = null; el.histDetalhe.hidden = true; }
+  function operacaoHistoricoAberta() { return estado.operacoes.filter(function (o) { return o.id === ui.histId && !!o.encerradaAt; })[0] || null; }
+  function copiarRelatorioHistorico() {
+    var o = operacaoHistoricoAberta(); if (!o) return;
+    var texto = X.relatorioBasico(o);
+    if (global.navigator.clipboard && global.navigator.clipboard.writeText && global.isSecureContext) {
+      global.navigator.clipboard.writeText(texto).then(function () { UI.avisar('Relatório copiado.', 'sucesso'); }).catch(function () { el.histRelatorio.hidden = false; el.histRelatorio.focus(); el.histRelatorio.select(); UI.avisar('Selecione e copie o texto do relatório manualmente.', 'info'); });
+    } else { el.histRelatorio.hidden = false; el.histRelatorio.focus(); el.histRelatorio.select(); UI.avisar('Selecione e copie o texto do relatório manualmente.', 'info'); }
+  }
+  function imprimirRelatorioHistorico() {
+    var o = operacaoHistoricoAberta(); if (!o) return;
+    var texto = X.relatorioBasico(o);
+    NS.Impressao.imprimir('MeliNotepad_XPT_' + (o.inicioAt || '').slice(0, 10), function (area) {
+      area.appendChild(h('h1', { text: 'MeliNotepad — XPT: histórico da operação' }));
+      area.appendChild(h('pre', { class: 'relatorio-texto-impressao', text: texto }));
+    }).catch(function (e) { UI.avisar('Não foi possível preparar o PDF: ' + (e.message || e), 'erro'); });
+  }
+  function excluirOperacaoHistorico() {
+    var o = operacaoHistoricoAberta(); if (!o) return;
+    if (!global.confirm('Excluir definitivamente a operação XPT de ' + U.formatarData(new Date(o.inicioAt)) + '? Gaiolas, auditorias, ocorrências, veículos e os dados associados desta operação também serão removidos. Esta ação não pode ser desfeita.')) return;
+    var r = mutar(function (d) {
+      var alvo = d.operacoes.filter(function (x) { return x.id === o.id; })[0];
+      if (!alvo || !alvo.encerradaAt) throw new Error('Apenas operações encerradas podem ser excluídas do histórico.');
+      d.operacoes = d.operacoes.filter(function (x) { return x.id !== o.id; });
+    });
+    if (!r) return;
+    fecharHistoricoDetalhe(); renderHistorico(); renderLista();
+    UI.avisar('Operação excluída do histórico deste navegador.', 'sucesso');
   }
 
   // ================================================================ quantidades
@@ -585,6 +657,23 @@
     el.corpoOps = tabela.querySelector('tbody');
     el.tabelaOps = tabela;
     el.vazioOps = h('p', { class: 'texto-apoio', text: 'Nenhuma operação XPT registrada.' });
+    el.navPrincipal = h('nav', { class: 'nav-sub xpt-abas', 'aria-label': 'Seções principais do XPT' }, ABA_PRINCIPAL.map(function (a) { return h('button', { type: 'button', class: 'btn-nav' + (a[0] === ui.tela ? ' is-ativo' : ''), dataset: { tela: a[0] }, 'aria-pressed': a[0] === ui.tela ? 'true' : 'false', text: a[1] }); }));
+    el.pOperacoes = h('div', { id: 'xo-tela-operacoes' });
+    el.pHistorico = h('section', { id: 'xo-tela-historico', hidden: true }, [
+      h('div', { class: 'cartao' }, [h('h2', { text: 'Histórico de operações XPT' }), h('p', { class: 'texto-apoio', text: 'O histórico reúne operações encerradas. Abra uma operação para consultar o relatório, copiar, imprimir/salvar em PDF ou excluir.' }),
+        h('div', { class: 'xpt-grid' }, [UI.campo('Buscar operação, placa, motorista, rota ou conteúdo', el.histBusca = h('input', { type: 'search', id: 'xh-busca', placeholder: 'Digite para buscar' })), UI.campo('Encerrada a partir de', el.histInicio = h('input', { type: 'date', id: 'xh-inicio' })), UI.campo('Encerrada até', el.histFim = h('input', { type: 'date', id: 'xh-fim' }))]),
+        h('div', { class: 'acoes-form' }, [h('button', { type: 'button', class: 'botao botao--secundario', text: 'Limpar filtros', onclick: function () { el.histBusca.value = ''; el.histInicio.value = ''; el.histFim.value = ''; renderHistorico(); } })]),
+        h('p', { class: 'texto-apoio', id: 'xh-contagem', 'aria-live': 'polite' }), el.histVazio = h('p', { class: 'texto-apoio', text: 'Nenhuma operação encerrada no histórico.', id: 'xh-vazio', hidden: true }), el.histSemResultados = h('p', { class: 'texto-apoio', text: 'Nenhuma operação corresponde aos filtros.', id: 'xh-sem-resultados', hidden: true }),
+        h('div', { class: 'tabela-rolavel' }, [h('table', { class: 'tabela-modulo' }, [thead(['Data da operação', 'Início', 'Encerrada em', 'Gaiolas', 'Veículos', '']), h('tbody', { id: 'xh-corpo' })])])]),
+      el.histDetalhe = h('section', { class: 'cartao', id: 'xh-detalhe', hidden: true }, [h('div', { class: 'cartao__cabecalho' }, [h('h3', { id: 'xh-detalhe-titulo' }), h('button', { type: 'button', class: 'botao botao--texto', text: 'Fechar detalhes', onclick: fecharHistoricoDetalhe })]),
+        h('p', { class: 'texto-apoio', id: 'xh-detalhe-info' }), h('label', { class: 'campo', for: 'xh-relatorio' }, [h('span', { text: 'Relatório completo da operação' }), el.histRelatorio = h('textarea', { id: 'xh-relatorio', rows: '18', readonly: true })]),
+        h('div', { class: 'acoes-form' }, [h('button', { type: 'button', class: 'botao botao--secundario', text: 'Copiar relatório', onclick: copiarRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--secundario', text: 'Imprimir / Salvar como PDF', onclick: imprimirRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--perigo', text: 'Excluir operação', onclick: excluirOperacaoHistorico })])])
+    ]);
+    el.corpoHistorico = el.pHistorico.querySelector('#xh-corpo');
+    el.histContagem = el.pHistorico.querySelector('#xh-contagem');
+    el.histDetalheTitulo = el.pHistorico.querySelector('#xh-detalhe-titulo');
+    el.histDetalheInfo = el.pHistorico.querySelector('#xh-detalhe-info');
+
     el.listaOps = h('section', { class: 'cartao' }, [
       h('div', { class: 'cartao__cabecalho' }, [h('h2', { text: 'Operações XPT' }), h('button', { type: 'button', class: 'botao botao--primario', id: 'xo-nova', text: '+ Nova operação', onclick: novaOperacao })]),
       h('p', { class: 'texto-apoio', text: 'A operação mantém sua data de referência mesmo que atravesse a meia-noite. Fim do carregamento e encerramento são registros separados.' }),
@@ -605,7 +694,16 @@
       h('h2', { text: 'XPT — Expedição operacional' }),
       h('p', { class: 'texto-apoio', text: 'Registre a operação, quantidades, auditorias, ocorrências, veículos e relatórios. Os registros XPT ficam separados dos dados do NEX e de Intervalos. Atenção: nesta versão, os dados ficam neste navegador; a sincronização entre celular e notebook ainda não está configurada.' })
     ]));
-    el.raiz.appendChild(el.listaOps); el.raiz.appendChild(el.detalhe);
+    el.pOperacoes.appendChild(el.listaOps);
+    el.raiz.appendChild(el.navPrincipal); el.raiz.appendChild(el.pOperacoes); el.raiz.appendChild(el.pHistorico); el.raiz.appendChild(el.detalhe);
+    el.navPrincipal.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-tela]'); if (!b) return;
+      ui.tela = b.dataset.tela; renderTudo();
+    });
+    el.corpoHistorico.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-acao="detalhe-historico"]'); if (b) abrirHistorico(b.dataset.id);
+    });
+    [el.histBusca, el.histInicio, el.histFim].forEach(function (x) { x.addEventListener(x === el.histBusca ? 'input' : 'change', renderHistorico); });
     el.navAbas.addEventListener('click', function (e) {
       var b = e.target.closest('button[data-aba]'); if (!b) return;
       ui.aba = b.dataset.aba; renderAba();
@@ -640,6 +738,14 @@
   function renderTudo() {
     if (!el.raiz) return;
     renderLista();
+    var telaHistorico = ui.tela === 'historico';
+    el.navPrincipal.hidden = !!ui.opId;
+    el.pOperacoes.hidden = !!ui.opId || telaHistorico;
+    el.pHistorico.hidden = !!ui.opId || !telaHistorico;
+    Array.prototype.forEach.call(el.navPrincipal.querySelectorAll('button[data-tela]'), function (b) {
+      var ativo = b.dataset.tela === ui.tela; b.classList.toggle('is-ativo', ativo); b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+    });
+    if (telaHistorico && !ui.opId) renderHistorico();
     var o = op();
     if (!o) {
       el.listaOps.hidden = false; el.detalhe.hidden = true;
