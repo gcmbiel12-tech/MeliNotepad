@@ -17,12 +17,13 @@
     { id: 'retirado', rotulo: 'Produto retirado', ajuda: '' },
     { id: 'outra', rotulo: 'Outra (descreva)', ajuda: 'Categoria ainda não definida pela operação' }
   ];
+  // Os estados antigos permanecem aceitos para preservar dados já registrados.
+  // Na interface, o resultado é apenas Não realizada ou Concluída; a divergência
+  // é calculada pelas ocorrências vinculadas à gaiola.
   var ESTADOS_AUDITORIA = {
-    nao_iniciada: 'Não iniciada', pendente: 'Pendente',
+    nao_iniciada: 'Não realizada', pendente: 'Pendente', concluida: 'Concluída',
     concluida_sem_divergencia: 'Concluída sem divergências', concluida_com_divergencia: 'Concluída com divergências'
   };
-  var MODOS = { manual: 'Manual', automatica: 'Automática' };
-
   function limpar(t) { return String(t == null ? '' : t).trim().replace(/\s+/g, ' '); }
   function chave(c) { return limpar(c).toUpperCase(); }
   function iso(ms) { return new Date(ms).toISOString(); }
@@ -114,7 +115,7 @@
   // ---------------------------------------------------------------- gaiolas e auditoria
   function novaGaiola(codigo, agoraMs) {
     return { id: novoId('gai'), codigo: codigo, vuc: false, criadaEm: iso(agoraMs),
-             auditoria: { estado: 'nao_iniciada', modo: null, em: null, historico: [] } };
+             auditoria: { estado: 'nao_iniciada', auditor: null, em: null, historico: [] } };
   }
   function adicionarGaiolas(op, codigos, agoraMs) {
     var tem = {}; op.gaiolas.forEach(function (g) { tem[chave(g.codigo)] = true; });
@@ -125,32 +126,38 @@
     });
     return { adicionadas: add, ignoradas: ign };
   }
-  function definirAuditoria(g, estado, modo, agoraMs) {
-    if (!ESTADOS_AUDITORIA[estado]) return { ok: false, erro: 'Estado de auditoria inválido.' };
-    var concluida = estado.indexOf('concluida') === 0;
-    if (concluida && !MODOS[modo]) return { ok: false, erro: 'Informe se a auditoria foi manual ou automática.' };
-    g.auditoria.historico.push({ em: iso(agoraMs), de: g.auditoria.estado, para: estado, modo: concluida ? modo : null });
-    g.auditoria.estado = estado; g.auditoria.modo = concluida ? modo : null; g.auditoria.em = concluida ? iso(agoraMs) : null;
+  function definirAuditoria(g, estado, auditor, agoraMs) {
+    if (!ESTADOS_AUDITORIA[estado]) return { ok: false, erro: 'Estado de auditoria inv\u00e1lido.' };
+    var concluida = estado === 'concluida' || estado.indexOf('concluida_') === 0;
+    auditor = limpar(auditor);
+    if (concluida && !auditor) return { ok: false, erro: 'Informe o nome de quem realizou a auditoria.' };
+    g.auditoria.historico.push({ em: iso(agoraMs), de: g.auditoria.estado, para: estado, auditor: concluida ? auditor : null });
+    g.auditoria.estado = estado; g.auditoria.auditor = concluida ? auditor : null; g.auditoria.em = concluida ? iso(agoraMs) : null;
     return { ok: true };
   }
   /** % de auditoria = concluídas ÷ gaiolas convencionais (VUC fora do denominador, mas dentro da expedição). */
   function resumoAuditoria(gaiolas) {
-    var r = { total: gaiolas.length, vuc: 0, convencionais: 0, concluidasSem: 0, concluidasCom: 0, pendentes: 0, naoIniciadas: 0, manuais: 0, automaticas: 0 };
+    var r = { total: gaiolas.length, vuc: 0, convencionais: 0, concluidas: 0, concluidasSem: 0, concluidasCom: 0, pendentes: 0, naoIniciadas: 0 };
     gaiolas.forEach(function (g) {
-      if (g.vuc) { r.vuc++; return; }
-      r.convencionais++;
+      if (g.vuc) { r.vuc++; return; } r.convencionais++;
       var e = g.auditoria.estado;
-      if (e === 'concluida_sem_divergencia') r.concluidasSem++;
-      else if (e === 'concluida_com_divergencia') r.concluidasCom++;
+      if (e === 'concluida' || e.indexOf('concluida_') === 0) r.concluidas++;
       else if (e === 'pendente') r.pendentes++; else r.naoIniciadas++;
-      if (e.indexOf('concluida') === 0) { if (g.auditoria.modo === 'automatica') r.automaticas++; else r.manuais++; }
     });
-    r.concluidas = r.concluidasSem + r.concluidasCom;
     r.percentual = r.convencionais ? Math.round(r.concluidas / r.convencionais * 1000) / 10 : null;
     return r;
   }
-
-  // ---------------------------------------------------------------- quantidades
+  function ocorrenciasDaGaiola(op, gaiola) {
+    var codigo = typeof gaiola === 'string' ? gaiola : gaiola && gaiola.codigo;
+    return (op.ocorrencias || []).filter(function (oc) { return chave(oc.gaiolaEncontrada) === chave(codigo); });
+  }
+  function rotuloAuditoria(op, gaiola) {
+    var estado = gaiola && gaiola.auditoria ? gaiola.auditoria.estado : '';
+    if (estado === 'concluida' || estado.indexOf('concluida_') === 0) {
+      return ocorrenciasDaGaiola(op, gaiola).length ? 'Concluída com divergência' : 'Concluída sem divergência';
+    }
+    return 'Não realizada';
+  }  // ---------------------------------------------------------------- quantidades
   function n(v) { return v == null || v === '' ? 0 : Number(v); }
   function totais(op) {
     var q = op.quantidades, vs = op.veiculos;
@@ -210,7 +217,10 @@
     if (!CATEGORIAS.some(function (c) { return c.id === o.categoria; })) return { ok: false, erro: 'Selecione a categoria.' };
     if (o.categoria === 'outra' && !limpar(o.outraDescricao)) return { ok: false, erro: 'Descreva a categoria “Outra”.' };
     var prod = limpar(o.produtoId);
-    if (prod) { var v = validarCodigo(prod); if (!v.ok) return { ok: false, erro: 'Identificador do produto não reconhecido: ' + v.motivo }; prod = v.id; }
+    if (!prod) return { ok: false, erro: 'Informe ou leia o identificador do produto.' };
+    var v = validarCodigo(prod); if (!v.ok) return { ok: false, erro: 'Identificador do produto n\u00e3o reconhecido: ' + v.motivo }; prod = v.id;
+    if (!limpar(o.gaiolaEncontrada)) return { ok: false, erro: 'Informe a gaiola onde o produto foi encontrado.' };
+    if (!limpar(o.identificadoPor)) return { ok: false, erro: 'Informe quem encontrou o produto.' };
     return { ok: true, ocorrencia: {
       id: novoId('xoc'), categoria: o.categoria, outraDescricao: limpar(o.outraDescricao), produtoId: prod, tipoProduto: limpar(o.tipoProduto),
       gaiolaEncontrada: limpar(o.gaiolaEncontrada), gaiolaCorreta: limpar(o.gaiolaCorreta), identificadoPor: limpar(o.identificadoPor),
@@ -295,18 +305,31 @@
     L.push(''); L.push('🔎 *Auditoria* (gaiolas convencionais)');
     if (!a.convencionais) L.push('Sem gaiolas convencionais registradas.');
     else {
-      L.push('Concluídas: ' + a.concluidas + ' de ' + a.convencionais + ' (' + String(a.percentual).replace('.', ',') + '%) · sem divergência ' + a.concluidasSem + ' · com divergência ' + a.concluidasCom);
-      L.push('Pendentes: ' + a.pendentes + ' · não iniciadas: ' + a.naoIniciadas);
+      var comDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída com divergência'; }).length;
+      var semDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída sem divergência'; }).length;
+      L.push('Concluídas: ' + a.concluidas + ' de ' + a.convencionais + ' (' + String(a.percentual).replace('.', ',') + '%) · sem divergência ' + semDivergencia + ' · com divergência ' + comDivergencia);
+      L.push('Não realizadas: ' + (a.pendentes + a.naoIniciadas));
     }
     if (a.vuc) L.push('VUC fora do cálculo de auditoria: ' + a.vuc);
+    L.push(''); L.push('*Gaiolas, auditoria e ocorrências*');
+    if (!op.gaiolas.length) L.push('Nenhuma gaiola cadastrada.');
+    op.gaiolas.forEach(function (g) {
+      L.push('- Gaiola ' + g.codigo + ': ' + rotuloAuditoria(op, g) + ' | Auditor: ' + (g.auditoria.auditor || 'não informado'));
+      ocorrenciasDaGaiola(op, g).forEach(function (oc) {
+        L.push('  Ocorrência: produto ' + (oc.produtoId || '-') + ' | categoria: ' + rotuloCategoria(oc) +
+          ' | encontrado por: ' + (oc.identificadoPor || '-') + ' | gaiola correta: ' + (oc.gaiolaCorreta || '-') +
+          ' | ' + oc.status + (oc.observacao ? ' | observações: ' + oc.observacao : ''));
+      });
+    });
     L.push(''); L.push('🏁 *XPT — ' + ROTULO_SITUACAO[situacaoOperacao(op)] + '*');
     return L.join('\n');
   }
 
   NS.XptRegras = {
-    CATEGORIAS: CATEGORIAS, ESTADOS_AUDITORIA: ESTADOS_AUDITORIA, MODOS: MODOS, ROTULO_SITUACAO: ROTULO_SITUACAO, MAX_INTERVALO: MAX_INTERVALO,
+    CATEGORIAS: CATEGORIAS, ESTADOS_AUDITORIA: ESTADOS_AUDITORIA, ROTULO_SITUACAO: ROTULO_SITUACAO, MAX_INTERVALO: MAX_INTERVALO,
     limpar: limpar, chave: chave, diaRef: diaRef, interpretarCodigos: interpretarCodigos, novaOperacao: novaOperacao, situacaoOperacao: situacaoOperacao,
     diasAberta: diasAberta, adicionarGaiolas: adicionarGaiolas, definirAuditoria: definirAuditoria, resumoAuditoria: resumoAuditoria,
+    ocorrenciasDaGaiola: ocorrenciasDaGaiola, rotuloAuditoria: rotuloAuditoria,
     totais: totais, inteiroOuNulo: inteiroOuNulo, normalizarPlaca: normalizarPlaca, placaPadraoConhecido: placaPadraoConhecido, listaTexto: listaTexto,
     novoVeiculo: novoVeiculo, veiculoDaGaiola: veiculoDaGaiola, carregarGaiola: carregarGaiola, descarregarGaiola: descarregarGaiola,
     novaOcorrencia: novaOcorrencia, produtoJaRegistrado: produtoJaRegistrado, mudarStatus: mudarStatus, rotuloCategoria: rotuloCategoria,

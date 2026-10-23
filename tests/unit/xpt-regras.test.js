@@ -48,21 +48,21 @@ test('auditoria: pendente e não iniciada NÃO contam como concluídas; VUC fora
   const op = opComGaiolas(['1', '2', '3', '4', '5', '6']);
   const g = op.gaiolas;
   g[5].vuc = true;                                    // 5 convencionais + 1 VUC
-  assert.ok(X.definirAuditoria(g[0], 'concluida_sem_divergencia', 'manual', T).ok);
-  assert.ok(X.definirAuditoria(g[1], 'concluida_com_divergencia', 'automatica', T).ok);
+  assert.ok(X.definirAuditoria(g[0], 'concluida_sem_divergencia', 'Ana', T).ok);
+  assert.ok(X.definirAuditoria(g[1], 'concluida_com_divergencia', 'Carlos', T).ok);
   assert.ok(X.definirAuditoria(g[2], 'pendente', null, T).ok);
   const r = X.resumoAuditoria(g);
   assert.deepStrictEqual([r.total, r.vuc, r.convencionais, r.concluidas, r.pendentes, r.naoIniciadas], [6, 1, 5, 2, 1, 2]);
   assert.strictEqual(r.percentual, 40);
-  assert.deepStrictEqual([r.manuais, r.automaticas, r.concluidasSem, r.concluidasCom], [1, 1, 1, 1]);
+  assert.strictEqual(r.concluidas, 2);
 });
-test('auditoria: concluir exige informar manual/automática; estado inválido é recusado; histórico guardado', () => {
+test('auditoria: concluir exige nome do auditor; estado inválido é recusado; histórico guardado', () => {
   const g = opComGaiolas(['1']).gaiolas[0];
-  assert.strictEqual(X.definirAuditoria(g, 'concluida_sem_divergencia', null, T).ok, false);
-  assert.strictEqual(X.definirAuditoria(g, 'xyz', 'manual', T).ok, false);
-  X.definirAuditoria(g, 'concluida_sem_divergencia', 'manual', T);
+  assert.strictEqual(X.definirAuditoria(g, 'concluida_sem_divergencia', '', T).ok, false);
+  assert.strictEqual(X.definirAuditoria(g, 'xyz', 'Ana', T).ok, false);
+  X.definirAuditoria(g, 'concluida_sem_divergencia', 'Ana', T);
   X.definirAuditoria(g, 'pendente', null, T + 1);
-  assert.strictEqual(g.auditoria.historico.length, 2); assert.strictEqual(g.auditoria.modo, null);
+  assert.strictEqual(g.auditoria.historico.length, 2); assert.strictEqual(g.auditoria.auditor, null);
 });
 test('auditoria: sem gaiolas convencionais não há percentual (não inventa 0% nem 100%)', () => {
   const op = opComGaiolas(['1']); op.gaiolas[0].vuc = true;
@@ -113,15 +113,28 @@ test('veículo × gaiola: associação exclusiva; remover registra histórico e 
 test('ocorrências: categorias, "outra" exige descrição, identificador passa pela interpretação do QR', () => {
   assert.strictEqual(X.novaOcorrencia({ categoria: 'x' }, T).ok, false);
   assert.strictEqual(X.novaOcorrencia({ categoria: 'outra' }, T).ok, false);
-  assert.ok(X.novaOcorrencia({ categoria: 'outra', outraDescricao: 'Etiqueta ilegível' }, T).ok);
+  assert.ok(X.novaOcorrencia({ categoria: 'outra', outraDescricao: 'Etiqueta ilegível', produtoId: '42', gaiolaEncontrada: 'G1', identificadoPor: 'Ana' }, T).ok);
   const r = X.novaOcorrencia({ categoria: 'bingo', produtoId: '{"id":"0042","t":"lm"}', gaiolaEncontrada: 'G9', gaiolaCorreta: 'G3', identificadoPor: 'Ana' }, T);
   assert.ok(r.ok); assert.strictEqual(r.ocorrencia.produtoId, '0042'); assert.strictEqual(r.ocorrencia.status, 'pendente');
   assert.strictEqual(X.novaOcorrencia({ categoria: 'avaria', produtoId: '{"id":' }, T).ok, false);
   assert.deepStrictEqual(arr(X.CATEGORIAS.map(c => c.id)), ['bingo', 'faltante', 'duplicado', 'avaria', 'retirado', 'outra']);
 });
+test('ocorrências: divergência da auditoria é derivada das ocorrências na gaiola POO', () => {
+  const op = opComGaiolas(['A2','A4']); const g = op.gaiolas[1];
+  X.definirAuditoria(g, 'concluida', 'Carlos', T);
+  assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluída sem divergência');
+  op.ocorrencias.push(X.novaOcorrencia({ categoria: 'bingo', produtoId: 'PKG-9', gaiolaEncontrada: 'A4', gaiolaCorreta: 'A2', identificadoPor: 'Carlos' }, T).ocorrencia);
+  assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluída com divergência');
+  assert.strictEqual(X.rotuloAuditoria(op, op.gaiolas[0]), 'Não realizada');
+  const relatorio = X.relatorioBasico(op);
+  assert.ok(relatorio.includes('Gaiola A4: Concluída com divergência'));
+  assert.ok(relatorio.includes('produto PKG-9'));
+  assert.ok(relatorio.includes('encontrado por: Carlos'));
+});
+
 test('ocorrências: resolver e reabrir preservam o histórico; mesmo produto é detectado', () => {
   const op = X.novaOperacao(T);
-  const oc = X.novaOcorrencia({ categoria: 'faltante', produtoId: 'P-1' }, T).ocorrencia; op.ocorrencias.push(oc);
+  const oc = X.novaOcorrencia({ categoria: 'faltante', produtoId: 'P-1', gaiolaEncontrada: 'G1', identificadoPor: 'Ana' }, T).ocorrencia; op.ocorrencias.push(oc);
   assert.ok(X.mudarStatus(oc, 'resolvido', 'achado na gaiola 7', T + 1).ok);
   assert.strictEqual(X.mudarStatus(oc, 'resolvido', '', T).ok, false);
   assert.ok(X.mudarStatus(oc, 'pendente', 'voltou', T + 2).ok);
