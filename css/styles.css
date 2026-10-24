@@ -513,3 +513,11 @@ dialog.modal::backdrop { background: rgba(28,27,24,0.5); }
   .print-resumo { margin-top: 12pt; font-size: 10.5pt; font-weight: bold; border-top: 1pt solid #000; padding-top: 6pt; }
   .print-rodape { margin-top: 10pt; font-size: 11pt; font-weight: bold; text-align: right; }
 }
+
+/* Indicador de persistência local confirmada. */
+.save-status { display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:4px 8px; font-size:.78rem; font-weight:600; white-space:nowrap; }
+.save-status--neutro { color:#52504A; background:#f1efe9; }
+.save-status--salvando { color:#684500; background:#fff0b3; }
+.save-status--salvo { color:#176b43; background:#e3f3ea; }
+.save-status--erro { color:#8e1c1c; background:#fbe6e6; }
+@media(max-width:480px){.save-status{font-size:.72rem;padding:3px 6px}}

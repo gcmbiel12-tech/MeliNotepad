@@ -11,6 +11,7 @@
   var C = window.MeliNotepad.Constants;
   var U = window.MeliNotepad.Utils;
   var Storage = window.MeliNotepad.Storage;
+  var SaveStatus = window.MeliNotepad.SaveStatus;
   var Scanner = window.MeliNotepad.Scanner;
   var Report = window.MeliNotepad.Report;
   var Relatorios = window.MeliNotepad.RelatoriosHistorico;
@@ -42,7 +43,7 @@
 
   function mapearElementos() {
     var ids = [
-      'status-chip', 'btn-ver-sessao', 'btn-ver-historico', 'avisos-sistema',
+      'status-chip', 'save-status', 'save-retry', 'btn-ver-sessao', 'btn-ver-historico', 'avisos-sistema',
       'view-sessao', 'view-historico',
       'painel-inicio', 'form-iniciar-sessao', 'input-sacas', 'input-pacotes', 'pacotes-formatado',
       'painel-sessao-ativa', 'btn-editar-totais', 'btn-nova-sessao-bloqueio',
@@ -131,11 +132,15 @@
   // -----------------------------------------------------------------------
 
   function persistir() {
+    if (SaveStatus) { SaveStatus.modulo('NEX'); SaveStatus.salvando(); }
     var resultado = Storage.salvarDados(estado.dados);
     if (!resultado.sucesso) {
+      if (SaveStatus) SaveStatus.erro(resultado.erro);
       toast(resultado.erro, 'erro');
+      return false;
     }
-    return resultado.sucesso;
+    if (SaveStatus) SaveStatus.salvo();
+    return true;
   }
 
   function sessaoAtiva() {
@@ -1109,6 +1114,7 @@
 
   function init() {
     mapearElementos();
+    if (SaveStatus) { SaveStatus.modulo('NEX'); SaveStatus.aoTentarNovamente(function () { if (persistir()) { if (sessaoAtiva()) { $.formIniciarSessao.reset(); $.pacotesFormatado.textContent = ''; } renderTudo(); toast('Dados salvos com sucesso.', 'sucesso'); } }, 'NEX'); }
     carregarEstadoInicial();
     var selector = function () {
       var f = estado.filtroHistorico, hoje = U.dataHojeOperacional(new Date());

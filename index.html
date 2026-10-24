@@ -23,6 +23,8 @@
   <div class="app-header__marca">
     <span class="app-header__nome">MeliNotepad</span>
     <span id="status-chip" class="chip chip--neutro" role="status" aria-live="polite">Sem sessão ativa</span>
+    <span id="save-status" class="save-status save-status--neutro" role="status" aria-live="polite" data-modulo-salvamento="NEX">Nenhuma alteração pendente</span>
+    <button type="button" id="save-retry" class="botao botao--texto" hidden>Tentar salvar novamente</button>
   </div>
   <nav class="nav-modulos" id="nav-modulos" aria-label="Áreas do MeliNotepad">
     <div class="nav-modulos__grupo" role="group" aria-label="Operacional">
@@ -351,7 +353,8 @@
 
 <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-<script src="js/constants.js"></script>
+<script src="js/save-status.js"></script>
+  <script src="js/constants.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/scanner.js"></script>

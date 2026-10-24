@@ -13,6 +13,7 @@
 
   function criar(cfg) {
     var chave = cfg.chave;
+    var pendente = null;
 
     function lerBruto() {
       try { return global.localStorage.getItem(chave); } catch (e) { return undefined; }
@@ -50,7 +51,7 @@
     function gravar(dados) {
       var erros = cfg.validar(dados);
       if (erros.length) return { sucesso: false, erro: 'Dados inválidos, nada foi salvo: ' + erros[0] };
-      try { global.localStorage.setItem(chave, JSON.stringify(dados)); return { sucesso: true }; }
+      try { global.localStorage.setItem(chave, JSON.stringify(dados)); pendente = null; return { sucesso: true }; }
       catch (e) {
         return { sucesso: false, erro: e && e.name === 'QuotaExceededError'
           ? 'O armazenamento local está cheio. Exporte um backup antes de continuar.'
@@ -63,19 +64,27 @@
     function mutar(fn) {
       var c = carregar();
       if (c.indisponivel) return { sucesso: false, erro: c.aviso };
-      var d = c.dados, retorno;
+      var d = pendente || c.dados, retorno;
       try { retorno = fn(d); } catch (e) { return { sucesso: false, erro: (e && e.message) || String(e) }; }
       d.rev = (d.rev || 0) + 1;
       var g = gravar(d);
-      if (!g.sucesso) return g;
+      if (!g.sucesso) { pendente = d; return g; }
       return { sucesso: true, dados: d, retorno: retorno };
+    }
+
+    function tentarNovamente() {
+      if (!pendente) return { sucesso: true, dados: carregar().dados, semAlteracoes: true };
+      var dadosPendentes = pendente;
+      var g = gravar(dadosPendentes);
+      if (!g.sucesso) return g;
+      return { sucesso: true, dados: dadosPendentes };
     }
 
     function ouvirOutrasAbas(cb) {
       global.addEventListener('storage', function (ev) { if (ev.key === chave) cb(); });
     }
 
-    return { chave: chave, carregar: carregar, gravar: gravar, mutar: mutar, ouvirOutrasAbas: ouvirOutrasAbas };
+    return { chave: chave, carregar: carregar, gravar: gravar, mutar: mutar, tentarNovamente: tentarNovamente, ouvirOutrasAbas: ouvirOutrasAbas };
   }
 
   // Comparação estável (ignora a ordem das chaves) para detectar registros idênticos.

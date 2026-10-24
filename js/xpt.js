@@ -7,7 +7,7 @@
  */
 (function (global) {
   'use strict';
-  var NS = global.MeliNotepad, X = NS.XptRegras, U = NS.Utils, UI = NS.UI, F = NS.Fotos, Scanner = NS.Scanner, h = UI.h;
+  var NS = global.MeliNotepad, X = NS.XptRegras, U = NS.Utils, UI = NS.UI, F = NS.Fotos, Scanner = NS.Scanner, SaveStatus = NS.SaveStatus, h = UI.h;
   var ABAS = [['gaiolas', 'Gaiolas e auditoria'], ['ocorrencias', 'Ocorrências'], ['veiculos', 'Veículos e carregamento'], ['quantidades', 'Quantidades'], ['relatorios', 'Relatórios']];
   var ABA_PRINCIPAL = [['operacoes', 'Operações'], ['historico', 'Histórico']];
   var store = NS.ModStore.criar({ chave: 'melinotepad_xpt_v1', rotulo: 'XPT', padrao: X.padrao, validar: X.validarDados });
@@ -18,7 +18,7 @@
   function hhmm(i) { return U.formatarHora(new Date(i)); }
   function dataHora(i) { return U.formatarDataHora(new Date(i)); }
   function recarregar() { var c = store.carregar(); estado = c.dados; avisoArm = c.aviso; }
-  function mutar(fn) { var r = store.mutar(fn); if (!r.sucesso) { UI.avisar(r.erro, 'erro'); return null; } estado = r.dados; return r; }
+  function mutar(fn) { if (SaveStatus) { SaveStatus.modulo('XPT'); SaveStatus.salvando(); } var r = store.mutar(fn); if (!r.sucesso) { if (SaveStatus) SaveStatus.erro(r.erro); UI.avisar(r.erro, 'erro'); return null; } estado = r.dados; if (SaveStatus) SaveStatus.salvo(); return r; }
   function op() { return estado.operacoes.filter(function (o) { return o.id === ui.opId; })[0] || null; }
   function mutarOp(fn) {
     return mutar(function (d) {
@@ -131,11 +131,14 @@
     el.tabelaOps.hidden = ops.length === 0;
     el.listaOpsMobile.hidden = ops.length === 0;
   }
+  var criacaoPendente = null;
   function novaOperacao() {
     dialogoHorario({ titulo: 'Nova operação XPT', texto: 'A data da operação é a data do início.', rotuloCampo: 'Início da operação', confirmar: 'Iniciar operação',
       aoConfirmar: function (ms) {
-        var o = X.novaOperacao(agora(), ms);
-        if (!mutar(function (d) { d.operacoes.push(o); })) return false;
+        if (!criacaoPendente) criacaoPendente = X.novaOperacao(agora(), ms);
+        var o = criacaoPendente;
+        if (!mutar(function (d) { if (!d.operacoes.some(function (existente) { return existente.id === o.id; })) d.operacoes.push(o); })) return false;
+        criacaoPendente = null;
         abrirOperacao(o.id); UI.avisar('Operação iniciada.', 'sucesso'); return true;
       } });
   }
@@ -818,6 +821,7 @@
     el.raiz = document.getElementById('modulo-xpt');
     if (!el.raiz || !NS || !X || !UI || !NS.ModStore || !F) return;
     recarregar();
+    if (SaveStatus) { SaveStatus.modulo('XPT'); SaveStatus.aoTentarNovamente(function () { var r = store.tentarNovamente(); if (!r.sucesso) { SaveStatus.erro(r.erro); UI.avisar(r.erro, 'erro'); return; } estado = r.dados; SaveStatus.salvo(); renderTudo(); UI.avisar('Dados XPT salvos com sucesso.', 'sucesso'); }, 'XPT'); }
     criarEstrutura();
     if (avisoArm) UI.avisar(avisoArm, 'erro');
     store.ouvirOutrasAbas(function () { recarregar(); renderTudo(); });
