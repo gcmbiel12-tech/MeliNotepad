@@ -237,10 +237,15 @@ dialog.modal[id^="dlg-xpt-"] {
 
 /* Ajustes de usabilidade mobile: aba Gaiolas e auditoria do XPT. */
 @media (max-width: 600px) {
+  #modulo-xpt { width: 100%; max-width: 100%; min-width: 0; }
+  #modulo-xpt .cartao,
+  #modulo-xpt .cartao > *,
+  #modulo-xpt .xpt-lista-mobile,
+  #modulo-xpt .xpt-lista-gaiolas > li { min-width: 0; max-width: 100%; }
   #modulo-xpt #xg-filtro,
   #modulo-xpt #xg-busca,
-  #modulo-xpt .xpt-card-gaiola select { width: 100%; min-width: 0; max-width: 100%; }
-  #modulo-xpt .xpt-card-gaiola { gap: .65rem; padding: .875rem; overflow: hidden; }
+  #modulo-xpt .xpt-card-gaiola select { display: block; width: 100%; min-width: 0; max-width: 100%; }
+  #modulo-xpt .xpt-card-gaiola { width: 100%; min-width: 0; gap: .65rem; padding: .875rem; overflow-wrap: anywhere; }
   #modulo-xpt .xpt-card-gaiola .cartao__cabecalho { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .5rem; }
   #modulo-xpt .xpt-card-gaiola .cartao__cabecalho h3 { flex: 1 1 150px; min-width: 0; margin: 0; overflow-wrap: anywhere; }
   #modulo-xpt .xpt-card-gaiola .texto-apoio { margin: 0; overflow-wrap: anywhere; line-height: 1.4; }
