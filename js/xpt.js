@@ -103,17 +103,33 @@
   function renderLista() {
     var ops = estado.operacoes.slice().sort(function (a, b) { return Date.parse(b.inicioAt) - Date.parse(a.inicioAt); });
     UI.limpar(el.corpoOps);
+    UI.limpar(el.listaOpsMobile);
     ops.forEach(function (o) {
-      var sit = X.situacaoOperacao(o), dias = X.diasAberta(o, agora());
+      var sit = X.situacaoOperacao(o), dias = X.diasAberta(o, agora()), pendencias = X.pendentesAbertas(o).length;
       el.corpoOps.appendChild(h('tr', { dataset: { id: o.id } }, [
         h('td', { text: U.formatarData(new Date(o.inicioAt)) }), h('td', { text: hhmm(o.inicioAt) }),
         h('td', { text: o.fimCarregamentoAt ? hhmm(o.fimCarregamentoAt) : '—' }),
         h('td', { text: X.ROTULO_SITUACAO[sit] + (dias >= 1 ? ' · aberta há ' + dias + ' dia(s)' : '') }),
-        h('td', { text: o.gaiolas.length }), h('td', { text: X.pendentesAbertas(o).length }),
+        h('td', { text: o.gaiolas.length }), h('td', { text: pendencias }),
         h('td', {}, [h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'abrir', id: o.id }, text: 'Abrir' })])]));
+      el.listaOpsMobile.appendChild(h('li', { class: 'cartao xpt-card-operacao' }, [
+        h('div', { class: 'cartao__cabecalho' }, [
+          h('h3', { text: 'Operação de ' + U.formatarData(new Date(o.inicioAt)) }),
+          h('span', { class: 'chip chip--neutro', text: X.ROTULO_SITUACAO[sit] })
+        ]),
+        h('dl', { class: 'lista-definicao' }, [
+          h('div', {}, [h('dt', { text: 'Início' }), h('dd', { text: hhmm(o.inicioAt) })]),
+          h('div', {}, [h('dt', { text: 'Fim do carregamento' }), h('dd', { text: o.fimCarregamentoAt ? hhmm(o.fimCarregamentoAt) : 'Não registrado' })]),
+          h('div', {}, [h('dt', { text: 'Gaiolas' }), h('dd', { text: String(o.gaiolas.length) })]),
+          h('div', {}, [h('dt', { text: 'Pendências' }), h('dd', { text: String(pendencias) })])
+        ]),
+        dias >= 1 ? h('p', { class: 'texto-apoio', text: 'Aberta há ' + dias + ' dia(s).' }) : null,
+        h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'abrir', id: o.id }, text: 'Abrir operação' })
+      ]));
     });
     el.vazioOps.hidden = ops.length > 0;
     el.tabelaOps.hidden = ops.length === 0;
+    el.listaOpsMobile.hidden = ops.length === 0;
   }
   function novaOperacao() {
     dialogoHorario({ titulo: 'Nova operação XPT', texto: 'A data da operação é a data do início.', rotuloCampo: 'Início da operação', confirmar: 'Iniciar operação',
@@ -167,20 +183,35 @@
       return (!inicio || data >= inicio) && (!fim || data <= fim) && (!termo || texto.indexOf(termo) >= 0);
     });
     UI.limpar(el.corpoHistorico);
+    UI.limpar(el.histListaMobile);
     el.histVazio.hidden = todos.length > 0;
     el.histSemResultados.hidden = todos.length === 0 || itens.length > 0;
     el.histContagem.textContent = itens.length + ' operação(ões) encerrada(s)';
     itens.forEach(function (o) {
+      var dataOperacao = U.formatarData(new Date(o.inicioAt));
+      var dataEncerramento = o.encerradaAt ? dataHora(o.encerradaAt) : '—';
+      var botaoDetalhe = function () { return h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'detalhe-historico', id: o.id }, text: 'Ver detalhes' }); };
       var tr = h('tr', {}, [
-        h('td', { text: U.formatarData(new Date(o.inicioAt)) }),
+        h('td', { text: dataOperacao }),
         h('td', { text: hhmm(o.inicioAt) }),
-        h('td', { text: o.encerradaAt ? dataHora(o.encerradaAt) : '-' }),
+        h('td', { text: dataEncerramento }),
         h('td', { text: o.gaiolas.length }),
         h('td', { text: o.veiculos.length }),
-        h('td', {}, [h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'detalhe-historico', id: o.id }, text: 'Ver detalhes' })])
+        h('td', {}, [botaoDetalhe()])
       ]);
       el.corpoHistorico.appendChild(tr);
+      el.histListaMobile.appendChild(h('li', { class: 'cartao xpt-card-operacao' }, [
+        h('h3', { text: 'Operação de ' + dataOperacao }),
+        h('dl', { class: 'lista-definicao' }, [
+          h('div', {}, [h('dt', { text: 'Início' }), h('dd', { text: hhmm(o.inicioAt) })]),
+          h('div', {}, [h('dt', { text: 'Encerrada em' }), h('dd', { text: dataEncerramento })]),
+          h('div', {}, [h('dt', { text: 'Gaiolas' }), h('dd', { text: String(o.gaiolas.length) })]),
+          h('div', {}, [h('dt', { text: 'Veículos' }), h('dd', { text: String(o.veiculos.length) })])
+        ]),
+        botaoDetalhe()
+      ]));
     });
+    el.histListaMobile.hidden = itens.length === 0;
   }
   function abrirHistorico(id) {
     var o = estado.operacoes.filter(function (x) { return x.id === id && !!x.encerradaAt; })[0];
@@ -252,6 +283,25 @@
     var o = op(); UI.limpar(el.pGaiolas); if (!o) return;
     var a = X.resumoAuditoria(o.gaiolas);
     var cont = function (v, r, id) { return h('div', { class: 'contador' }, [h('span', { class: 'contador__valor', id: id, text: v }), h('span', { class: 'contador__rotulo', text: r })]); };
+    function criarSelectVeiculo(g, prefixo) {
+      var v = X.veiculoDaGaiola(o, g.id);
+      var veiculoSelect = select(prefixo + g.id, [['', o.veiculos.length ? 'Selecionar veículo' : 'Cadastre um veículo primeiro']].concat(o.veiculos.map(function (x) { return [x.id, x.placa]; })), v ? v.id : '');
+      veiculoSelect.setAttribute('aria-label', 'Veículo da gaiola ' + g.codigo);
+      veiculoSelect.disabled = !!o.fimCarregamentoAt || !!o.encerradaAt || !o.veiculos.length;
+      veiculoSelect.addEventListener('change', function () {
+        var destino = veiculoSelect.value, atual = X.veiculoDaGaiola(op(), g.id);
+        if ((atual ? atual.id : '') === destino) return;
+        if (o.fimCarregamentoAt || o.encerradaAt) { UI.avisar('O carregamento está encerrado; não é possível alterar a associação.', 'erro'); renderGaiolas(); return; }
+        var salvo = mutarOp(function (x) {
+          var veiculoAtual = X.veiculoDaGaiola(x, g.id);
+          if (veiculoAtual) { var rem = X.descarregarGaiola(x, veiculoAtual.id, g.id, agora()); if (!rem.ok) throw new Error(rem.erro); }
+          if (destino) { var add = X.carregarGaiola(x, destino, g.id, agora()); if (!add.ok) throw new Error(add.erro); }
+        });
+        if (salvo) { renderTudo(); UI.avisar(destino ? 'Veículo associado à gaiola ' + g.codigo + '.' : 'Veículo removido da gaiola ' + g.codigo + '.', 'sucesso'); }
+        else renderGaiolas();
+      });
+      return veiculoSelect;
+    }
     var estadosFiltro = [['nao_iniciada', 'Não realizada'], ['concluida_sem_divergencia', 'Concluída sem divergência'], ['concluida_com_divergencia', 'Concluída com divergência']];
     var filtro = select('xg-filtro', [['*', 'Todas as auditorias']].concat(estadosFiltro), ui.filtroAud);
     var busca = h('input', { type: 'search', id: 'xg-busca', placeholder: 'Buscar código', value: ui.busca, 'aria-label': 'Buscar gaiola' });
@@ -264,22 +314,7 @@
         (!ui.busca || X.chave(g.codigo).indexOf(X.chave(ui.busca)) >= 0);
     });
     var corpo = h('tbody', { id: 'xg-corpo' }, itens.map(function (g) {
-      var v = X.veiculoDaGaiola(o, g.id);
-      var veiculoSelect = select('xg-veiculo-' + g.id, [['', o.veiculos.length ? 'Selecionar ve\u00edculo' : 'Cadastre um ve\u00edculo primeiro']].concat(o.veiculos.map(function (x) { return [x.id, x.placa]; })), v ? v.id : '');
-      veiculoSelect.setAttribute('aria-label', 'Ve\u00edculo da gaiola ' + g.codigo);
-      veiculoSelect.disabled = !!o.fimCarregamentoAt || !!o.encerradaAt || !o.veiculos.length;
-      veiculoSelect.addEventListener('change', function () {
-        var destino = veiculoSelect.value, atual = X.veiculoDaGaiola(op(), g.id);
-        if ((atual ? atual.id : '') === destino) return;
-        if (o.fimCarregamentoAt || o.encerradaAt) { UI.avisar('O carregamento est\u00e1 encerrado; n\u00e3o \u00e9 poss\u00edvel alterar a associa\u00e7\u00e3o.', 'erro'); renderGaiolas(); return; }
-        var salvo = mutarOp(function (x) {
-          var veiculoAtual = X.veiculoDaGaiola(x, g.id);
-          if (veiculoAtual) { var rem = X.descarregarGaiola(x, veiculoAtual.id, g.id, agora()); if (!rem.ok) throw new Error(rem.erro); }
-          if (destino) { var add = X.carregarGaiola(x, destino, g.id, agora()); if (!add.ok) throw new Error(add.erro); }
-        });
-        if (salvo) { renderTudo(); UI.avisar(destino ? 'Ve\u00edculo associado \u00e0 gaiola ' + g.codigo + '.' : 'Ve\u00edculo removido da gaiola ' + g.codigo + '.', 'sucesso'); }
-        else renderGaiolas();
-      });
+      var veiculoSelect = criarSelectVeiculo(g, 'xg-veiculo-');
       return h('tr', { dataset: { id: g.id } }, [
         h('td', { text: g.codigo }),
         h('td', {}, [h('button', { type: 'button', class: 'celula-acao', dataset: { acao: 'vuc', id: g.id }, text: g.vuc ? 'VUC' : 'Convencional', title: 'Tocar para alternar' })]),
@@ -288,11 +323,31 @@
         h('td', {}, [h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'auditar', id: g.id }, text: 'Auditar' })])
       ]);
     }));
-    corpo.addEventListener('click', function (e) {
+    var listaMobile = h('ul', { class: 'xpt-lista-mobile xpt-lista-gaiolas', 'aria-label': 'Gaiolas e auditoria' });
+    itens.forEach(function (g) {
+      var veiculoSelectMobile = criarSelectVeiculo(g, 'xg-veiculo-mobile-');
+      listaMobile.appendChild(h('li', { class: 'cartao xpt-card-gaiola' }, [
+        h('div', { class: 'cartao__cabecalho' }, [
+          h('h3', { text: 'Gaiola ' + g.codigo }),
+          h('span', { class: 'chip chip--neutro', text: g.vuc ? 'VUC' : 'Convencional' })
+        ]),
+        h('p', { class: 'texto-apoio', text: 'Auditoria: ' + X.rotuloAuditoria(o, g) }),
+        h('p', { class: 'texto-apoio', text: 'Auditor: ' + (g.auditoria.auditor || 'Não informado') }),
+        UI.campo('Veículo associado', veiculoSelectMobile),
+        h('div', { class: 'acoes-form' }, [
+          h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'vuc', id: g.id }, text: g.vuc ? 'Alterar para convencional' : 'Marcar como VUC' }),
+          h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'nao_iniciada' || g.auditoria.estado === 'pendente' ? 'Registrar auditoria' : 'Editar auditoria' })
+        ])
+      ]));
+    });
+    listaMobile.hidden = itens.length === 0;
+    function tratarAcaoGaiola(e) {
       var b = e.target.closest('button[data-acao]'); if (!b) return;
       if (b.dataset.acao === 'vuc') { if (mutarOp(function (x) { var g = x.gaiolas.filter(function (y) { return y.id === b.dataset.id; })[0]; g.vuc = !g.vuc; })) { renderGaiolas(); renderQuantidades(); } }
-      else dialogoAuditoria([b.dataset.id]);
-    });
+      else if (b.dataset.acao === 'auditar') dialogoAuditoria([b.dataset.id]);
+    }
+    corpo.addEventListener('click', tratarAcaoGaiola);
+    listaMobile.addEventListener('click', tratarAcaoGaiola);
     el.pGaiolas.appendChild(h('div', { class: 'cartao' }, [
       h('h3', { text: 'Etapas 1 e 2 — cadastro e auditoria' }),
       h('p', { class: 'texto-apoio', text: 'Primeiro cadastre todas as gaiolas da operação. Depois, audite as gaiolas cadastradas e registre o resultado de cada uma.' }),
@@ -304,7 +359,8 @@
         h('button', { type: 'button', class: 'botao botao--secundario', id: 'xg-lote', text: 'Auditar em lote', onclick: dialogoAuditoriaLote })])]));
     el.pGaiolas.appendChild(h('div', { class: 'cartao' }, [h('div', { class: 'interv-filtros' }, [UI.campo('Auditoria', filtro), UI.campo('Código', busca)]),
       h('p', { class: 'texto-apoio', id: 'xg-contagem', text: itens.length + ' de ' + o.gaiolas.length + ' gaiola(s)' }),
-      h('div', { class: 'tabela-rolavel' }, [h('table', { class: 'tabela-modulo' }, [thead(['Código', 'Tipo', 'Auditoria', 'Auditor', 'Veículo', '']), corpo])])]));
+      h('div', { class: 'tabela-rolavel xpt-tabela-desktop' }, [h('table', { class: 'tabela-modulo' }, [thead(['Código', 'Tipo', 'Auditoria', 'Auditor', 'Veículo', '']), corpo])]),
+      listaMobile]));
   }
   function estadoAuditorCampos() {
     var est = select('xa-estado', [['nao_iniciada', 'N\u00e3o realizada'], ['concluida', 'Conclu\u00edda']], 'concluida');
@@ -664,7 +720,8 @@
         h('div', { class: 'xpt-grid' }, [UI.campo('Buscar operação, placa, motorista, rota ou conteúdo', el.histBusca = h('input', { type: 'search', id: 'xh-busca', placeholder: 'Digite para buscar' })), UI.campo('Encerrada a partir de', el.histInicio = h('input', { type: 'date', id: 'xh-inicio' })), UI.campo('Encerrada até', el.histFim = h('input', { type: 'date', id: 'xh-fim' }))]),
         h('div', { class: 'acoes-form' }, [h('button', { type: 'button', class: 'botao botao--secundario', text: 'Limpar filtros', onclick: function () { el.histBusca.value = ''; el.histInicio.value = ''; el.histFim.value = ''; renderHistorico(); } })]),
         h('p', { class: 'texto-apoio', id: 'xh-contagem', 'aria-live': 'polite' }), el.histVazio = h('p', { class: 'texto-apoio', text: 'Nenhuma operação encerrada no histórico.', id: 'xh-vazio', hidden: true }), el.histSemResultados = h('p', { class: 'texto-apoio', text: 'Nenhuma operação corresponde aos filtros.', id: 'xh-sem-resultados', hidden: true }),
-        h('div', { class: 'tabela-rolavel' }, [h('table', { class: 'tabela-modulo' }, [thead(['Data da operação', 'Início', 'Encerrada em', 'Gaiolas', 'Veículos', '']), h('tbody', { id: 'xh-corpo' })])])]),
+        h('div', { class: 'tabela-rolavel xpt-tabela-desktop' }, [h('table', { class: 'tabela-modulo' }, [thead(['Data da operação', 'Início', 'Encerrada em', 'Gaiolas', 'Veículos', '']), h('tbody', { id: 'xh-corpo' })])]),
+        el.histListaMobile = h('ul', { class: 'xpt-lista-mobile', 'aria-label': 'Histórico de operações encerradas' })]),
       el.histDetalhe = h('section', { class: 'cartao', id: 'xh-detalhe', hidden: true }, [h('div', { class: 'cartao__cabecalho' }, [h('h3', { id: 'xh-detalhe-titulo' }), h('button', { type: 'button', class: 'botao botao--texto', text: 'Fechar detalhes', onclick: fecharHistoricoDetalhe })]),
         h('p', { class: 'texto-apoio', id: 'xh-detalhe-info' }), h('label', { class: 'campo', for: 'xh-relatorio' }, [h('span', { text: 'Relatório completo da operação' }), el.histRelatorio = h('textarea', { id: 'xh-relatorio', rows: '18', readonly: true })]),
         h('div', { class: 'acoes-form' }, [h('button', { type: 'button', class: 'botao botao--secundario', text: 'Copiar relatório', onclick: copiarRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--secundario', text: 'Imprimir / Salvar como PDF', onclick: imprimirRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--perigo', text: 'Excluir operação', onclick: excluirOperacaoHistorico })])])
@@ -677,7 +734,8 @@
     el.listaOps = h('section', { class: 'cartao' }, [
       h('div', { class: 'cartao__cabecalho' }, [h('h2', { text: 'Operações XPT' }), h('button', { type: 'button', class: 'botao botao--primario', id: 'xo-nova', text: '+ Nova operação', onclick: novaOperacao })]),
       h('p', { class: 'texto-apoio', text: 'A operação mantém sua data de referência mesmo que atravesse a meia-noite. Fim do carregamento e encerramento são registros separados.' }),
-      el.vazioOps, h('div', { class: 'tabela-rolavel' }, [tabela])
+      el.vazioOps, h('div', { class: 'tabela-rolavel xpt-tabela-desktop' }, [tabela]),
+      el.listaOpsMobile = h('ul', { class: 'xpt-lista-mobile', 'aria-label': 'Operações XPT' })
     ]);
     el.detalhe = h('section', { id: 'xo-detalhe', hidden: true }, []);
     el.cabOp = h('div', { id: 'xo-cabecalho' });
@@ -700,7 +758,7 @@
       var b = e.target.closest('button[data-tela]'); if (!b) return;
       ui.tela = b.dataset.tela; renderTudo();
     });
-    el.corpoHistorico.addEventListener('click', function (e) {
+    el.pHistorico.addEventListener('click', function (e) {
       var b = e.target.closest('button[data-acao="detalhe-historico"]'); if (b) abrirHistorico(b.dataset.id);
     });
     [el.histBusca, el.histInicio, el.histFim].forEach(function (x) { x.addEventListener(x === el.histBusca ? 'input' : 'change', renderHistorico); });
@@ -708,7 +766,7 @@
       var b = e.target.closest('button[data-aba]'); if (!b) return;
       ui.aba = b.dataset.aba; renderAba();
     });
-    el.corpoOps.addEventListener('click', function (e) {
+    el.listaOps.addEventListener('click', function (e) {
       var b = e.target.closest('button[data-acao="abrir"]'); if (b) abrirOperacao(b.dataset.id);
     });
     el.pVeiculos.addEventListener('click', function (e) {

@@ -166,6 +166,42 @@ dialog.modal input[type="time"]:focus, dialog.modal input[type="datetime-local"]
   display: grid;
   gap: .75rem;
 }
+#modulo-xpt .xpt-lista-mobile {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: .75rem;
+}
+#modulo-xpt .xpt-card-operacao {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  min-width: 0;
+  padding: .875rem;
+}
+#modulo-xpt .xpt-card-operacao .lista-definicao {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .5rem;
+}
+#modulo-xpt .xpt-card-operacao .lista-definicao dd { overflow-wrap: anywhere; }
+#modulo-xpt .xpt-card-operacao .botao { width: 100%; }
+#modulo-xpt .xpt-card-gaiola {
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+  min-width: 0;
+  padding: .875rem;
+}
+#modulo-xpt .xpt-card-gaiola .campo { margin-bottom: 0; }
+#modulo-xpt .xpt-card-gaiola .acoes-form .botao { flex: 1 1 140px; }
+#modulo-xpt .botao--texto { min-height: 44px; }
+dialog.modal[id^="dlg-xpt-"] {
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
 @media (max-width: 600px) {
   #modulo-xpt .xpt-abas {
     display: grid;
@@ -173,7 +209,30 @@ dialog.modal input[type="time"]:focus, dialog.modal input[type="datetime-local"]
   }
   #modulo-xpt .xpt-abas .btn-nav {
     width: 100%;
+    min-height: 44px;
   }
+  #modulo-xpt .botao { min-height: 44px; }
+  #modulo-xpt .xpt-tabela-desktop { display: none; }
+  #modulo-xpt .xpt-lista-mobile:not([hidden]) { display: flex; flex-direction: column; }
+  #modulo-xpt .contadores--xpt {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+  }
+  #modulo-xpt .contadores--xpt .contador {
+    min-width: 0;
+    padding: .5rem .25rem;
+    overflow-wrap: anywhere;
+  }
+  #modulo-xpt .contadores--xpt .contador__valor { font-size: 1.25rem; }
+  #modulo-xpt .contadores--xpt .contador__rotulo {
+    font-size: .68rem;
+    letter-spacing: 0;
+    overflow-wrap: anywhere;
+  }
+}
+@media (min-width: 400px) and (max-width: 600px) {
+  #modulo-xpt .contadores--xpt { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 #modulo-xpt [hidden],
