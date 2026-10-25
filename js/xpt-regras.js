@@ -131,7 +131,7 @@
     if (concluida && !auditor) return { ok: false, erro: 'Informe o nome de quem realizou a auditoria.' };
     var q = quantidades || g.auditoria.quantidades || { g: null, v: null, p: null };
     if (concluida && quantidades) {
-      var valores = ['g', 'v', 'p'];
+      var valores = quantidades.v === undefined ? ['g', 'v', 'p'] : ['g', 'p'];
       for (var i = 0; i < valores.length; i++) {
         var valor = inteiroOuNulo(q[valores[i]]);
         if (!valor.ok || valor.valor === null) return { ok: false, erro: 'Informe G, V e P como inteiros não negativos.' };
@@ -141,7 +141,7 @@
     g.auditoria.historico = g.auditoria.historico || [];
     g.auditoria.historico.push({ em: iso(agoraMs), de: g.auditoria.estado, para: estado, auditor: concluida ? auditor : null });
     g.auditoria.estado = estado; g.auditoria.auditor = concluida ? auditor : null; g.auditoria.em = concluida ? iso(agoraMs) : null;
-    if (concluida && quantidades) g.auditoria.quantidades = { g: q.g, v: q.v, p: q.p };
+    if (concluida && quantidades) g.auditoria.quantidades = { g: q.g, v: q.v == null ? (g.auditoria.quantidades && g.auditoria.quantidades.v != null ? g.auditoria.quantidades.v : 0) : q.v, p: q.p };
     return { ok: true };
   }
   function iniciarAuditoria(g, auditor, agoraMs) {
@@ -164,7 +164,7 @@
   }
   function validarQuantidadesAuditoria(q) {
     q = q || {};
-    return ['g', 'v', 'p'].every(function (k) { var r = inteiroOuNulo(q[k]); return r.ok && r.valor !== null; });
+    return ['g', 'p'].every(function (k) { var r = inteiroOuNulo(q[k]); return r.ok && r.valor !== null; });
   }
   /** VUC permanece pendente e é excluído de todos os totais e percentuais da auditoria. */
   function resumoAuditoria(gaiolas) {
