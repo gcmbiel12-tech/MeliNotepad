@@ -153,4 +153,4 @@ comment on column public.interval_records.legacy_change_history is
 comment on column public.audit_events.actor_id is
   'Nulo somente quando a autoria histórica não é conhecida; nunca preencher por inferência.';
 comment on column public.audit_events.occurred_at is
-  'Timestamp oficial do servidor; exibição operacional usa America/Sao_Paulo.';\n
+  'Timestamp oficial do servidor; exibição operacional usa America/Sao_Paulo.';

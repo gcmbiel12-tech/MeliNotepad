@@ -44,7 +44,7 @@ test('nenhum código de gaiola fixo no módulo', () => {
 
 function opComGaiolas(codigos) { const op = X.novaOperacao(T); X.adicionarGaiolas(op, codigos, T); return op; }
 
-test('auditoria: pendente e não iniciada NÃO contam como concluídas; VUC fora do denominador mas dentro do total', () => {
+test('auditoria: VUC é excluído de todos os totais e cálculos', () => {
   const op = opComGaiolas(['1', '2', '3', '4', '5', '6']);
   const g = op.gaiolas;
   g[5].vuc = true;                                    // 5 convencionais + 1 VUC
@@ -52,7 +52,7 @@ test('auditoria: pendente e não iniciada NÃO contam como concluídas; VUC fora
   assert.ok(X.definirAuditoria(g[1], 'concluida_com_divergencia', 'Carlos', T).ok);
   assert.ok(X.definirAuditoria(g[2], 'pendente', null, T).ok);
   const r = X.resumoAuditoria(g);
-  assert.deepStrictEqual([r.total, r.vuc, r.convencionais, r.concluidas, r.pendentes, r.naoIniciadas], [6, 1, 5, 2, 1, 2]);
+  assert.deepStrictEqual([r.total, r.vuc, r.convencionais, r.concluidas, r.pendentes, r.naoIniciadas], [5, 0, 5, 2, 1, 2]);
   assert.strictEqual(r.percentual, 40);
   assert.strictEqual(r.concluidas, 2);
 });
@@ -74,15 +74,29 @@ test('gaiolas: não duplica a mesma gaiola (sem diferenciar caixa) e devolve as 
   assert.strictEqual(op.gaiolas.length, 3); assert.deepStrictEqual(arr(r.ignoradas), ['a1']);
 });
 
-test('quantidades: total de produtos soma pacotes+volumosos+extra; BK não entra; paletes/redes divergentes geram aviso', () => {
+test('quantidades: total de produtos soma pacotes+volumosos+extra; redes não usa valores legados de veículo nem paletes', () => {
   const op = X.novaOperacao(T);
   Object.assign(op.quantidades, { pacotes: 100, volumosos: 20, extraVolumosos: 5, totalBK: 999, paletes: 10, redes: 4 });
   assert.strictEqual(X.totais(op).totalProdutos, 125);
   let v = X.novoVeiculo({ placa: 'abc-1234', paletes: 4, redes: 2 }, T).veiculo; op.veiculos.push(v);
   v = X.novoVeiculo({ placa: 'DEF1G23', paletes: 3, redes: 2 }, T).veiculo; op.veiculos.push(v);
   const t = X.totais(op);
-  assert.strictEqual(t.paletesVeiculos, 7); assert.strictEqual(t.redesVeiculos, 4);
+  assert.strictEqual(t.paletesVeiculos, 7); assert.strictEqual(t.redesVeiculos, 0);
   assert.strictEqual(t.avisos.length, 1); assert.ok(t.avisos[0].includes('Paletes'));
+});
+
+test('redes por veículo: soma G+V das rotas associadas uma única vez e exclui P', () => {
+  const op = opComGaiolas(['R1', 'R2']);
+  const a = op.gaiolas[0], b = op.gaiolas[1];
+  a.auditoria.quantidades = { g: 3, v: 2, p: 99 };
+  b.auditoria.quantidades = { g: 4, v: 1, p: 88 };
+  const v = X.novoVeiculo({ placa: 'AAA1111', redes: 999 }, T).veiculo; op.veiculos.push(v);
+  v.gaiolaIds.push(a.id, b.id, a.id);
+  const redes = X.redesDoVeiculo(op, v);
+  assert.deepStrictEqual([redes.valor, redes.rotasInformadas, redes.rotasAssociadas], [10, 2, 2]);
+  assert.strictEqual(X.totais(op).redesVeiculos, 10);
+  assert.ok(!X.relatorioBasico(op).includes('Redes: 4'));
+  assert.ok(X.relatorioBasico(op).includes('redes calculadas: 10'));
 });
 test('quantidades vazias valem zero na soma, sem virar NaN', () => {
   assert.strictEqual(X.totais(X.novaOperacao(T)).totalProdutos, 0);
@@ -122,12 +136,12 @@ test('ocorrências: categorias, "outra" exige descrição, identificador passa p
 test('ocorrências: divergência da auditoria é derivada das ocorrências na gaiola POO', () => {
   const op = opComGaiolas(['A2','A4']); const g = op.gaiolas[1];
   X.definirAuditoria(g, 'concluida', 'Carlos', T);
-  assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluída sem divergência');
+  assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluído');
   op.ocorrencias.push(X.novaOcorrencia({ categoria: 'bingo', produtoId: 'PKG-9', gaiolaEncontrada: 'A4', gaiolaCorreta: 'A2', identificadoPor: 'Carlos' }, T).ocorrencia);
-  assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluída com divergência');
-  assert.strictEqual(X.rotuloAuditoria(op, op.gaiolas[0]), 'Não realizada');
+  assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluído com divergência');
+  assert.strictEqual(X.rotuloAuditoria(op, op.gaiolas[0]), 'Não auditado');
   const relatorio = X.relatorioBasico(op);
-  assert.ok(relatorio.includes('Gaiola A4: Concluída com divergência'));
+  assert.ok(relatorio.includes('Gaiola A4: Concluído com divergência'));
   assert.ok(relatorio.includes('produto PKG-9'));
   assert.ok(relatorio.includes('encontrado por: Carlos'));
 });

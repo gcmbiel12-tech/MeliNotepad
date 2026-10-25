@@ -467,6 +467,7 @@
 
   function aoEnviarIniciarSessao(e) {
     e.preventDefault();
+    if (sessaoAtiva()) { toast('Já existe uma conferência em andamento. Retome a sessão atual.', 'erro'); renderTudo(); return; }
     var sacas = $.inputSacas.value;
     var pacotes = $.inputPacotes.value;
     if (!U.ehInteiroNaoNegativo(sacas) || !U.ehInteiroNaoNegativo(pacotes)) {
@@ -886,12 +887,22 @@
       return;
     }
 
-    var sessao = sessaoAtiva();
+    var sessaoAtivaAtual = sessaoAtiva();
+    if (!sessaoAtivaAtual) { toast('Não há conferência ativa para finalizar.', 'erro'); return; }
+    // Trabalha numa cópia para que uma falha de persistência não deixe a sessão ativa
+    // parcialmente marcada como finalizada em memória.
+    var sessao = JSON.parse(JSON.stringify(sessaoAtivaAtual));
+    // Idempotência: reenvio do formulário não deve duplicar o histórico.
+    if (estado.dados.history.some(function (s) { return s.id === sessao.id; })) {
+      estado.dados.currentSession = null;
+      if (!persistir()) return;
+      $.modalFinalizar.close(); renderTudo(); mudarView('historico'); abrirDetalheHistorico(sessao.id); return;
+    }
     sessao.endTime = dataFinal.toISOString();
     sessao.status = C.SESSION_STATUS.FINALIZADA;
     estado.dados.history.push(JSON.parse(JSON.stringify(sessao)));
     estado.dados.currentSession = null;
-    if (!persistir()) return;
+    if (!persistir()) { estado.dados.history = estado.dados.history.filter(function (s) { return s.id !== sessao.id; }); estado.dados.currentSession = sessao; return; }
 
     $.modalFinalizar.close();
     $.painelRelatorio.hidden = true;

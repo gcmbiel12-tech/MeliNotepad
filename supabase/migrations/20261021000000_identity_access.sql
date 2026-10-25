@@ -111,4 +111,4 @@ comment on column public.employees.employee_code is
 comment on column public.employee_accounts.auth_user_id is
   'Identidade gerenciada pelo Supabase Auth; não representa senha nem credencial local.';
 comment on column app_private.account_tokens.token_hash is
-  'Hash SHA-256 de token aleatório; o token original nunca deve ser persistido.';\n
+  'Hash SHA-256 de token aleatório; o token original nunca deve ser persistido.';
