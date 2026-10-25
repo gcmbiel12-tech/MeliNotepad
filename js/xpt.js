@@ -412,7 +412,10 @@
         h('td', { text: qTexto }),
         h('td', { text: X.rotuloAuditoria(o, g) }), h('td', { text: g.auditoria.auditor || '-' }),
         h('td', {}, [veiculoSelect]),
-        h('td', {}, [h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'auditando' ? 'Terminar auditoria' : g.auditoria.estado === 'nao_iniciada' || g.auditoria.estado === 'pendente' ? 'Iniciar auditoria' : 'Editar auditoria' })])
+        h('td', {}, [h('div', { class: 'acoes-form' }, [
+          h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'auditando' ? 'Terminar auditoria' : g.auditoria.estado === 'nao_iniciada' || g.auditoria.estado === 'pendente' ? 'Iniciar auditoria' : 'Editar auditoria' }),
+          h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'excluir', id: g.id }, text: 'Excluir gaiola' })
+        ])])
       ]);
     }));
     var listaMobile = h('ul', { class: 'xpt-lista-mobile xpt-lista-gaiolas', 'aria-label': 'Gaiolas e auditoria' });
@@ -427,14 +430,16 @@
         h('p', { class: 'texto-apoio', text: 'Auditor: ' + (g.auditoria.auditor || 'Não informado') }),
         UI.campo('Veículo associado', veiculoSelectMobile),
         h('div', { class: 'acoes-form' }, [
-          h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'auditando' ? 'Terminar auditoria' : g.auditoria.estado === 'nao_iniciada' || g.auditoria.estado === 'pendente' ? 'Iniciar auditoria' : 'Editar auditoria' })
+          h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'auditando' ? 'Terminar auditoria' : g.auditoria.estado === 'nao_iniciada' || g.auditoria.estado === 'pendente' ? 'Iniciar auditoria' : 'Editar auditoria' }),
+          h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'excluir', id: g.id }, text: 'Excluir gaiola' })
         ])
       ]));
     });
     listaMobile.hidden = itens.length === 0;
     function tratarAcaoGaiola(e) {
       var b = e.target.closest('button[data-acao]'); if (!b) return;
-      else if (b.dataset.acao === 'auditar') dialogoAuditoria([b.dataset.id]);
+      if (b.dataset.acao === 'auditar') dialogoAuditoria([b.dataset.id]);
+      else if (b.dataset.acao === 'excluir') dialogoExcluirGaiola(b.dataset.id);
     }
     corpo.addEventListener('click', tratarAcaoGaiola);
     listaMobile.addEventListener('click', tratarAcaoGaiola);
@@ -452,13 +457,37 @@
       h('div', { class: 'tabela-rolavel xpt-tabela-desktop' }, [h('table', { class: 'tabela-modulo' }, [thead(['Rota', 'Qnts.', 'Auditoria', 'Auditor', 'Veículo', '']), corpo])]),
       listaMobile]));
   }
-  function estadoAuditorCampos() {
+  function dialogoExcluirGaiola(gaiolaId) {
+    var o = op(), gaiola = o && o.gaiolas.filter(function (g) { return g.id === gaiolaId; })[0];
+    if (!gaiola) return;
+    if (o.fimCarregamentoAt || o.encerradaAt) { UI.avisar('O carregamento está encerrado; não é possível excluir gaiolas.', 'erro'); return; }
+    var dlg = UI.dialogo('dlg-xpt-excluir-gaiola');
+    dlg.appendChild(h('h2', { text: 'Excluir gaiola ' + gaiola.codigo + '?' }));
+    dlg.appendChild(h('p', { class: 'texto-apoio', text: 'Esta ação remove a gaiola cadastrada e sua associação com veículo. O histórico de ocorrências já registrado será preservado.' }));
+    dlg.appendChild(h('div', { class: 'acoes-form acoes-form--modal' }, [
+      h('button', { type: 'button', class: 'botao botao--secundario', text: 'Cancelar', onclick: function () { dlg.close(); } }),
+      h('button', { type: 'button', class: 'botao botao--primario', text: 'Confirmar exclusão', onclick: function () {
+        var salvo = mutarOp(function (x) {
+          var alvo = x.gaiolas.filter(function (g) { return g.id === gaiolaId; })[0];
+          if (!alvo) throw new Error('A gaiola não foi encontrada.');
+          var veiculo = X.veiculoDaGaiola(x, gaiolaId);
+          if (veiculo) { var removida = X.descarregarGaiola(x, veiculo.id, gaiolaId, agora()); if (!removida.ok) throw new Error(removida.erro); }
+          x.gaiolas = x.gaiolas.filter(function (g) { return g.id !== gaiolaId; });
+        });
+        if (salvo) { dlg.close(); renderTudo(); UI.avisar('Gaiola ' + gaiola.codigo + ' excluída.', 'sucesso'); }
+      } })
+    ]));
+    dlg.showModal();
+  }
+
+  function estadoAuditorCampos(ocultarQuantidades) {
     var est = select('xa-estado', [['nao_iniciada', 'Não auditado'], ['concluida', 'Concluído']], 'concluida');
     var auditor = h('input', { type: 'text', id: 'xa-auditor', autocomplete: 'name', maxlength: '100', placeholder: 'Nome de quem realizou a auditoria' });
     var quantidades = {};
     [['g','Gaiolas convencionais (G)'],['v','Gaiolas de Volumoso (V)'],['p','Paletes (P)']].forEach(function (item) { quantidades[item[0]] = h('input', { type:'number', min:'0', step:'1', inputmode:'numeric', id:'xa-lote-'+item[0], value:'', required:true }); });
-    var bloco = h('div', {}, [h('div', { class:'interv-duas' }, [UI.campo('Resultado da auditoria', est), UI.campo('Auditor', auditor, 'Obrigatório para concluir.')]),
-      h('div', { class:'interv-duas' }, [['g','Gaiolas convencionais (G)'],['v','Gaiolas de Volumoso (V)'],['p','Paletes (P)']].map(function (item) { return UI.campo(item[1], quantidades[item[0]], 'Inteiro não negativo.'); }))]);
+    var campos = [h('div', { class:'interv-duas' }, [UI.campo('Resultado da auditoria', est), UI.campo('Auditor', auditor, 'Obrigatório para concluir.')])];
+    if (!ocultarQuantidades) campos.push(h('div', { class:'interv-duas' }, [['g','Gaiolas convencionais (G)'],['v','Gaiolas de Volumoso (V)'],['p','Paletes (P)']].map(function (item) { return UI.campo(item[1], quantidades[item[0]], 'Inteiro não negativo.'); })));
+    var bloco = h('div', {}, campos);
     return { est: est, auditor: auditor, quantidades: quantidades, bloco: bloco };
   }
   function aplicarAuditoria(ids, estado, auditor, quantidades) {
@@ -502,7 +531,7 @@
     dlg.showModal();
   }
   function dialogoAdicionarGaiolas() {
-    var c = estadoAuditorCampos(); c.est.value = 'nao_iniciada';
+    var c = estadoAuditorCampos(true); c.est.value = 'nao_iniciada';
     c.est.addEventListener('change', function () { c.auditor.required = c.est.value.indexOf('concluida') === 0; });
     dialogoCodigos({ titulo: 'Adicionar gaiolas', modo: 'adicionar', confirmar: 'Adicionar',
       existentes: function () { return op().gaiolas.map(function (g) { return g.codigo; }); },
