@@ -86,10 +86,18 @@ O modelo está aplicado e validado apenas no Supabase local. Nenhum dado local f
 
 Validação transacional: `tests/supabase-xpt-schema-validation.sql`. O teste insere dados sintéticos, valida relações e constraints (inclusive exclusividade da gaiola ativa e preservação da reauditoria original) e faz `ROLLBACK`.
 
+## Autoria e trilha de auditoria (26/10/2026)
+
+A migração `20261026110000_add_operational_audit_triggers.sql` adiciona triggers nas tabelas de identidade e operacionais NEX, Intervalos e XPT. Quando há identidade autenticada, `created_by`/`updated_by` são derivados de `auth.uid()` em vez de confiar no valor enviado pelo navegador; `updated_at` é definido no servidor e a coluna `version` incrementa em atualizações. Eventos `INSERT`, `UPDATE` e `DELETE` registram snapshots `before_data`/`after_data` em `audit_events`. A tabela de auditoria continua fechada aos papéis da aplicação.
+
+Quando uma mudança ocorre por operação administrativa sem JWT, o evento é marcado como `system` e a autoria permanece nula, sem inventar identidade. Os triggers não substituem as RPCs de autorização nem resolvem conflitos concorrentes por si só: as próximas RPCs precisam validar conta/funcionário ativos e a versão esperada antes de gravar.
+
+Validação transacional: `tests/supabase-audit-trigger-validation.sql`, que verifica autoria derivada do JWT, versão, timestamps, snapshots e bloqueio de leitura/escrita direta na trilha; faz `ROLLBACK`.
+
 ## Dependências de etapas seguintes
 
-- Políticas RLS e autorização para dados operacionais compartilhados, com bloqueio efetivo de conta desativada em cada operação protegida.
-- Auditoria automática de criação, alteração, exclusão e restauração, autoria confiável, `updated_at` e controle concorrente por versão.
-- Tokens de ativação/recuperação; esta etapa usa a senha escolhida pelo usuário no Supabase Auth e não implementa tokens próprios.
-- Integração do frontend e migração/sincronização dos dados NEX e Intervalos.
+- RPCs transacionais de leitura/escrita para NEX, Intervalos e XPT que validem funcionário/conta ativos em cada chamada e a versão esperada antes de atualizar.
+- Estratégia de recuperação/restauração lógica e testes de concorrência e reconciliação antes de migrar dados locais.
+- Tokens de ativação/recuperação, caso sejam necessários além do fluxo de senha escolhido pelo usuário no Supabase Auth.
+- Integração do frontend e migração/sincronização dos dados NEX, Intervalos e XPT; fotos exigem bucket privado no Supabase Storage e migração validada.
 - Limitação por IP/CAPTCHA configurados e testados em Supabase Auth/Edge Function antes de abertura pública.

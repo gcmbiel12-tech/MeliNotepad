@@ -22,6 +22,7 @@ Use `BASE_URL=http://127.0.0.1:PORTA` se mudar a porta.
     Get-Content -Raw -Encoding UTF8 tests\supabase-security-validation.sql | docker exec -i supabase_db_MeliNotepad psql -U postgres -d postgres -v ON_ERROR_STOP=1
     Get-Content -Raw -Encoding UTF8 tests\supabase-nex-category-validation.sql | docker exec -i supabase_db_MeliNotepad psql -U postgres -d postgres -v ON_ERROR_STOP=1
     Get-Content -Raw -Encoding UTF8 tests\supabase-xpt-schema-validation.sql | docker exec -i supabase_db_MeliNotepad psql -U postgres -d postgres -v ON_ERROR_STOP=1
+    Get-Content -Raw -Encoding UTF8 tests\supabase-audit-trigger-validation.sql | docker exec -i supabase_db_MeliNotepad psql -U postgres -d postgres -v ON_ERROR_STOP=1
 Os scripts SQL usam transações com `ROLLBACK`; execute apenas no banco local descartável. Não executam migrações no Supabase remoto.
 
 ## O que estes testes NÃO provam
