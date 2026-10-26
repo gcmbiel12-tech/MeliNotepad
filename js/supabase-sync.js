@@ -78,6 +78,40 @@
     if (valor && typeof valor === 'object') return Object.keys(valor).some(function (k) { return temFotos(valor[k], k); });
     return false;
   }
+  function idsFotos(dados) {
+    var ids = {};
+    function percorrer(valor, chave) {
+      if (chave === 'fotoId' && typeof valor === 'string' && valor) ids[valor] = true;
+      if (Array.isArray(valor)) valor.forEach(function (v) { percorrer(v, chave); });
+      else if (valor && typeof valor === 'object') Object.keys(valor).forEach(function (k) { percorrer(valor[k], k); });
+    }
+    percorrer(dados, '');
+    return Object.keys(ids);
+  }
+  function sincronizarFotosXpt(dados) {
+    var fotos = idsFotos(dados);
+    if (!fotos.length) return Promise.resolve();
+    if (!NS.Fotos || !NS.Fotos.obter || !NS.Fotos.salvar || !A.storageUpload || !A.storageDownload) {
+      return Promise.reject(new Error('O armazenamento central de fotos não está disponível.'));
+    }
+    return Promise.all(fotos.map(function (id) {
+      return NS.Fotos.obter(id).then(function (registro) {
+        if (registro && registro.blob) {
+          if (registro.sincronizada === true) return;
+          return A.storageUpload('xpt-fotos', id + '.jpg', registro.blob, registro.mime || 'image/jpeg').then(function () {
+            registro.sincronizada = true;
+            registro.sincronizadaEm = new Date().toISOString();
+            return NS.Fotos.salvar(registro);
+          });
+        }
+        return A.storageDownload('xpt-fotos', id + '.jpg').then(function (blob) {
+          return NS.Fotos.salvar({ id: id, blob: blob, mime: 'image/jpeg', criadoEm: new Date().toISOString(), sincronizada: true, sincronizadaEm: new Date().toISOString() });
+        }).catch(function (e) {
+          throw new Error('A foto ' + id + ' não está neste aparelho nem foi encontrada na nuvem. Nenhum snapshot XPT foi aplicado: ' + e.message);
+        });
+      });
+    }));
+  }
   function setStatus(texto, tipo) {
     if (status) {
       status.textContent = texto;
@@ -101,7 +135,7 @@
       return;
     }
     aviso.textContent = 'Sincronização ativa: ' + nomes.join(', ') + '.'
-      + (xptFotoLocal && ativos.indexOf('xpt') === -1 ? ' XPT contém fotos locais e não está sincronizado.' : '')
+      + (xptFotoLocal && ativos.indexOf('xpt') === -1 ? ' XPT contém fotos locais; ative a sincronização do módulo XPT para transferi-las.' : '')
       + ' Se houver conflito entre dispositivos, o salvamento é bloqueado para evitar sobrescrita silenciosa.';
   }
   function carregarRemoto(modulo) {
@@ -151,8 +185,8 @@
     var info = criar('div', 'auth-sync-item__info');
     info.appendChild(criar('strong', '', MODULOS[item.modulo].nome));
     info.appendChild(criar('p', '', item.descricao));
-    if (item.state === 'photos') {
-      info.appendChild(criar('p', 'is-erro', 'Fotos não são enviadas ao snapshot. O XPT fica local até a integração com Storage.'));
+    if (item.modulo === 'xpt' && (temFotos(item.local && item.local.dados, '') || temFotos(item.remoto && item.remoto.payload, ''))) {
+      info.appendChild(criar('p', '', 'As fotos vinculadas também serão enviadas/baixadas pelo bucket privado. Se uma foto não existir nem localmente nem na nuvem, a operação será interrompida sem substituir o snapshot.'));
     }
     var acoes = criar('div', 'auth-sync-item__acoes');
     if (item.state === 'empty' || item.state === 'equal') {
@@ -195,9 +229,6 @@
         var remotoExiste = Number(remoto.version) > 0 && remoto.payload !== null;
         if (remotoExiste && !validarPayload(modulo, remoto.payload)) return { modulo: modulo, state: 'remote-invalid', local: local, remoto: remoto, descricao: 'O snapshot remoto não passa pela validação do módulo. Não será aplicado nem substituído.' };
         var remotoVazio = !remotoExiste || vazio(modulo, remoto.payload, true);
-        if (modulo === 'xpt' && (temFotos(local.dados, '') || temFotos(remoto.payload, ''))) {
-          return { modulo: modulo, state: 'photos', local: local, remoto: remoto, descricao: 'Há referências de fotos locais ou remotas; não é seguro sincronizar XPT antes de migrar as fotos.' };
-        }
         if (localVazio && remotoVazio) return { modulo: modulo, state: 'empty', local: local, remoto: remoto, descricao: 'Sem dados neste aparelho nem na nuvem. A primeira alteração criará o snapshot.' };
         if (localVazio && remotoExiste) return { modulo: modulo, state: 'remote-only', local: local, remoto: remoto, descricao: 'Há dados na nuvem e este aparelho não tem registros. Baixar não substituirá dados locais existentes.' };
         if (!localVazio && !remotoExiste) return { modulo: modulo, state: 'local-only', local: local, remoto: remoto, descricao: 'Há dados locais, mas ainda não existe snapshot na nuvem.' };
@@ -274,10 +305,6 @@
       )) {
         throw new Error('Os dados locais ou da nuvem mudaram depois da comparação. Atualize a análise antes de escolher uma versão.');
       }
-      if (acao !== 'local-only' && modulo === 'xpt' && (temFotos(local.dados, '') || temFotos(remoto.payload, ''))) {
-        desativar(modulo);
-        throw new Error('XPT contém fotos que ainda não são transferidas ao Supabase Storage. Nenhuma alteração foi feita.');
-      }
       if (acao === 'local-only') {
         desativar(modulo);
         setStatus('Somente local: ' + MODULOS[modulo].nome, 'pendente');
@@ -286,16 +313,19 @@
       }
       if (acao === 'ativar') {
         var v = Number(remoto.version) || 0;
-        marcarAtivo(modulo, v, local.hash);
-        definirMensagem('Sincronização ativada para ' + MODULOS[modulo].nome + '.');
-        analisar();
-        return;
+        return (modulo === 'xpt' ? sincronizarFotosXpt(local.dados || remoto.payload) : Promise.resolve()).then(function () {
+          marcarAtivo(modulo, v, local.hash);
+          definirMensagem('Sincronização ativada para ' + MODULOS[modulo].nome + '.');
+          return analisar();
+        });
       }
       if (acao === 'local') {
         if (vazio(modulo, local.dados, local.existe)) throw new Error('Não há dados locais para enviar.');
         if (!validarPayload(modulo, local.dados)) throw new Error('Os dados locais não passam pela validação do módulo.');
-        guardarBackupRemoto(modulo, remoto.payload, remoto.version);
-        return salvarRemoto(modulo, Number(remoto.version) || 0, local.dados).then(function (resultado) {
+        return (modulo === 'xpt' ? sincronizarFotosXpt(local.dados) : Promise.resolve()).then(function () {
+          guardarBackupRemoto(modulo, remoto.payload, remoto.version);
+          return salvarRemoto(modulo, Number(remoto.version) || 0, local.dados);
+        }).then(function (resultado) {
           marcarAtivo(modulo, Number(resultado.version), local.hash);
           definirMensagem('Dados locais enviados para ' + MODULOS[modulo].nome + '.');
           return analisar();
@@ -305,10 +335,12 @@
         if (!remoto.payload || Number(remoto.version) < 1) throw new Error('Não há snapshot remoto para baixar.');
         if (!validarPayload(modulo, remoto.payload)) throw new Error('O snapshot remoto não passa pela validação do módulo.');
         if (!vazio(modulo, local.dados, local.existe)) guardarBackupLocal(modulo, local.dados);
-        escreverLocal(modulo, remoto.payload);
-        marcarAtivo(modulo, Number(remoto.version), hash(estavel(remoto.payload)));
-        definirMensagem('Dados de ' + MODULOS[modulo].nome + ' baixados. Recarregando para que a interface leia o estado sincronizado.');
-        global.setTimeout(function () { global.location.reload(); }, 250);
+        return (modulo === 'xpt' ? sincronizarFotosXpt(remoto.payload) : Promise.resolve()).then(function () {
+          escreverLocal(modulo, remoto.payload);
+          marcarAtivo(modulo, Number(remoto.version), hash(estavel(remoto.payload)));
+          definirMensagem('Dados de ' + MODULOS[modulo].nome + ' baixados. Recarregando para que a interface leia o estado sincronizado.');
+          global.setTimeout(function () { global.location.reload(); }, 250);
+        });
       }
     }).catch(function (e) {
       setStatus('Sincronização pendente: ' + MODULOS[modulo].nome, 'erro');
@@ -325,7 +357,9 @@
       if (local.erro) { setStatus('Erro local: ' + MODULOS[modulo].nome, 'erro'); return; }
       var versao = meta[modulo] ? Number(meta[modulo].version) : Number(versoesRemotas[modulo] || 0);
       setStatus('Salvando na nuvem: ' + MODULOS[modulo].nome + '…', 'pendente');
-      salvarRemoto(modulo, versao, local.dados).then(function (resultado) {
+      (modulo === 'xpt' ? sincronizarFotosXpt(local.dados) : Promise.resolve())
+        .then(function () { return salvarRemoto(modulo, versao, local.dados); })
+        .then(function (resultado) {
         marcarAtivo(modulo, Number(resultado.version), local.hash);
         definirMensagem('');
       }).catch(function (e) {
@@ -365,15 +399,14 @@
         var local = partes[0], remoto = partes[1], anterior = meta[modulo];
         if (local.erro || (local.existe && !validarPayload(modulo, local.dados))) { desativar(modulo); setStatus('Erro local: ' + MODULOS[modulo].nome, 'erro'); return; }
         if (Number(remoto.version) > 0 && !validarPayload(modulo, remoto.payload)) { desativar(modulo); setStatus('Snapshot inválido: ' + MODULOS[modulo].nome, 'erro'); return; }
-        if (modulo === 'xpt' && (temFotos(local.dados, '') || temFotos(remoto.payload, ''))) {
-          desativar(modulo); setStatus('XPT somente local (fotos)', 'pendente'); return;
-        }
         var vRemoto = Number(remoto.version) || 0;
         if (!anterior) {
           if (vRemoto > 0 && vazio(modulo, local.dados, local.existe)) {
-            escreverLocal(modulo, remoto.payload);
-            guardarMeta(modulo, vRemoto, hash(estavel(remoto.payload)));
-            return 'reload';
+            return (modulo === 'xpt' ? sincronizarFotosXpt(remoto.payload) : Promise.resolve()).then(function () {
+              escreverLocal(modulo, remoto.payload);
+              guardarMeta(modulo, vRemoto, hash(estavel(remoto.payload)));
+              return 'reload';
+            });
           }
           if (vRemoto > 0 && estavel(local.dados) !== estavel(remoto.payload)) {
             desativar(modulo);
@@ -389,21 +422,27 @@
             if (panel) panel.hidden = false;
             return;
           }
-          guardarMeta(modulo, vRemoto, local.hash);
-          return;
+          return (modulo === 'xpt' && vRemoto > 0 ? sincronizarFotosXpt(local.dados) : Promise.resolve()).then(function () {
+            guardarMeta(modulo, vRemoto, local.hash);
+          });
         }
         var hashLocalAnterior = anterior.localHash;
         if (vRemoto === Number(anterior.version) && local.hash === hashLocalAnterior) {
-          versoesRemotas[modulo] = vRemoto; return;
+          versoesRemotas[modulo] = vRemoto;
+          return modulo === 'xpt' ? sincronizarFotosXpt(local.dados) : undefined;
         }
         if (vRemoto > Number(anterior.version) && local.hash === hashLocalAnterior && remoto.payload) {
-          if (!vazio(modulo, local.dados, local.existe)) guardarBackupLocal(modulo, local.dados);
-          escreverLocal(modulo, remoto.payload);
-          guardarMeta(modulo, vRemoto, hash(estavel(remoto.payload)));
-          return 'reload';
+          return (modulo === 'xpt' ? sincronizarFotosXpt(remoto.payload) : Promise.resolve()).then(function () {
+            if (!vazio(modulo, local.dados, local.existe)) guardarBackupLocal(modulo, local.dados);
+            escreverLocal(modulo, remoto.payload);
+            guardarMeta(modulo, vRemoto, hash(estavel(remoto.payload)));
+            return 'reload';
+          });
         }
         if (vRemoto === Number(anterior.version) && local.hash !== hashLocalAnterior) {
-          return salvarRemoto(modulo, vRemoto, local.dados).then(function (r) {
+          return (modulo === 'xpt' ? sincronizarFotosXpt(local.dados) : Promise.resolve())
+            .then(function () { return salvarRemoto(modulo, vRemoto, local.dados); })
+            .then(function (r) {
             marcarAtivo(modulo, Number(r.version), local.hash);
           }).catch(function () {
             desativar(modulo);

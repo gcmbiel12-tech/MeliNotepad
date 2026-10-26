@@ -168,6 +168,38 @@
     });
   }
 
+  function storageRequest(path, options, blobResponse, retry) {
+    options = options || {};
+    return sessaoValida().then(function (s) {
+      if (!s) throw new Error('Entre na sua conta para continuar.');
+      var headers = Object.assign({ apikey: cfg.supabaseAnonKey, Authorization: 'Bearer ' + s.access_token }, options.headers || {});
+      return global.fetch(cfg.supabaseUrl + path, Object.assign({}, options, { headers: headers })).then(function (res) {
+        if (!res.ok) return res.text().then(function (txt) {
+          var data = null;
+          try { data = txt ? JSON.parse(txt) : null; } catch (e) { data = { message: txt }; }
+          var erro = new Error(erroDaResposta(data, res.status)); erro.status = res.status; throw erro;
+        });
+        if (blobResponse) return res.blob();
+        return res.text().then(function (txt) { if (!txt) return {}; try { return JSON.parse(txt); } catch (e) { return { message: txt }; } });
+      }).catch(function (e) {
+        if (e.status === 401 && retry !== false) {
+          return renovar(s).then(function () { return storageRequest(path, options, blobResponse, false); });
+        }
+        throw e;
+      });
+    });
+  }
+
+  function storageUpload(bucket, objectPath, blob, mime) {
+    var path = '/storage/v1/object/' + encodeURIComponent(bucket) + '/' + String(objectPath || '').split('/').map(encodeURIComponent).join('/');
+    return storageRequest(path, { method: 'POST', headers: { 'Content-Type': mime || 'image/jpeg', 'x-upsert': 'true' }, body: blob }, false, true);
+  }
+
+  function storageDownload(bucket, objectPath) {
+    var path = '/storage/v1/object/authenticated/' + encodeURIComponent(bucket) + '/' + String(objectPath || '').split('/').map(encodeURIComponent).join('/');
+    return storageRequest(path, { method: 'GET' }, true, true);
+  }
+
   function rpc(nome, argumentos) {
     return chamadaProtegida('/rest/v1/rpc/' + encodeURIComponent(nome), {
       method: 'POST', body: JSON.stringify(argumentos || {})
@@ -189,6 +221,8 @@
     recuperarSenha: recuperarSenha,
     capturarCallback: capturarCallback,
     atualizarSenha: atualizarSenha,
+    storageUpload: storageUpload,
+    storageDownload: storageDownload,
     sair: sair,
     rpc: rpc,
     contextoFuncionario: contextoFuncionario,
