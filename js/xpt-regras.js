@@ -112,7 +112,7 @@
 
   // ---------------------------------------------------------------- gaiolas e auditoria
   function novaGaiola(codigo, agoraMs) {
-    return { id: novoId('gai'), codigo: codigo, vuc: false, criadaEm: iso(agoraMs),
+    return { id: novoId('gai'), codigo: codigo, criadaEm: iso(agoraMs),
              auditoria: { estado: 'nao_iniciada', auditor: null, em: null, quantidades: { g: null, v: null, p: null }, historico: [] } };
   }
   function adicionarGaiolas(op, codigos, agoraMs) {
@@ -166,16 +166,21 @@
     q = q || {};
     return ['g', 'p'].every(function (k) { var r = inteiroOuNulo(q[k]); return r.ok && r.valor !== null; });
   }
-  /** VUC permanece pendente e é excluído de todos os totais e percentuais da auditoria. */
+  /** Cada gaiola entra uma única vez no total e em exatamente um estado de auditoria. */
   function resumoAuditoria(gaiolas) {
-    var r = { total: 0, vuc: 0, convencionais: 0, concluidas: 0, concluidasSem: 0, concluidasCom: 0, pendentes: 0, naoIniciadas: 0 };
-    gaiolas.forEach(function (g) {
-      if (g.vuc) return; r.total++; r.convencionais++;
-      var e = g.auditoria.estado;
-      if (e === 'concluida' || e.indexOf('concluida_') === 0) r.concluidas++;
-      else if (e === 'pendente') r.pendentes++; else r.naoIniciadas++;
+    var r = { total: 0, concluidas: 0, concluidasSem: 0, concluidasCom: 0, pendentes: 0, naoIniciadas: 0 };
+    (Array.isArray(gaiolas) ? gaiolas : []).forEach(function (g) {
+      if (!g) return;
+      r.total++;
+      var e = g.auditoria && g.auditoria.estado || 'nao_iniciada';
+      if (e === 'concluida' || e.indexOf('concluida_') === 0) {
+        r.concluidas++;
+        if (e === 'concluida_sem_divergencia') r.concluidasSem++;
+        if (e === 'concluida_com_divergencia') r.concluidasCom++;
+      } else if (e === 'pendente') r.pendentes++;
+      else r.naoIniciadas++;
     });
-    r.percentual = r.convencionais ? Math.round(r.concluidas / r.convencionais * 1000) / 10 : null;
+    r.percentual = r.total ? Math.round(r.concluidas / r.total * 1000) / 10 : null;
     return r;
   }
   function ocorrenciasDaGaiola(op, gaiola) {
@@ -193,8 +198,8 @@
   }  // ---------------------------------------------------------------- quantidades
   function n(v) { return v == null || v === '' ? 0 : Number(v); }
   function redesDoVeiculo(op, veiculo) {
-    // Cada rota corresponde à gaiola cadastrada pelo código. Só contar uma vez por ID;
-    // G e V vêm da auditoria da rota. Paletes (P) nunca entram no cálculo.
+    // Cada gaiola associada ao veículo é contada uma única vez por ID;
+    // G e V vêm das quantidades auditadas. Paletes (P) nunca entram no cálculo.
     var ids = {}, total = 0, informadas = 0;
     (veiculo.gaiolaIds || []).forEach(function (id) {
       if (ids[id]) return; ids[id] = true;
@@ -212,7 +217,7 @@
     var somaRedes = vs.reduce(function (s, v) { return s + redesDoVeiculo(op, v).valor; }, 0);
     var r = {
       totalProdutos: n(q.pacotes) + n(q.volumosos) + n(q.extraVolumosos),    // BK não entra na soma (significado não confirmado)
-      gaiolas: op.gaiolas.filter(function (g) { return !g.vuc; }).length, gaiolasVuc: op.gaiolas.filter(function (g) { return !!g.vuc; }).length,
+      gaiolas: op.gaiolas.length,
       paletesVeiculos: somaPaletes, redesVeiculos: somaRedes, avisos: []
     };
     if (q.paletes != null && vs.length && q.paletes !== somaPaletes) r.avisos.push('Paletes legados: total informado (' + q.paletes + ') difere da soma dos veículos (' + somaPaletes + ').');
@@ -245,6 +250,8 @@
     var v = op.veiculos.filter(function (x) { return x.id === veiculoId; })[0];
     var g = op.gaiolas.filter(function (x) { return x.id === gaiolaId; })[0];
     if (!v || !g) return { ok: false, erro: 'Veículo ou gaiola não encontrado.' };
+    if (op.encerradaAt) return { ok: false, erro: 'Operação encerrada; não é possível alterar o carregamento.' };
+    if (v.finalizadoAt) return { ok: false, erro: 'Veículo finalizado; reabra-o antes de alterar as gaiolas.' };
     var atual = veiculoDaGaiola(op, gaiolaId);
     if (atual) return { ok: false, erro: 'A gaiola ' + g.codigo + ' já está carregada no veículo ' + atual.placa + (atual.id === v.id ? '' : '. Remova-a de lá antes.') };
     v.gaiolaIds.push(gaiolaId); v.historico.push({ em: iso(agoraMs), acao: 'gaiola_carregada', gaiolaCodigo: g.codigo });
@@ -252,6 +259,8 @@
   }
   function descarregarGaiola(op, veiculoId, gaiolaId, agoraMs) {
     var v = op.veiculos.filter(function (x) { return x.id === veiculoId; })[0]; if (!v) return { ok: false, erro: 'Veículo não encontrado.' };
+    if (op.encerradaAt) return { ok: false, erro: 'Operação encerrada; não é possível alterar o carregamento.' };
+    if (v.finalizadoAt) return { ok: false, erro: 'Veículo finalizado; reabra-o antes de alterar as gaiolas.' };
     var k = v.gaiolaIds.indexOf(gaiolaId); if (k < 0) return { ok: false, erro: 'A gaiola não está neste veículo.' };
     var g = op.gaiolas.filter(function (x) { return x.id === gaiolaId; })[0];
     v.gaiolaIds.splice(k, 1); v.historico.push({ em: iso(agoraMs), acao: 'gaiola_removida', gaiolaCodigo: g ? g.codigo : gaiolaId });
@@ -335,7 +344,7 @@
     var qs = [['Pacotes', q.pacotes], ['Volumosos', q.volumosos], ['Extra volumosos', q.extraVolumosos]].filter(function (x) { return x[1] != null; });
     if (qs.length) L.push(qs.map(function (x) { return x[0] + ': ' + U.formatarNumeroBR(x[1]); }).join(' · '));
     if (qs.length) L.push('Total de produtos: *' + U.formatarNumeroBR(t.totalProdutos) + '*');
-    var o = ['Gaiolas: ' + t.gaiolas + (t.gaiolasVuc ? ' (' + t.gaiolasVuc + ' VUC)' : '')];
+    var o = ['Gaiolas: ' + t.gaiolas];
     if (q.paletes != null) o.push('Paletes (legado): ' + q.paletes); if (q.totalBK != null) o.push('Total BK: ' + q.totalBK);
     L.push(o.join(' · '));
     var rotas = rotasDaOperacao(op); if (rotas.length) { L.push(''); L.push('🗺️ *Rotas:* ' + rotas.join(', ')); }
@@ -348,15 +357,15 @@
         L.push('└ ' + p.join(' · '));
       });
     }
-    L.push(''); L.push('🔎 *Auditoria* (gaiolas convencionais)');
-    if (!a.convencionais) L.push('Sem gaiolas convencionais registradas.');
+    L.push(''); L.push('🔎 *Auditoria de gaiolas*');
+    if (!a.total) L.push('Sem gaiolas registradas.');
     else {
-      var comDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída com divergência'; }).length;
-      var semDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída sem divergência'; }).length;
-      L.push('Concluídas: ' + a.concluidas + ' de ' + a.convencionais + ' (' + String(a.percentual).replace('.', ',') + '%) · sem divergência ' + semDivergencia + ' · com divergência ' + comDivergencia);
-      L.push('Não realizadas: ' + (a.pendentes + a.naoIniciadas));
+      var comDivergencia = a.concluidasCom;
+      var semDivergencia = a.concluidasSem;
+      L.push('Concluídas: ' + a.concluidas + ' de ' + a.total + ' (' + String(a.percentual).replace('.', ',') + '%) · sem divergência ' + semDivergencia + ' · com divergência ' + comDivergencia);
+      L.push('Pendentes: ' + a.pendentes + ' · Não iniciadas: ' + a.naoIniciadas);
     }
-    if (a.vuc) L.push('VUC fora do cálculo de auditoria: ' + a.vuc);
+
     L.push(''); L.push('*Gaiolas, auditoria e ocorrências*');
     if (!op.gaiolas.length) L.push('Nenhuma gaiola cadastrada.');
     op.gaiolas.forEach(function (g) {
