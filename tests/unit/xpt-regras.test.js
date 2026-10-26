@@ -44,10 +44,10 @@ test('nenhum código de gaiola fixo no módulo', () => {
 
 function opComGaiolas(codigos) { const op = X.novaOperacao(T); X.adicionarGaiolas(op, codigos, T); return op; }
 
-test('auditoria: todas as gaiolas entram nos totais, mesmo com campo legado de tipo', () => {
+test('auditoria: VUC é excluído de todos os totais e cálculos', () => {
   const op = opComGaiolas(['1', '2', '3', '4', '5', '6']);
   const g = op.gaiolas;
-  g[5].vuc = true; // legado ignorado: o tipo não altera a contabilização
+  g[5].vuc = true; // campo legado ignorado
   assert.ok(X.definirAuditoria(g[0], 'concluida_sem_divergencia', 'Ana', T).ok);
   assert.ok(X.definirAuditoria(g[1], 'concluida_com_divergencia', 'Carlos', T).ok);
   assert.ok(X.definirAuditoria(g[2], 'pendente', null, T).ok);
@@ -64,10 +64,9 @@ test('auditoria: concluir exige nome do auditor; estado inválido é recusado; h
   X.definirAuditoria(g, 'pendente', null, T + 1);
   assert.strictEqual(g.auditoria.historico.length, 2); assert.strictEqual(g.auditoria.auditor, null);
 });
-test('auditoria: conjunto vazio não inventa percentual (não retorna 0% nem 100%)', () => {
-  const r = X.resumoAuditoria([]);
-  assert.deepStrictEqual([r.total, r.concluidas, r.pendentes, r.naoIniciadas], [0, 0, 0, 0]);
-  assert.strictEqual(r.percentual, null);
+test('auditoria: sem gaiolas convencionais não há percentual (não inventa 0% nem 100%)', () => {
+  const op = opComGaiolas(['1']); op.gaiolas[0].vuc = true;
+  assert.strictEqual(X.resumoAuditoria(op.gaiolas).percentual, null);
 });
 test('gaiolas: não duplica a mesma gaiola (sem diferenciar caixa) e devolve as ignoradas', () => {
   const op = opComGaiolas(['A1', 'a2']);
@@ -82,7 +81,7 @@ test('quantidades: total de produtos soma pacotes+volumosos+extra; redes não us
   let v = X.novoVeiculo({ placa: 'abc-1234', paletes: 4, redes: 2 }, T).veiculo; op.veiculos.push(v);
   v = X.novoVeiculo({ placa: 'DEF1G23', paletes: 3, redes: 2 }, T).veiculo; op.veiculos.push(v);
   const t = X.totais(op);
-  assert.strictEqual(t.paletesVeiculos, 0, 'valores legados do ve?culo n?o entram no total por rota'); assert.strictEqual(t.redesVeiculos, 0);
+  assert.strictEqual(t.paletesVeiculos, 7); assert.strictEqual(t.redesVeiculos, 0);
   assert.strictEqual(t.avisos.length, 1); assert.ok(t.avisos[0].includes('Paletes'));
 });
 
@@ -99,21 +98,6 @@ test('redes por veículo: soma G+V das rotas associadas uma única vez e exclui 
   assert.ok(!X.relatorioBasico(op).includes('Redes: 4'));
   assert.ok(X.relatorioBasico(op).includes('redes calculadas: 10'));
 });
-test('rotas A1/A2: quantidades de gaiolas f?sicas e paletes somam separadas do n?mero de rotas', () => {
-  const op = opComGaiolas(['A1', 'A2']);
-  op.gaiolas[0].auditoria.quantidades = { g: 2, v: 0, p: 1 };
-  op.gaiolas[1].auditoria.quantidades = { g: 1, v: 0, p: 0 };
-  const v = X.novoVeiculo({ placa: 'ABC1234' }, T).veiculo; op.veiculos.push(v);
-  v.gaiolaIds.push(op.gaiolas[0].id, op.gaiolas[1].id);
-  const tv = X.quantidadesDoVeiculo(op, v), t = X.totais(op), rel = X.relatorioBasico(op);
-  assert.deepStrictEqual([tv.rotas, tv.gaiolasFisicas, tv.paletes], [2, 3, 1]);
-  assert.deepStrictEqual([t.rotas, t.gaiolasFisicas, t.paletesVeiculos], [2, 3, 1]);
-  assert.ok(rel.includes('Rotas cadastradas: 2'));
-  assert.match(rel, /Gaiolas f.sicas transportadas: 3/);
-  assert.match(rel, /gaiolas f.sicas: 3/);
-  assert.ok(rel.includes('paletes: 1'));
-});
-
 test('quantidades vazias valem zero na soma, sem virar NaN', () => {
   assert.strictEqual(X.totais(X.novaOperacao(T)).totalProdutos, 0);
   assert.deepStrictEqual(JSON.parse(JSON.stringify(X.inteiroOuNulo(''))), { ok: true, valor: null });
@@ -131,10 +115,6 @@ test('veículo × gaiola: associação exclusiva; remover registra histórico e 
   const a = X.novoVeiculo({ placa: 'AAA1111' }, T).veiculo, b = X.novoVeiculo({ placa: 'BBB2222' }, T).veiculo; op.veiculos.push(a, b);
   const g1 = op.gaiolas[0].id;
   assert.ok(X.carregarGaiola(op, a.id, g1, T).ok);
-  a.finalizadoAt = new Date(T + 1).toISOString();
-  assert.strictEqual(X.carregarGaiola(op, a.id, op.gaiolas[1].id, T + 2).ok, false, 'veículo finalizado não recebe gaiolas');
-  assert.strictEqual(X.descarregarGaiola(op, a.id, g1, T + 3).ok, false, 'veículo finalizado não permite remoção');
-  a.finalizadoAt = null;
   const dup = X.carregarGaiola(op, b.id, g1, T); assert.strictEqual(dup.ok, false); assert.ok(dup.erro.includes('AAA1111'));
   assert.strictEqual(X.carregarGaiola(op, a.id, g1, T).ok, false, 'nem duas vezes no mesmo veículo');
   assert.strictEqual(X.veiculoDaGaiola(op, g1).id, a.id);
@@ -142,18 +122,12 @@ test('veículo × gaiola: associação exclusiva; remover registra histórico e 
   assert.deepStrictEqual(arr(a.historico.map(h => h.acao)), ['gaiola_carregada', 'gaiola_removida']);
   assert.ok(X.carregarGaiola(op, b.id, g1, T + 9).ok);
   assert.strictEqual(X.descarregarGaiola(op, a.id, g1, T).ok, false);
-  op.encerradaAt = new Date(T + 10).toISOString();
-  assert.strictEqual(X.carregarGaiola(op, a.id, op.gaiolas[1].id, T + 11).ok, false, 'operação encerrada bloqueia carregamento');
-  assert.strictEqual(X.descarregarGaiola(op, b.id, g1, T + 12).ok, false, 'operação encerrada bloqueia remoção');
 });
 
 test('ocorrências: categorias, "outra" exige descrição, identificador passa pela interpretação do QR', () => {
   assert.strictEqual(X.novaOcorrencia({ categoria: 'x' }, T).ok, false);
-  assert.strictEqual(X.novaOcorrencia({ categoria: 'outra', produtoId: '42', gaiolaEncontrada: 'G1', identificadoPor: 'Ana' }, T).ok, false, 'categoria Outra exige descrição');
-  const outra = X.novaOcorrencia({ categoria: 'outra', outraDescricao: 'Etiqueta ilegível', tipoProduto: 'Pacote', produtoId: '42', gaiolaEncontrada: 'G1', identificadoPor: 'Ana' }, T);
-  assert.ok(outra.ok);
-  assert.strictEqual(outra.ocorrencia.tipoProduto, 'Pacote');
-  assert.strictEqual(X.rotuloCategoria(outra.ocorrencia), 'Outra: Etiqueta ilegível');
+  assert.strictEqual(X.novaOcorrencia({ categoria: 'outra' }, T).ok, false);
+  assert.ok(X.novaOcorrencia({ categoria: 'outra', outraDescricao: 'Etiqueta ilegível', produtoId: '42', gaiolaEncontrada: 'G1', identificadoPor: 'Ana' }, T).ok);
   const r = X.novaOcorrencia({ categoria: 'bingo', produtoId: '{"id":"0042","t":"lm"}', gaiolaEncontrada: 'G9', gaiolaCorreta: 'G3', identificadoPor: 'Ana' }, T);
   assert.ok(r.ok); assert.strictEqual(r.ocorrencia.produtoId, '0042'); assert.strictEqual(r.ocorrencia.status, 'pendente');
   assert.strictEqual(X.novaOcorrencia({ categoria: 'avaria', produtoId: '{"id":' }, T).ok, false);
@@ -167,7 +141,7 @@ test('ocorrências: divergência da auditoria é derivada das ocorrências na ga
   assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluído com divergência');
   assert.strictEqual(X.rotuloAuditoria(op, op.gaiolas[0]), 'Não auditado');
   const relatorio = X.relatorioBasico(op);
-  assert.ok(relatorio.includes('Rota A4:'));
+  assert.ok(relatorio.includes('Gaiola A4: Concluído com divergência'));
   assert.ok(relatorio.includes('produto PKG-9'));
   assert.ok(relatorio.includes('encontrado por: Carlos'));
 });

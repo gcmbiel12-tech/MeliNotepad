@@ -232,7 +232,7 @@
     });
   }
 
-  function criarItemOcorrencia(o, somenteLeitura, permitirExcluirHistorico) {
+  function criarItemOcorrencia(o, somenteLeitura) {
     var li = document.createElement('li');
     li.className = 'item-ocorrencia item-ocorrencia--' + o.status;
     li.dataset.id = o.id;
@@ -272,39 +272,30 @@
       li.appendChild(nota);
     }
 
-    if (!somenteLeitura || permitirExcluirHistorico) {
+    if (!somenteLeitura) {
       var acoes = document.createElement('div');
       acoes.className = 'item-ocorrencia__acoes';
 
-      if (!somenteLeitura) {
-        var btnToggle = document.createElement('button');
-        btnToggle.type = 'button';
-        btnToggle.className = 'botao botao--texto';
-        btnToggle.dataset.action = o.status === C.STATUS.PENDENTE ? 'resolver' : 'reabrir';
-        btnToggle.textContent = o.status === C.STATUS.PENDENTE ? 'Marcar resolvida' : 'Reabrir';
-        acoes.appendChild(btnToggle);
+      var btnToggle = document.createElement('button');
+      btnToggle.type = 'button';
+      btnToggle.className = 'botao botao--texto';
+      btnToggle.dataset.action = o.status === C.STATUS.PENDENTE ? 'resolver' : 'reabrir';
+      btnToggle.textContent = o.status === C.STATUS.PENDENTE ? 'Marcar resolvida' : 'Reabrir';
+      acoes.appendChild(btnToggle);
 
-        var btnEditar = document.createElement('button');
-        btnEditar.type = 'button';
-        btnEditar.className = 'botao botao--texto';
-        btnEditar.dataset.action = 'editar';
-        btnEditar.textContent = 'Editar';
-        acoes.appendChild(btnEditar);
+      var btnEditar = document.createElement('button');
+      btnEditar.type = 'button';
+      btnEditar.className = 'botao botao--texto';
+      btnEditar.dataset.action = 'editar';
+      btnEditar.textContent = 'Editar';
+      acoes.appendChild(btnEditar);
 
-        var btnExcluir = document.createElement('button');
-        btnExcluir.type = 'button';
-        btnExcluir.className = 'botao botao--texto botao--perigo-texto';
-        btnExcluir.dataset.action = 'excluir';
-        btnExcluir.textContent = 'Excluir';
-        acoes.appendChild(btnExcluir);
-      } else {
-        var btnExcluirHistorico = document.createElement('button');
-        btnExcluirHistorico.type = 'button';
-        btnExcluirHistorico.className = 'botao botao--texto botao--perigo-texto';
-        btnExcluirHistorico.dataset.action = 'excluir-historico';
-        btnExcluirHistorico.textContent = 'Excluir ocorrência';
-        acoes.appendChild(btnExcluirHistorico);
-      }
+      var btnExcluir = document.createElement('button');
+      btnExcluir.type = 'button';
+      btnExcluir.className = 'botao botao--texto botao--perigo-texto';
+      btnExcluir.dataset.action = 'excluir';
+      btnExcluir.textContent = 'Excluir';
+      acoes.appendChild(btnExcluir);
 
       li.appendChild(acoes);
     }
@@ -415,7 +406,7 @@
     sessao.occurrences.slice().sort(function (a, b) {
       return new Date(b.createdAt) - new Date(a.createdAt);
     }).forEach(function (o) {
-      $.detalheHistoricoOcorrencias.appendChild(criarItemOcorrencia(o, true, true));
+      $.detalheHistoricoOcorrencias.appendChild(criarItemOcorrencia(o, true));
     });
 
     $.detalheHistoricoRelatorio.value = Report.gerarTextoRelatorio(sessao);
@@ -437,36 +428,6 @@
     if (!sessao) return;
     $.detalheHistoricoRelatorio.value = Report.gerarTextoRelatorio(sessao);
     toast('Texto do relatório restaurado.', 'info');
-  }
-
-  function aoClicarOcorrenciaHistorico(e) {
-    var botao = e.target.closest('button[data-action="excluir-historico"]');
-    if (!botao) return;
-    var item = botao.closest('.item-ocorrencia');
-    var ocorrenciaId = item && item.dataset.id;
-    var sessao = sessaoHistoricoAberta();
-    if (!sessao || !ocorrenciaId) return;
-    var ocorrencia = sessao.occurrences.find(function (o) { return o.id === ocorrenciaId; });
-    if (!ocorrencia) return;
-
-    confirmar({
-      titulo: 'Excluir ocorrência registrada',
-      mensagem: 'Remover o código "' + ocorrencia.code + '" do histórico desta conferência? O relatório será atualizado. Esta ação não pode ser desfeita.',
-      confirmarLabel: 'Excluir ocorrência',
-      cancelarLabel: 'Cancelar',
-      perigo: true
-    }).then(function (ok) {
-      if (!ok) return;
-      var ocorrenciasOriginais = sessao.occurrences;
-      sessao.occurrences = ocorrenciasOriginais.filter(function (o) { return o.id !== ocorrenciaId; });
-      if (!persistir()) {
-        sessao.occurrences = ocorrenciasOriginais;
-        return;
-      }
-      abrirDetalheHistorico(sessao.id);
-      renderHistoricoLista();
-      toast('Ocorrência excluída do histórico.', 'info');
-    });
   }
 
   function excluirSessaoHistorico() {
@@ -1135,7 +1096,6 @@
       atualizarFiltroHistorico();
     });
     $.btnFecharDetalheHistorico.addEventListener('click', fecharDetalheHistorico);
-    $.detalheHistoricoOcorrencias.addEventListener('click', aoClicarOcorrenciaHistorico);
     $.btnExcluirSessaoHistorico.addEventListener('click', excluirSessaoHistorico);
     $.btnRestaurarRelatorioHistorico.addEventListener('click', restaurarRelatorioHistorico);
     $.btnCopiarResumoHistorico.addEventListener('click', function () {

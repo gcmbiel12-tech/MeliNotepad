@@ -77,36 +77,3 @@ Cada fase deve ter testes próprios e não deve começar a fase seguinte enquant
 ## 5. Recomendação final
 
 A principal melhoria agora não é conectar imediatamente o Supabase nem reescrever o XPT. É fechar as regras de origem dos dados e de encerramento, então implementar por fases com testes. Isso reduz o risco de duplicar quantidades, perder fotos/dados locais ou criar relatórios que mudem depois de encerrados.
-
-
-## 6. Fechamento da revisão — 2026-10-25
-
-### Ajustes funcionais realizados nesta etapa
-
-- XPT: o total e o percentual de auditoria consideram todas as gaiolas; o resumo não separa mais gaiolas por tipo legado.
-- XPT: o cartão mobile usa os mesmos campos G/P da auditoria individual e identifica o item como gaiola, sem exibir a quantidade V legada como se fosse tipo.
-- XPT: a finalização de todos os veículos registra `fimCarregamentoAt`; reabrir um veículo limpa esse estado global. Enquanto o carregamento estiver encerrado, associação, inclusão e exclusão de gaiolas ficam bloqueadas até reabrir um veículo.
-- XPT: operações encerradas são bloqueadas no ponto central de mutação, evitando alterações persistidas mesmo se a tela de edição ainda for aberta.
-- XPT: exclusão de gaiola vinculada a veículo finalizado é recusada; a operação exige reabrir o veículo.
-- XPT: o formulário de ocorrências preserva os campos existentes de tipo do produto e descrição da categoria “Outra”; a mudança de conceito de gaiola não remove esses dados independentes.
-- XPT: a posição de rolagem é restaurada após registrar ocorrência.
-
-### Resultado dos testes executados
-
-- Unitários: **61/61 passaram**.
-- E2E NEX: **31/31 passos passaram**.
-- E2E Intervalos: **18/18 passos passaram**.
-- E2E QR: **7/7 passos passaram**.
-- E2E XPT de auditoria e persistência: passou.
-- E2E XPT de seleção/validação de arquivo de planilha: passou. Este fluxo valida a seleção do arquivo e não implementa leitura/importação dos dados da planilha.
-- Sintaxe de todos os arquivos `js/*.js`: passou.
-- `git diff --check`: passou; há apenas avisos do Git sobre conversão de fim de linha LF/CRLF.
-- Smoke visual responsivo do XPT: 360, 390, 430, 768 e 1365 px, sem overflow horizontal e sem erros JavaScript.
-- Smoke de ciclo de vida: veículo finalizado bloqueia exclusão de gaiola; operação encerrada não aceita alteração de quantidades.
-
-### Limites e pendências antes de publicação
-
-- O frontend ainda não inicializa cliente Supabase e não sincroniza dados operacionais. NEX, XPT e Intervalos seguem locais; fotos XPT ficam no IndexedDB. A migração para nuvem continua fora do escopo desta correção.
-- A validação do banco Supabase local não pôde ser repetida nesta rodada porque o Docker Desktop/daemon não estava disponível. Não foi aplicada migração remota nesta revisão.
-- A importação real de conteúdo de planilha não está implementada; a interface atual só seleciona, valida o formato básico e permite remover o arquivo.
-- As alterações desta revisão serão registradas em commit e enviadas ao repositório remoto. Nenhum deploy foi realizado.
