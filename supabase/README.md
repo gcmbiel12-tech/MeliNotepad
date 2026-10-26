@@ -76,7 +76,15 @@ O frontend agora inclui as categorias `bingo` e `faltando`. A migração `202610
 
 Validação automatizada do contrato frontend/SQL: `node --test tests/unit/supabase-nex-schema.test.js`. Para testar inserções reais, depois de aplicar as migrações num Supabase local descartável, execute `tests/supabase-nex-category-validation.sql`; o script insere dados sintéticos dentro de uma transação e faz `ROLLBACK`.
 
-**Estado desta etapa:** a migração está versionada no repositório, mas não foi aplicada ao banco remoto. Nesta máquina, o Docker Desktop não está disponível e o projeto local não está vinculado; portanto, não foi possível executar `supabase db reset`, lint SQL local ou validação de inserção real. Não habilite a integração frontend enquanto as políticas operacionais e a autenticação não forem concluídas.
+**Estado desta etapa:** a migração está aplicada e validada no Supabase local; não foi aplicada ao banco remoto. A CLI local está configurada para trabalhar com o banco Docker `supabase_db_MeliNotepad`, sem vincular o projeto local ao remoto. A integração frontend permanece desativada enquanto as políticas operacionais e a autenticação não forem concluídas.
+
+## Modelo XPT (26/10/2026)
+
+A migração `20261026100000_add_xpt_operational_schema.sql` adiciona o modelo relacional para operações, gaiolas/auditorias, veículos, associações gaiola-veículo com histórico de remoção, ocorrências e reauditorias. O esquema mantém códigos legados, quantidades, históricos JSON, vínculos entre registros da mesma operação e restrições de unicidade/validação. As seis tabelas têm RLS habilitada e grants diretos revogados para `PUBLIC`, `anon`, `authenticated` e `service_role`.
+
+O modelo está aplicado e validado apenas no Supabase local. Nenhum dado local foi migrado, nenhuma tabela remota foi criada e o frontend ainda não grava nesse esquema. Fotos continuam no IndexedDB local; a integração futura exigirá Supabase Storage e migração explícita dos arquivos. Antes de habilitar a sincronização, ainda são necessárias RPCs transacionais, autorização por funcionário ativo, auditoria de autoria/versão e testes de conflito concorrente.
+
+Validação transacional: `tests/supabase-xpt-schema-validation.sql`. O teste insere dados sintéticos, valida relações e constraints (inclusive exclusividade da gaiola ativa e preservação da reauditoria original) e faz `ROLLBACK`.
 
 ## Dependências de etapas seguintes
 

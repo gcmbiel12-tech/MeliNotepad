@@ -12,6 +12,9 @@ declare
   v_count integer;
   v_result jsonb;
   v_denied boolean := false;
+  v_table record;
+  v_attempt integer;
+  v_limited boolean := false;
 begin
   insert into auth.users (
     id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -80,25 +83,76 @@ begin
     raise exception 'Falha de segurança: operador conseguiu listar pedidos administrativos.';
   end if;
 
-  -- Verifica grants diretos, RLS e isolamento do schema privado.
-  if has_table_privilege('anon', 'public.employees', 'SELECT')
-     or has_table_privilege('authenticated', 'public.employees', 'SELECT')
-     or has_table_privilege('anon', 'public.nex_operations', 'SELECT')
-     or has_table_privilege('authenticated', 'public.nex_operations', 'SELECT') then
-    raise exception 'Falha de segurança: acesso direto inesperado às tabelas.';
-  end if;
-  if not (select relrowsecurity from pg_class where oid = 'public.employees'::regclass)
-     or not (select relrowsecurity from pg_class where oid = 'public.nex_operations'::regclass)
-     or not (select relrowsecurity from pg_class where oid = 'public.interval_records'::regclass) then
-    raise exception 'Falha de segurança: RLS desativada em tabela operacional.';
-  end if;
-  if has_function_privilege('anon', 'app_private.bootstrap_first_administrator(text,uuid)', 'EXECUTE')
-     or has_function_privilege('authenticated', 'app_private.bootstrap_first_administrator(text,uuid)', 'EXECUTE')
-     or has_function_privilege('service_role', 'app_private.bootstrap_first_administrator(text,uuid)', 'EXECUTE') then
-    raise exception 'Falha de segurança: bootstrap administrativo exposto.';
+  -- Limite por identidade: cinco chamadas aceitas na janela; a sexta é recusada.
+  -- A chamada inicial acima já consumiu uma tentativa para esta identidade.
+  for v_attempt in 1..4 loop
+    perform public.request_employee_access('0000002');
+  end loop;
+  begin
+    perform public.request_employee_access('0000002');
+  exception when raise_exception then
+    v_limited := true;
+  end;
+  if not v_limited then
+    raise exception 'Falha: a sexta solicitação não foi limitada.';
   end if;
 
-  raise notice 'OK: solicitação, aprovação, bloqueio de operador, RLS/grants e bootstrap validados.';
+  -- Chamadas anônimas não podem executar a RPC protegida.
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claim.role', 'anon', true);
+  v_denied := false;
+  begin
+    perform public.request_employee_access('0000002');
+  exception when insufficient_privilege then
+    v_denied := true;
+  end;
+  if not v_denied then
+    raise exception 'Falha de segurança: identidade anônima executou a RPC de solicitação.';
+  end if;
+
+  -- Toda tabela operacional/de identidade precisa manter RLS e negar acesso
+  -- direto a anon/authenticated. Acesso aos dados deve ocorrer por RPC autorizada.
+  for v_table in
+    select n.nspname, c.relname, c.relrowsecurity
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+     where c.relkind in ('r', 'p')
+       and n.nspname in ('public', 'app_private')
+  loop
+    if not v_table.relrowsecurity then
+      raise exception 'Falha de segurança: RLS desativada em %.%', v_table.nspname, v_table.relname;
+    end if;
+    if has_table_privilege('anon', format('%I.%I', v_table.nspname, v_table.relname), 'SELECT')
+       or has_table_privilege('anon', format('%I.%I', v_table.nspname, v_table.relname), 'INSERT')
+       or has_table_privilege('anon', format('%I.%I', v_table.nspname, v_table.relname), 'UPDATE')
+       or has_table_privilege('anon', format('%I.%I', v_table.nspname, v_table.relname), 'DELETE')
+       or has_table_privilege('authenticated', format('%I.%I', v_table.nspname, v_table.relname), 'SELECT')
+       or has_table_privilege('authenticated', format('%I.%I', v_table.nspname, v_table.relname), 'INSERT')
+       or has_table_privilege('authenticated', format('%I.%I', v_table.nspname, v_table.relname), 'UPDATE')
+       or has_table_privilege('authenticated', format('%I.%I', v_table.nspname, v_table.relname), 'DELETE') then
+      raise exception 'Falha de segurança: acesso direto inesperado em %.%', v_table.nspname, v_table.relname;
+    end if;
+  end loop;
+
+  if has_schema_privilege('anon', 'app_private', 'USAGE')
+     or has_schema_privilege('authenticated', 'app_private', 'USAGE') then
+    raise exception 'Falha de segurança: schema app_private acessível pelos clientes.';
+  end if;
+  if has_function_privilege('anon', 'public.request_employee_access(text)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.list_pending_access_requests()', 'EXECUTE')
+     or has_function_privilege('anon', 'public.approve_employee_access(uuid)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.deny_employee_access(uuid)', 'EXECUTE')
+     or has_function_privilege('service_role', 'public.request_employee_access(text)', 'EXECUTE')
+     or has_function_privilege('service_role', 'public.list_pending_access_requests()', 'EXECUTE')
+     or has_function_privilege('service_role', 'public.approve_employee_access(uuid)', 'EXECUTE')
+     or has_function_privilege('service_role', 'public.deny_employee_access(uuid)', 'EXECUTE')
+     or has_function_privilege('anon', 'app_private.bootstrap_first_administrator(text,uuid)', 'EXECUTE')
+     or has_function_privilege('authenticated', 'app_private.bootstrap_first_administrator(text,uuid)', 'EXECUTE')
+     or has_function_privilege('service_role', 'app_private.bootstrap_first_administrator(text,uuid)', 'EXECUTE') then
+    raise exception 'Falha de segurança: privilégios inesperados em RPC de acesso ou bootstrap.';
+  end if;
+
+  raise notice 'OK: solicitação/aprovação, limite por identidade, negação anônima, RLS/grants em todas as tabelas e bootstrap validados.';
 end
 $test$;
 
