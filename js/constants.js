@@ -13,7 +13,7 @@
 
   var STORAGE_KEY = 'melinotepad_data_v1';
 
-  // As cinco categorias obrigatórias de ocorrência (seção 5.1 do escopo).
+  // Categorias disponíveis para ocorrências do NEX.
   // "key" é o identificador interno estável (usado para salvar e filtrar).
   // "label" é o texto exibido na interface e nos relatórios.
   // O campo "emoji" é usado só no resumo estilo WhatsApp (ver report.js) para
@@ -24,7 +24,9 @@
     { key: 'duplicados_inventario', label: 'Pacotes duplicados/sem produto encaminhados ao inventário', emoji: '📥' },
     { key: 'possiveis_duplicados', label: 'Possíveis duplicados', emoji: '🔁' },
     { key: 'nao_localizados', label: 'Pacotes não localizados em auditoria', emoji: '🔎' },
-    { key: 'despachar_nao_agregados', label: 'Pacotes com status "despachar" não agregados', emoji: '🚚' }
+    { key: 'despachar_nao_agregados', label: 'Pacotes com status "despachar" não agregados', emoji: '🚚' },
+    { key: 'bingo', label: 'Bingo', emoji: '🎯' },
+    { key: 'faltando', label: 'Faltando', emoji: '❗' }
   ];
 
   var STATUS = {
