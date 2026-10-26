@@ -1,20 +1,17 @@
 # MeliNotepad
 
-> **Estado desta entrega (em desenvolvimento)** — leia antes de publicar.
+> **Estado da versao principal - 26/10/2026** - resumo da auditoria dos arquivos e testes.
 >
-> | Área | Situação verificada em 22/10/2026 |
+> | Area | Estado confirmado |
 > |---|---|
-> | NEX | Código preservado. Os testes unitários atuais passaram; os testes E2E não foram executados nesta etapa. |
-> | Controle de Intervalos | Regras e interface existentes preservadas. Testes unitários incluídos na suíte atual passaram; não houve teste E2E nesta etapa. Os dados continuam locais. |
-> | XPT | A interface operacional foi integrada em `js/xpt.js`: operações, quantidades, gaiolas/auditoria, ocorrências, veículos, associação de gaiolas e relatórios. Regras unitárias passaram. A interface ainda precisa de teste E2E; a fotografia é local e não sincroniza entre dispositivos. |
-> | Leitura de QR | `{"id":"…","t":"lm"}` extrai só o `id`, preservando zeros à esquerda. Os testes unitários passaram. Scanner e câmera real não foram testados nesta etapa. |
-> | Sincronização entre aparelhos | **Não implementada.** O aplicativo usa armazenamento local para os módulos operacionais. Não foi encontrada integração do frontend com Supabase Storage nem configuração de bucket no repositório. |
-> | Fotos em outros aparelhos | Dependem de um serviço de armazenamento ainda não escolhido nem autorizado. |
+> | NEX e Intervalos | Codigo e testes unitarios presentes. A suite de testes unitarios foi executada nesta revisao. |
+> | XPT | Codigo operacional, regras, relatorios e testes presentes. Ha uma divergencia em teste unitario sobre o percentual quando nao existem gaiolas convencionais. |
+> | QR e scanner | Codigo e testes presentes; leitura com camera fisica nao foi validada nesta revisao. |
+> | Persistencia | Os dados operacionais continuam locais no navegador; nao ha sincronizacao entre dispositivos implementada no frontend. |
+> | Supabase | Configuracoes, migracoes e documentos de planejamento preservados; nao presumir que o frontend operacional ja sincroniza com o banco. |
+> | Testes | 60 de 61 testes unitarios passaram nesta revisao. Testes E2E nao foram executados porque o Playwright nao esta instalado na pasta de testes. |
 >
-> **Testes:** ver `tests/LEIA-ME.md`. **Nome:** só os textos visíveis foram renomeados; identificadores técnicos (`window.MeliNotepad`, chaves do LocalStorage, nome do cache) foram mantidos de propósito para não perder dados existentes. O app já instalado no celular continua com o nome antigo até ser reinstalado.
->
-> As seções abaixo descrevem o NEX (versão anterior) e continuam válidas para ele.
-
+> O repositorio e uma aplicacao web em HTML, CSS e JavaScript. Arquivos de planejamento e revisao foram preservados como referencia; confirme a data e o estado descritos neles antes de usa-los como instrucoes atuais.
 
 Aplicativo web (PWA) para **registrar, acompanhar e finalizar ocorrências** durante a auditoria e conferência de rotas NEX. Substitui o registro manual (papel, mensagens soltas) por uma lista organizada, com categorias fixas, status, filtros, relatório final e exportação em PDF.
 

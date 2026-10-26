@@ -13,7 +13,7 @@
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v6';
+var CACHE_VERSION = 'v7';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [
@@ -21,6 +21,7 @@ var ARQUIVOS_ESSENCIAIS = [
   './index.html',
   './css/styles.css',
   './css/modulos.css',
+  './js/save-status.js',
   './js/constants.js',
   './js/utils.js',
   './js/storage.js',
