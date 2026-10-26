@@ -5,12 +5,12 @@ Nada daqui é necessário para o app funcionar. Não há `package.json` na raiz 
 
 ## Unitários (só precisam do Node 20+)
     node --test tests/unit/*.test.js
-Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional e construção dos relatórios NEX/Intervalos, incluindo a semântica de Bingo/Faltando.
+Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional, relatórios NEX/Intervalos, semântica Bingo/Faltando e autenticação/renovação de sessão Supabase.
 
 ## Ponta a ponta (Playwright + Chromium)
     cd tests && npm install && npx playwright install chromium && cd ..
     python3 -m http.server 8743 --bind 127.0.0.1      # em outro terminal, na raiz do projeto
-    node tests/e2e/auth-gate.test.js                  # login, bloqueio, solicitação e logout (Auth simulado)
+    node tests/e2e/auth-gate.test.js                  # login, acesso, sync, migração local, conflito e logout (Auth simulado)
     node tests/e2e/auth-layout.test.js                # tela de autenticação em 7 larguras (320–1280 px)
     node tests/e2e/nex-regressao.test.js              # NEX, filtros e impressão PDF
     node tests/e2e/nex-melhorias.test.js              # Bingo/Faltando, duplicidade, pendências e filtros do histórico

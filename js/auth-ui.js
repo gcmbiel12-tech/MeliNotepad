@@ -60,6 +60,7 @@
     el.adminPanel.hidden = true;
     el.localWarning.hidden = false;
     mensagem('');
+    if (NS.SupabaseSync) NS.SupabaseSync.iniciar();
   }
   function tratarContexto() {
     return A.contextoFuncionario().then(function (ctx) {
@@ -235,6 +236,7 @@
 
     function sair() {
       definirOcupado(true);
+      if (NS.SupabaseSync) NS.SupabaseSync.parar();
       A.sair().finally(function () {
         definirOcupado(false);
         porId('auth-login-password').value = '';

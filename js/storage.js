@@ -155,6 +155,9 @@
     }
     try {
       global.localStorage.setItem(C.STORAGE_KEY, JSON.stringify(dados));
+      if (global.document && global.document.dispatchEvent && typeof global.CustomEvent === 'function') {
+        global.document.dispatchEvent(new global.CustomEvent('melios:local-change', { detail: { module: 'nex', key: C.STORAGE_KEY } }));
+      }
       return { sucesso: true };
     } catch (e) {
       var msg = 'Falha ao salvar os dados localmente.';

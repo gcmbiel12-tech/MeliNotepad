@@ -86,6 +86,8 @@ begin
      or has_table_privilege('authenticated', 'public.module_snapshots', 'SELECT')
      or has_table_privilege('authenticated', 'public.module_snapshots', 'INSERT')
      or has_table_privilege('service_role', 'public.module_snapshots', 'SELECT')
+     or not has_function_privilege('authenticated', 'public.get_module_snapshot(text)', 'EXECUTE')
+     or not has_function_privilege('authenticated', 'public.save_module_snapshot(text,integer,jsonb)', 'EXECUTE')
      or has_function_privilege('anon', 'public.get_module_snapshot(text)', 'EXECUTE')
      or has_function_privilege('anon', 'public.save_module_snapshot(text,integer,jsonb)', 'EXECUTE')
      or has_function_privilege('service_role', 'public.get_module_snapshot(text)', 'EXECUTE')

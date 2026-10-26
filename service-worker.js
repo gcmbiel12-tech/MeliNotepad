@@ -5,15 +5,15 @@
  *
  * IMPORTANTE: este cache guarda apenas a casca estática do aplicativo
  * (HTML, CSS, JS, manifesto, ícones). Nenhum dado operacional (sessões,
- * ocorrências) passa por aqui — esses dados vivem só no LocalStorage,
- * acessado diretamente pela página (app.js/storage.js), nunca pelo
- * service worker.
+ * ocorrências ou snapshots remotos) é armazenado por este service worker.
+ * O estado local continua no LocalStorage; quando habilitada, a sincronização
+ * fala diretamente com as RPCs do Supabase pela página.
  *
  * Para atualizar o cache depois de alterar os arquivos do projeto,
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v10';
+var CACHE_VERSION = 'v11';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [
@@ -24,6 +24,7 @@ var ARQUIVOS_ESSENCIAIS = [
   './css/auth.css',
   './js/supabase-config.js',
   './js/supabase-auth.js',
+  './js/supabase-sync.js',
   './js/auth-ui.js',
   './js/save-status.js',
   './js/constants.js',

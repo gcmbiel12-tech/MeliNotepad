@@ -51,7 +51,14 @@
     function gravar(dados) {
       var erros = cfg.validar(dados);
       if (erros.length) return { sucesso: false, erro: 'Dados inválidos, nada foi salvo: ' + erros[0] };
-      try { global.localStorage.setItem(chave, JSON.stringify(dados)); pendente = null; return { sucesso: true }; }
+      try {
+        global.localStorage.setItem(chave, JSON.stringify(dados));
+        pendente = null;
+        if (global.document && global.document.dispatchEvent && typeof global.CustomEvent === 'function') {
+          global.document.dispatchEvent(new global.CustomEvent('melios:local-change', { detail: { module: String(cfg.rotulo || '').toLowerCase(), key: chave } }));
+        }
+        return { sucesso: true };
+      }
       catch (e) {
         return { sucesso: false, erro: e && e.name === 'QuotaExceededError'
           ? 'O armazenamento local está cheio. Exporte um backup antes de continuar.'
