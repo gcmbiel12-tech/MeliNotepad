@@ -35,6 +35,7 @@
   // ela libera assim que o registro atual termina, sem atrapalhar o
   // próximo código digitado ou lido em seguida — fluxo comum na conferência.
   var registrandoOcorrencia = false;
+  var importacaoNex = { resultado: null, arquivoNome: '', totaisAlterados: false, lendo: false };
 
   // -----------------------------------------------------------------------
   // Referências de DOM (preenchidas em init())
@@ -46,8 +47,10 @@
       'status-chip', 'save-status', 'save-retry', 'btn-ver-sessao', 'btn-ver-historico', 'avisos-sistema',
       'view-sessao', 'view-historico',
       'painel-inicio', 'form-iniciar-sessao', 'input-sacas', 'input-pacotes', 'pacotes-formatado',
+      'input-data-operacao', 'nex-arquivo-planilha', 'nex-area-importacao', 'nex-selecionar-planilha',
+      'nex-arquivo-estado', 'nex-importacao-previa', 'nex-importacao-resumo', 'nex-importacao-rotas',
       'painel-sessao-ativa', 'btn-editar-totais', 'btn-nova-sessao-bloqueio',
-      'info-data', 'info-sacas', 'info-pacotes',
+      'info-data', 'info-sacas', 'info-pacotes', 'info-rotas-wrap', 'info-rotas-hybrid',
       'form-editar-totais', 'input-sacas-edit', 'input-pacotes-edit', 'btn-cancelar-editar-totais',
       'btn-abrir-camera', 'btn-fechar-camera', 'label-select-camera', 'select-camera', 'video-camera', 'aviso-camera',
       'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'ajuda-categoria', 'input-observacao',
@@ -221,6 +224,9 @@
     $.infoData.textContent = U.formatarDataOperacional(sessao.startTime);
     $.infoSacas.textContent = U.formatarNumeroBR(sessao.sacas);
     $.infoPacotes.textContent = U.formatarNumeroBR(sessao.pacotes);
+    var rotasHybrid = Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : [];
+    $.infoRotasWrap.hidden = rotasHybrid.length === 0;
+    $.infoRotasHybrid.textContent = rotasHybrid.map(function (r) { return r.rota; }).join(', ');
   }
 
   // -----------------------------------------------------------------------
@@ -487,8 +493,156 @@
   // Eventos: iniciar sessão
   // -----------------------------------------------------------------------
 
+  function valorDataHoraLocal(data) {
+    var d = data || new Date();
+    function dois(n) { return String(n).padStart(2, '0'); }
+    return d.getFullYear() + '-' + dois(d.getMonth() + 1) + '-' + dois(d.getDate()) +
+      'T' + dois(d.getHours()) + ':' + dois(d.getMinutes());
+  }
+
+  function formatarTamanhoArquivo(bytes) {
+    if (bytes < 1024) return bytes + ' bytes';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' KB';
+    return (bytes / (1024 * 1024)).toLocaleString('pt-BR', { maximumFractionDigits: 2 }) + ' MB';
+  }
+
+  function limparElemento(el) {
+    while (el.firstChild) el.removeChild(el.firstChild);
+  }
+
+  function mostrarEstadoArquivoNex(mensagem, tipo, arquivo) {
+    limparElemento($.nexArquivoEstado);
+    if (mensagem) {
+      var texto = document.createElement('p');
+      texto.className = tipo === 'erro' ? 'nex-importacao__erro' : 'texto-apoio';
+      texto.setAttribute('role', tipo === 'erro' ? 'alert' : 'status');
+      texto.textContent = mensagem;
+      $.nexArquivoEstado.appendChild(texto);
+    }
+    if (arquivo) {
+      var acoes = document.createElement('div');
+      acoes.className = 'nex-importacao__arquivo';
+      var detalhe = document.createElement('span');
+      detalhe.textContent = arquivo.name + ' (' + formatarTamanhoArquivo(arquivo.size) + ')';
+      var remover = document.createElement('button');
+      remover.type = 'button';
+      remover.className = 'botao botao--texto';
+      remover.textContent = 'Remover arquivo';
+      remover.addEventListener('click', removerPlanilhaNex);
+      acoes.appendChild(detalhe);
+      acoes.appendChild(remover);
+      $.nexArquivoEstado.appendChild(acoes);
+    }
+  }
+
+  function renderizarPreviaImportacaoNex(resultado) {
+    limparElemento($.nexImportacaoRotas);
+    resultado.rotas.forEach(function (r) {
+      var item = document.createElement('li');
+      var nome = document.createElement('strong');
+      nome.textContent = r.rota;
+      var detalhe = document.createElement('span');
+      detalhe.textContent = 'Sacas: ' + U.formatarNumeroBR(r.sacas) + ' · Pacotes estimados: ' + U.formatarNumeroBR(r.pacotes);
+      item.appendChild(nome);
+      item.appendChild(detalhe);
+      $.nexImportacaoRotas.appendChild(item);
+    });
+    $.nexImportacaoResumo.textContent = resultado.rotas.length + ' rota(s) HYBRID identificada(s). Totais importados: ' +
+      U.formatarNumeroBR(resultado.totalSacas) + ' sacas e ' + U.formatarNumeroBR(resultado.totalPacotes) + ' pacotes estimados.';
+    $.nexImportacaoPrevia.hidden = false;
+  }
+
+  function processarPlanilhaNex(arquivo) {
+    if (!arquivo) return;
+    var extensao = String(arquivo.name || '').split('.').pop().toLowerCase();
+    if (extensao !== 'csv' && extensao !== 'xlsx') {
+      mostrarEstadoArquivoNex('Formato não suportado. Selecione um arquivo .xlsx ou .csv.', 'erro');
+      $.nexArquivoPlanilha.value = '';
+      return;
+    }
+    if (!arquivo.size || arquivo.size < 0) {
+      mostrarEstadoArquivoNex('O arquivo está vazio. Selecione outra planilha.', 'erro');
+      $.nexArquivoPlanilha.value = '';
+      return;
+    }
+    if (arquivo.size > 20 * 1024 * 1024) {
+      mostrarEstadoArquivoNex('O arquivo excede o limite de 20 MB para importação.', 'erro');
+      $.nexArquivoPlanilha.value = '';
+      return;
+    }
+    var temValoresManuais = $.inputSacas.value !== '' || $.inputPacotes.value !== '';
+    if ((importacaoNex.totaisAlterados || (!importacaoNex.resultado && temValoresManuais)) &&
+        !window.confirm('A importação preencherá novamente os totais de sacas e pacotes. Deseja continuar?')) {
+      $.nexArquivoPlanilha.value = '';
+      return;
+    }
+
+    importacaoNex.lendo = true;
+    $.nexSelecionarPlanilha.disabled = true;
+    mostrarEstadoArquivoNex('Lendo e validando a planilha…');
+    window.MeliNotepad.NexPlanilha.analisarArquivo(arquivo).then(function (resultado) {
+      importacaoNex.resultado = resultado;
+      importacaoNex.arquivoNome = arquivo.name;
+      importacaoNex.totaisAlterados = false;
+      $.inputSacas.value = String(resultado.totalSacas);
+      $.inputPacotes.value = String(resultado.totalPacotes);
+      aoDigitarPacotes();
+      renderizarPreviaImportacaoNex(resultado);
+      mostrarEstadoArquivoNex('Planilha validada: ' + arquivo.name + '. Somente as linhas HYBRID foram consideradas.', 'sucesso', arquivo);
+    }).catch(function (erro) {
+      mostrarEstadoArquivoNex(erro && erro.message ? erro.message : 'Não foi possível ler a planilha.', 'erro');
+      $.nexArquivoPlanilha.value = '';
+    }).then(function () {
+      importacaoNex.lendo = false;
+      $.nexSelecionarPlanilha.disabled = false;
+    });
+  }
+
+  function removerPlanilhaNex() {
+    importacaoNex.resultado = null;
+    importacaoNex.arquivoNome = '';
+    importacaoNex.totaisAlterados = false;
+    $.nexArquivoPlanilha.value = '';
+    $.nexImportacaoPrevia.hidden = true;
+    limparElemento($.nexImportacaoRotas);
+    mostrarEstadoArquivoNex('Planilha removida. Os totais atuais foram mantidos e podem ser editados manualmente.');
+  }
+
+  function configurarImportacaoNex() {
+    $.inputDataOperacao.value = valorDataHoraLocal(new Date());
+    $.nexSelecionarPlanilha.addEventListener('click', function () { if (!importacaoNex.lendo) $.nexArquivoPlanilha.click(); });
+    $.nexArquivoPlanilha.addEventListener('change', function () {
+      var arquivo = $.nexArquivoPlanilha.files && $.nexArquivoPlanilha.files[0];
+      if (arquivo) processarPlanilhaNex(arquivo);
+    });
+    $.nexAreaImportacao.addEventListener('click', function (e) {
+      if (e.target === $.nexAreaImportacao || e.target.tagName === 'P' || e.target.tagName === 'SPAN') {
+        if (!importacaoNex.lendo) $.nexArquivoPlanilha.click();
+      }
+    });
+    $.nexAreaImportacao.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (!importacaoNex.lendo) $.nexArquivoPlanilha.click(); }
+    });
+    $.nexAreaImportacao.addEventListener('dragenter', function (e) { e.preventDefault(); $.nexAreaImportacao.classList.add('is-arrastando'); });
+    $.nexAreaImportacao.addEventListener('dragover', function (e) { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; $.nexAreaImportacao.classList.add('is-arrastando'); });
+    $.nexAreaImportacao.addEventListener('dragleave', function (e) {
+      if (!$.nexAreaImportacao.contains(e.relatedTarget)) $.nexAreaImportacao.classList.remove('is-arrastando');
+    });
+    $.nexAreaImportacao.addEventListener('drop', function (e) {
+      e.preventDefault();
+      $.nexAreaImportacao.classList.remove('is-arrastando');
+      var arquivos = e.dataTransfer && e.dataTransfer.files;
+      if (!arquivos || !arquivos.length) { mostrarEstadoArquivoNex('Não foi possível receber o arquivo arrastado. Selecione-o pelo botão.', 'erro'); return; }
+      processarPlanilhaNex(arquivos[0]);
+    });
+    mostrarEstadoArquivoNex('Nenhum arquivo selecionado. Você também pode preencher os totais manualmente.');
+    $.inputSacas.addEventListener('input', function () { if (importacaoNex.resultado) importacaoNex.totaisAlterados = true; });
+    $.inputPacotes.addEventListener('input', function () { if (importacaoNex.resultado) importacaoNex.totaisAlterados = true; });
+  }
+
   function aoEnviarIniciarSessao(e) {
     e.preventDefault();
+    if (importacaoNex.lendo) { toast('Aguarde a conclusão da leitura da planilha antes de iniciar a operação.', 'info'); return; }
     if (sessaoAtiva()) { toast('Já existe uma conferência em andamento. Retome a sessão atual.', 'erro'); renderTudo(); return; }
     var sacas = $.inputSacas.value;
     var pacotes = $.inputPacotes.value;
@@ -496,20 +650,33 @@
       toast('Informe números inteiros não negativos para sacas e pacotes.', 'erro');
       return;
     }
-    var agora = U.agora().toISOString();
+    var dataOperacao = new Date($.inputDataOperacao.value);
+    if (!$.inputDataOperacao.value || isNaN(dataOperacao.getTime())) {
+      toast('Informe uma data e hora válidas para a operação.', 'erro');
+      $.inputDataOperacao.focus();
+      return;
+    }
     var novaSessao = {
       id: U.gerarId('sess'),
-      startTime: agora,
+      startTime: dataOperacao.toISOString(),
       endTime: null,
       status: C.SESSION_STATUS.EM_ANDAMENTO,
       sacas: parseInt(sacas, 10),
       pacotes: parseInt(pacotes, 10),
+      rotasHybrid: importacaoNex.resultado ? importacaoNex.resultado.rotas : [],
+      planilhaOptimization: importacaoNex.resultado ? importacaoNex.arquivoNome : null,
       occurrences: []
     };
     estado.dados.currentSession = novaSessao;
     if (!persistir()) return;
     $.formIniciarSessao.reset();
     $.pacotesFormatado.textContent = '';
+    importacaoNex = { resultado: null, arquivoNome: '', totaisAlterados: false, lendo: false };
+    $.nexArquivoPlanilha.value = '';
+    $.nexImportacaoPrevia.hidden = true;
+    limparElemento($.nexImportacaoRotas);
+    mostrarEstadoArquivoNex('Nenhum arquivo selecionado. Você também pode preencher os totais manualmente.');
+    $.inputDataOperacao.value = valorDataHoraLocal(new Date());
     renderTudo();
     toast('Conferência iniciada.', 'sucesso');
   }
@@ -1221,6 +1388,7 @@
     popularSelectCategorias($.editCategoria, false);
     popularSelectCategorias($.historicoCategoria, true);
     atualizarAjudaCategoria();
+    configurarImportacaoNex();
     conectarEventos();
     renderTudo();
     registrarServiceWorker();

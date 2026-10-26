@@ -363,3 +363,67 @@ dialog.modal[id^="dlg-xpt-"] {
   #modulo-xpt .xpt-importacao__acoes { display: grid; grid-template-columns: 1fr; width: 100%; }
   #modulo-xpt .xpt-importacao__acoes .botao { width: 100%; white-space: normal; }
 }
+
+
+/* Nova operação NEX: importação Optimization com preenchimento manual disponível. */
+.nex-nova-operacao > form { display: grid; gap: 1rem; }
+.nex-nova-operacao .nex-importacao {
+  display: grid;
+  gap: .65rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--borda, #d0d0d0);
+  background: var(--superficie, #fff);
+}
+.nex-importacao h3, .nex-importacao__titulo { margin: 0; }
+.nex-importacao__titulo { font-weight: 700; }
+.nex-importacao__area {
+  display: grid;
+  justify-items: center;
+  gap: .65rem;
+  padding: 1.25rem;
+  border: 2px dashed var(--borda, #c8c8c8);
+  border-radius: .75rem;
+  background: var(--superficie-secundaria, #fafafa);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.nex-importacao__area.is-arrastando {
+  border-color: var(--cor-primaria, #b58b00);
+  border-style: solid;
+  background: #fff6c7;
+}
+.nex-importacao__area .texto-apoio { margin: 0; }
+.nex-importacao__icone { font-size: 1.75rem; line-height: 1; }
+.nex-importacao__estado { display: grid; gap: .5rem; min-width: 0; }
+.nex-importacao__estado p { margin: 0; overflow-wrap: anywhere; }
+.nex-importacao__erro { color: #a32020; font-weight: 600; }
+.nex-importacao__arquivo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .75rem;
+  border: 1px solid var(--borda, #d0d0d0);
+  border-radius: .5rem;
+}
+.nex-importacao__arquivo span { overflow-wrap: anywhere; }
+.nex-importacao__previa { padding: .75rem; border-radius: .5rem; background: var(--superficie-secundaria, #f7f7f7); }
+.nex-importacao__previa > p { margin-top: 0; }
+.nex-importacao__rotas { display: grid; gap: .4rem; padding-left: 1.25rem; }
+.nex-importacao__rotas li { display: grid; gap: .1rem; overflow-wrap: anywhere; }
+.nex-importacao__rotas li span { color: var(--texto-secundario, #555); font-size: .9rem; }
+.nex-totais-operacao { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+#info-rotas-hybrid { overflow-wrap: anywhere; }
+@media (max-width: 600px) {
+  .nex-nova-operacao .nex-importacao { padding: .75rem; }
+  .nex-importacao__area { padding: 1rem .75rem; }
+  .nex-importacao__arquivo { align-items: stretch; }
+  .nex-importacao__arquivo .botao { width: 100%; }
+  .nex-totais-operacao { grid-template-columns: 1fr; gap: .5rem; }
+}
+
+/* Preserva o atributo hidden nos itens de definição que usam display:grid. */
+.lista-definicao #info-rotas-wrap[hidden] { display: none !important; }

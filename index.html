@@ -125,20 +125,47 @@
   <section id="view-sessao" class="view">
 
     <!-- ---- Início de sessão (exibido quando não há sessão em andamento) ---- -->
-    <section id="painel-inicio" class="cartao cartao--amarelo" aria-labelledby="titulo-inicio" hidden>
-      <h2 id="titulo-inicio">Iniciar conferência</h2>
-      <p class="texto-apoio">Informe os totais operacionais para começar uma nova conferência de rota NEX.</p>
+    <section id="painel-inicio" class="cartao cartao--amarelo nex-nova-operacao" aria-labelledby="titulo-inicio" hidden>
+      <h2 id="titulo-inicio">Nova Operação</h2>
+      <p class="texto-apoio">Prepare uma nova conferência NEX importando a planilha Optimization ou preenchendo os totais manualmente.</p>
       <form id="form-iniciar-sessao" novalidate>
         <div class="campo">
-          <label for="input-sacas">Total de sacas</label>
-          <input type="number" id="input-sacas" name="sacas" inputmode="numeric" min="0" step="1" required>
+          <label for="input-data-operacao">Data e hora da operação</label>
+          <input type="datetime-local" id="input-data-operacao" name="dataOperacao" required>
         </div>
-        <div class="campo">
-          <label for="input-pacotes">Total de pacotes</label>
-          <input type="number" id="input-pacotes" name="pacotes" inputmode="numeric" min="0" step="1" required>
-          <p class="campo__ajuda" id="pacotes-formatado" aria-live="polite"></p>
+
+        <section class="nex-importacao cartao" aria-labelledby="titulo-importar-planilha">
+          <h3 id="titulo-importar-planilha">Importar planilha</h3>
+          <p class="nex-importacao__titulo">Selecione uma planilha para preparar a importação</p>
+          <p class="texto-apoio">Formatos aceitos: Excel (.xlsx) e CSV (.csv), incluindo arquivos baixados do Google Planilhas.</p>
+          <input type="file" id="nex-arquivo-planilha" accept=".xlsx,.csv" hidden>
+          <div class="nex-importacao__area" id="nex-area-importacao" tabindex="0" role="region" aria-label="Área para selecionar ou arrastar uma planilha">
+            <span class="nex-importacao__icone" aria-hidden="true">⇧</span>
+            <button type="button" id="nex-selecionar-planilha" class="botao botao--primario">Selecionar planilha</button>
+            <p class="texto-apoio">Ou arraste o arquivo do computador e solte nesta área.</p>
+          </div>
+          <div id="nex-arquivo-estado" class="nex-importacao__estado" aria-live="polite"></div>
+          <div id="nex-importacao-previa" class="nex-importacao__previa" hidden>
+            <p id="nex-importacao-resumo" class="campo__ajuda"></p>
+            <details>
+              <summary>Ver rotas encontradas</summary>
+              <ul id="nex-importacao-rotas" class="nex-importacao__rotas"></ul>
+            </details>
+          </div>
+        </section>
+
+        <div class="nex-totais-operacao">
+          <div class="campo">
+            <label for="input-sacas">Total de sacas</label>
+            <input type="number" id="input-sacas" name="sacas" inputmode="numeric" min="0" step="1" required>
+          </div>
+          <div class="campo">
+            <label for="input-pacotes">Total de pacotes</label>
+            <input type="number" id="input-pacotes" name="pacotes" inputmode="numeric" min="0" step="1" required>
+            <p class="campo__ajuda" id="pacotes-formatado" aria-live="polite"></p>
+          </div>
         </div>
-        <p class="campo__ajuda">Esses valores são digitados manualmente e nunca são recalculados a partir das ocorrências registradas.</p>
+        <p class="campo__ajuda">Os totais podem ser preenchidos pela planilha ou digitados manualmente. Você pode corrigir os valores antes de iniciar a operação.</p>
         <button type="submit" class="botao botao--primario">Iniciar conferência</button>
       </form>
     </section>
@@ -159,6 +186,7 @@
           <div><dt>Data</dt><dd id="info-data">—</dd></div>
           <div><dt>Sacas</dt><dd id="info-sacas">—</dd></div>
           <div><dt>Pacotes</dt><dd id="info-pacotes">—</dd></div>
+          <div id="info-rotas-wrap" hidden><dt>Rotas HYBRID importadas</dt><dd id="info-rotas-hybrid">—</dd></div>
         </dl>
 
         <form id="form-editar-totais" hidden>
@@ -434,6 +462,8 @@
   <script src="js/constants.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/storage.js"></script>
+<script src="js/vendor/xlsx.full.min.js"></script>
+<script src="js/nex-planilha.js"></script>
 <script src="js/scanner.js"></script>
 <script src="js/report.js"></script>
 <script src="js/modulo-store.js"></script>
