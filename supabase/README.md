@@ -110,10 +110,18 @@ A migração `20261026120000_add_employee_context_rpc.sql` adiciona `get_my_empl
 
 Validação transacional: `tests/supabase-employee-context-validation.sql`, cobrindo contexto autorizado, conta desativada e grants; faz `ROLLBACK`.
 
+## Snapshots versionados para sincronização (26/10/2026)
+
+A migração `20261026130000_add_versioned_module_snapshots.sql` adiciona uma camada de compatibilidade com o estado JSON que o frontend já usa. Há um snapshot compartilhado por módulo (`nex`, `xpt`, `intervalos`), protegido por RLS e sem grants diretos; as RPCs `get_module_snapshot` e `save_module_snapshot` exigem conta/funcionário ativos. A gravação usa `expected_version`: conflito concorrente retorna SQLSTATE `40001` em vez de sobrescrever silenciosamente alterações de outro dispositivo. A trilha de auditoria guarda versão e hash do payload, não uma segunda cópia do JSON inteiro.
+
+Esta é a base de persistência remota compatível com o formato atual, não uma sincronização já ativada. O frontend ainda precisa carregar, reconciliar e salvar snapshots com confirmação explícita para preservar dados locais; XPT também precisa migrar as fotos do IndexedDB para um bucket privado antes de declarar sincronização completa. O modelo relacional XPT continua disponível como destino para uma migração gradual.
+
+Validação transacional: `tests/supabase-snapshot-rpc-validation.sql`, incluindo os três contratos de módulo, versionamento, conflito, payload inválido e grants.
+
 ## Dependências de etapas seguintes
 
-- RPCs transacionais de leitura/escrita para NEX, Intervalos e XPT que validem funcionário/conta ativos em cada chamada e a versão esperada antes de atualizar.
+- Adaptador de sincronização do frontend: carregar snapshots, tratar primeira migração local/nuvem com confirmação, salvar por versão e apresentar conflitos sem perda de dados.
 - Estratégia de recuperação/restauração lógica e testes de concorrência e reconciliação antes de migrar dados locais.
 - Tokens de ativação/recuperação, caso sejam necessários além do fluxo de senha escolhido pelo usuário no Supabase Auth.
-- Integração do frontend e migração/sincronização dos dados NEX, Intervalos e XPT; fotos exigem bucket privado no Supabase Storage e migração validada.
+- Bucket privado no Supabase Storage e migração validada dos arquivos de foto XPT antes de sincronizar referências de imagens.
 - Limitação por IP/CAPTCHA configurados e testados em Supabase Auth/Edge Function antes de abertura pública.
