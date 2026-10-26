@@ -98,13 +98,20 @@
       return NS.Fotos.obter(id).then(function (registro) {
         if (registro && registro.blob) {
           if (registro.sincronizada === true) return;
-          return A.storageUpload('xpt-fotos', id + '.jpg', registro.blob, registro.mime || 'image/jpeg').then(function () {
+          var mime = registro.mime || registro.blob.type || 'image/jpeg';
+          if (mime !== 'image/jpeg' || (registro.blob.size || 0) > 10 * 1024 * 1024) {
+            throw new Error('A foto ' + id + ' precisa ser JPEG de até 10 MiB. Nenhum snapshot XPT foi enviado.');
+          }
+          return A.storageUpload('xpt-fotos', id + '.jpg', registro.blob, mime).then(function () {
             registro.sincronizada = true;
             registro.sincronizadaEm = new Date().toISOString();
             return NS.Fotos.salvar(registro);
           });
         }
         return A.storageDownload('xpt-fotos', id + '.jpg').then(function (blob) {
+          if (!blob || (blob.type && blob.type !== 'image/jpeg') || (blob.size || 0) > 10 * 1024 * 1024) {
+            throw new Error('A foto remota não corresponde ao formato JPEG de até 10 MiB.');
+          }
           return NS.Fotos.salvar({ id: id, blob: blob, mime: 'image/jpeg', criadoEm: new Date().toISOString(), sincronizada: true, sincronizadaEm: new Date().toISOString() });
         }).catch(function (e) {
           throw new Error('A foto ' + id + ' não está neste aparelho nem foi encontrada na nuvem. Nenhum snapshot XPT foi aplicado: ' + e.message);
