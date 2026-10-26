@@ -94,6 +94,12 @@ Quando uma mudança ocorre por operação administrativa sem JWT, o evento é ma
 
 Validação transacional: `tests/supabase-audit-trigger-validation.sql`, que verifica autoria derivada do JWT, versão, timestamps, snapshots e bloqueio de leitura/escrita direta na trilha; faz `ROLLBACK`.
 
+## Contexto de identidade para o frontend (26/10/2026)
+
+A migração `20261026120000_add_employee_context_rpc.sql` adiciona `get_my_employee_context()`, que retorna apenas o contexto do usuário autenticado (código e nome do funcionário, papel e indicador de administrador principal), sem grants de leitura direta às tabelas de identidade. Usuário autenticado sem associação ativa recebe uma resposta genérica sem detalhes do cadastro. O helper interno `app_private.assert_active_employee()` exige conta e cadastro ativos e bloqueia as linhas durante a operação; ele está inacessível aos papéis da aplicação e deverá ser chamado pelas futuras RPCs operacionais.
+
+Validação transacional: `tests/supabase-employee-context-validation.sql`, cobrindo contexto autorizado, conta desativada e grants; faz `ROLLBACK`.
+
 ## Dependências de etapas seguintes
 
 - RPCs transacionais de leitura/escrita para NEX, Intervalos e XPT que validem funcionário/conta ativos em cada chamada e a versão esperada antes de atualizar.
