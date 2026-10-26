@@ -168,8 +168,9 @@
   }
   /** VUC permanece pendente e é excluído de todos os totais e percentuais da auditoria. */
   function resumoAuditoria(gaiolas) {
-    var r = { total: 0, concluidas: 0, concluidasSem: 0, concluidasCom: 0, pendentes: 0, naoIniciadas: 0 };
+    var r = { total: 0, vuc: 0, concluidas: 0, concluidasSem: 0, concluidasCom: 0, pendentes: 0, naoIniciadas: 0 };
     gaiolas.forEach(function (g) {
+      if (g.vuc) { r.vuc++; return; }
       r.total++;
       var e = g.auditoria.estado;
       if (e === 'concluida' || e.indexOf('concluida_') === 0) r.concluidas++;
@@ -349,7 +350,7 @@
       });
     }
     L.push(''); L.push('🔎 *Auditoria* (gaiolas convencionais)');
-    if (!a.total) L.push('Sem gaiolas registradas.');
+    if (!a.total) L.push('Sem gaiolas convencionais para auditoria.');
     else {
       var comDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída com divergência'; }).length;
       var semDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída sem divergência'; }).length;

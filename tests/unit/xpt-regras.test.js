@@ -52,8 +52,8 @@ test('auditoria: VUC é excluído de todos os totais e cálculos', () => {
   assert.ok(X.definirAuditoria(g[1], 'concluida_com_divergencia', 'Carlos', T).ok);
   assert.ok(X.definirAuditoria(g[2], 'pendente', null, T).ok);
   const r = X.resumoAuditoria(g);
-  assert.deepStrictEqual([r.total, r.concluidas, r.pendentes, r.naoIniciadas], [6, 2, 1, 3]);
-  assert.strictEqual(r.percentual, 33.3);
+  assert.deepStrictEqual([r.total, r.concluidas, r.pendentes, r.naoIniciadas, r.vuc], [5, 2, 1, 2, 1]);
+  assert.strictEqual(r.percentual, 40);
   assert.strictEqual(r.concluidas, 2);
 });
 test('auditoria: concluir exige nome do auditor; estado inválido é recusado; histórico guardado', () => {
