@@ -17,6 +17,7 @@ async function novaPagina(browser, autorizado, papel, seedLocal, seedRemote) {
       supabaseAnonKey: 'public-test-key'
     };
     window.__authRequests = [];
+    window.__uploadedPhotos = [];
     window.__snapshots = JSON.parse(sessionStorage.getItem('__authSnapshots') || 'null') || window.__authTestConfig.seedRemote || {
       nex: { version: 0, payload: null, updatedAt: null },
       xpt: { version: 0, payload: null, updatedAt: null },
@@ -37,6 +38,13 @@ async function novaPagina(browser, autorizado, papel, seedLocal, seedRemote) {
         status: status || 200,
         headers: { 'Content-Type': 'application/json' }
       });
+      if (url.includes('/storage/v1/object/xpt-fotos/') && opt.method === 'POST') {
+        window.__uploadedPhotos.push({ url, method: opt.method, mime: opt.headers && opt.headers['Content-Type'] });
+        return json({ Key: url });
+      }
+      if (url.includes('/storage/v1/object/authenticated/xpt-fotos/')) {
+        return new Response(new Blob(['foto-remota'], { type: 'image/jpeg' }), { status: 200, headers: { 'Content-Type': 'image/jpeg' } });
+      }
       if (url.includes('/auth/v1/token?grant_type=password')) {
         return json({
           access_token: 'access-test',
@@ -205,6 +213,34 @@ async function novaPagina(browser, autorizado, papel, seedLocal, seedRemote) {
     }
 
     {
+      const { context, page, errors } = await novaPagina(browser, true);
+      await page.locator('#auth-login-email').fill('funcionario@example.com');
+      await page.locator('#auth-login-password').fill('senha-de-teste');
+      await page.locator('#auth-login-form button[type="submit"]').click();
+      await page.locator('#auth-header').waitFor({ state: 'visible' });
+      const prepared = await page.evaluate(async () => {
+        const now = new Date().toISOString();
+        await window.MeliNotepad.Fotos.salvar({ id: 'foto-e2e', blob: new Blob(['foto-local'], { type: 'image/jpeg' }), mime: 'image/jpeg', sincronizada: false });
+        const dados = { versao: 1, rev: 0, operacoes: [{ id: 'op-foto-e2e', inicioAt: now, criadaEm: now, diaRef: now.slice(0, 10), fimCarregamentoAt: null, encerradaAt: null, quantidades: {}, gaiolas: [], ocorrencias: [], veiculos: [{ id: 'veiculo-foto-e2e', placa: 'ABC1234', fotoId: 'foto-e2e', gaiolaIds: [], rotas: [], paletes: 0, redes: 0 }] }] };
+        localStorage.setItem('melinotepad_xpt_v1', JSON.stringify(dados));
+        return window.MeliNotepad.XptRegras.validarDados(dados);
+      });
+      assert.deepStrictEqual(prepared, [], 'payload XPT com foto passa pela validação');
+      await page.locator('#auth-sync-toggle').click();
+      await page.locator('#auth-sync-list .auth-sync-item').nth(1).waitFor({ state: 'visible' });
+      await page.locator('#auth-sync-list .auth-sync-item').nth(1).getByRole('button', { name: 'Enviar dados locais' }).click();
+      await page.waitForFunction(() => window.__snapshots.xpt.version === 1 && window.__uploadedPhotos.length === 1);
+      const upload = await page.evaluate(() => window.__uploadedPhotos[0]);
+      assert.match(upload.url, /storage\/v1\/object\/xpt-fotos\/foto-e2e\.jpg$/);
+      assert.equal(upload.method, 'POST');
+      assert.equal(upload.mime, 'image/jpeg');
+      assert.equal(await page.evaluate(() => window.__snapshots.xpt.payload.operacoes[0].veiculos[0].fotoId), 'foto-e2e');
+      assert.equal(await page.evaluate(async () => (await window.MeliNotepad.Fotos.obter('foto-e2e')).sincronizada), true);
+      assert.deepStrictEqual(errors, [], 'sincronização de foto XPT não gera erros JavaScript');
+      await context.close();
+    }
+
+    {
       const { context, page, errors } = await novaPagina(browser, false);
       await page.locator('#auth-login-email').fill('novo@example.com');
       await page.locator('#auth-login-password').fill('senha-de-teste');
@@ -239,7 +275,7 @@ async function novaPagina(browser, autorizado, papel, seedLocal, seedRemote) {
       await context.close();
     }
 
-    console.log('PASS auth E2E: bloqueio antes do login, contexto autorizado, aviso local, logout, solicitação e revisão administrativa.');
+    console.log('PASS auth E2E: bloqueio, acesso, sync por módulo, conflito, backup, upload de foto XPT, logout e revisão administrativa.');
   } finally {
     await browser.close();
   }
