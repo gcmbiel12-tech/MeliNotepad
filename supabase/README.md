@@ -76,7 +76,7 @@ O frontend agora inclui as categorias `bingo` e `faltando`. A migração `202610
 
 Validação automatizada do contrato frontend/SQL: `node --test tests/unit/supabase-nex-schema.test.js`. Para testar inserções reais, depois de aplicar as migrações num Supabase local descartável, execute `tests/supabase-nex-category-validation.sql`; o script insere dados sintéticos dentro de uma transação e faz `ROLLBACK`.
 
-**Estado desta etapa:** a migração está aplicada e validada no Supabase local; não foi aplicada ao banco remoto. A CLI local está configurada para trabalhar com o banco Docker `supabase_db_MeliNotepad`, sem vincular o projeto local ao remoto. A integração frontend permanece desativada enquanto as políticas operacionais e a autenticação não forem concluídas.
+**Estado desta etapa:** a migração está aplicada e validada no Supabase local; não foi aplicada ao banco remoto. A CLI local trabalha com o banco Docker `supabase_db_MeliNotepad`, sem vincular o projeto ao remoto. O cliente frontend e a sincronização por snapshots estão implementados, mas permanecem desativados por padrão enquanto a configuração pública do projeto não for fornecida e o fluxo real não for validado.
 
 ## Cliente de autenticação do frontend (26/10/2026)
 
@@ -84,7 +84,7 @@ O frontend tem uma camada REST própria (`js/supabase-auth.js`) para Supabase Au
 
 Quando URL e chave estão configuradas, a tela de login bloqueia a navegação dos módulos até o contexto de funcionário ser validado. O fluxo inclui criar conta, confirmar por e-mail, entrar/sair, recuperar senha, solicitar acesso com código numérico de sete dígitos e revisar solicitações como administrador. A sessão fica em `sessionStorage`, não persiste ao fechar a aba. Configure no Supabase Auth as URLs de site/redirecionamento para o endereço real da aplicação e habilite confirmação de e-mail/CAPTCHA conforme a política de publicação.
 
-**Limite importante:** a autenticação e o fluxo de acesso não significam que os dados operacionais já estão na nuvem. A interface exibe um aviso explícito; NEX, XPT e Intervalos continuam usando o armazenamento local até que as RPCs operacionais e a sincronização sejam implementadas. Não habilite isso em produção como se fosse sincronização concluída.
+**Limite importante:** a autenticação e o fluxo de acesso não significam que os dados operacionais já estejam sincronizados em produção. O frontend agora oferece sincronização opt-in de snapshots JSON versionados para NEX, XPT e Intervalos, com comparação, escolha explícita de versão, backup e proteção contra conflito. Essa camada ainda não foi testada contra um projeto Supabase real, não migra automaticamente os dados locais e não substitui a integração relacional XPT. Mantenha desativada até configurar o projeto remoto e validar o fluxo com usuários de teste.
 
 Testes: `node --test tests/unit/supabase-auth.test.js` e `node tests/e2e/auth-gate.test.js` (o E2E simula as respostas Auth/RPC; não substitui teste contra o projeto Supabase real).
 
@@ -92,7 +92,7 @@ Testes: `node --test tests/unit/supabase-auth.test.js` e `node tests/e2e/auth-ga
 
 A migração `20261026100000_add_xpt_operational_schema.sql` adiciona o modelo relacional para operações, gaiolas/auditorias, veículos, associações gaiola-veículo com histórico de remoção, ocorrências e reauditorias. O esquema mantém códigos legados, quantidades, históricos JSON, vínculos entre registros da mesma operação e restrições de unicidade/validação. As seis tabelas têm RLS habilitada e grants diretos revogados para `PUBLIC`, `anon`, `authenticated` e `service_role`.
 
-O modelo está aplicado e validado apenas no Supabase local. Nenhum dado local foi migrado, nenhuma tabela remota foi criada e o frontend ainda não grava nesse esquema. Fotos continuam no IndexedDB local; a integração futura exigirá Supabase Storage e migração explícita dos arquivos. Antes de habilitar a sincronização, ainda são necessárias RPCs transacionais, autorização por funcionário ativo, auditoria de autoria/versão e testes de conflito concorrente.
+O modelo relacional XPT está aplicado e validado apenas no Supabase local; nenhuma tabela remota foi criada e o frontend ainda não grava diretamente nesse esquema relacional. A sincronização frontend implementada nesta etapa usa snapshots JSON versionados por módulo e um bucket privado para fotos XPT, sem migrar automaticamente os registros locais. Antes de ativar em produção, ainda é necessário configurar o projeto remoto, aplicar as migrações autorizadas e testar autenticação, políticas de Storage, concorrência e recuperação com usuários de teste.
 
 Validação transacional: `tests/supabase-xpt-schema-validation.sql`. O teste insere dados sintéticos, valida relações e constraints (inclusive exclusividade da gaiola ativa e preservação da reauditoria original) e faz `ROLLBACK`.
 
