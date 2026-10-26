@@ -211,18 +211,36 @@
     });
     return { valor: total, rotasInformadas: informadas, rotasAssociadas: Object.keys(ids).length };
   }
+  function quantidadesDaRota(g) {
+    var q = g && g.auditoria && g.auditoria.quantidades || {};
+    return { gaiolasFisicas: n(q.g), paletes: n(q.p), informada: q.g != null || q.p != null };
+  }
+  function quantidadesDoVeiculo(op, veiculo) {
+    var vistos = {}, total = { rotas: 0, gaiolasFisicas: 0, paletes: 0, redes: 0 };
+    (veiculo.gaiolaIds || []).forEach(function (id) {
+      if (vistos[id]) return; vistos[id] = true;
+      var rota = op.gaiolas.filter(function (x) { return x.id === id; })[0];
+      if (!rota) return;
+      var qr = quantidadesDaRota(rota); total.rotas++;
+      total.gaiolasFisicas += qr.gaiolasFisicas; total.paletes += qr.paletes;
+    });
+    total.redes = redesDoVeiculo(op, veiculo).valor;
+    return total;
+  }
   function totais(op) {
     var q = op.quantidades, vs = op.veiculos;
-    var somaPaletes = vs.reduce(function (s, v) { return s + n(v.paletes); }, 0);
-    var somaRedes = vs.reduce(function (s, v) { return s + redesDoVeiculo(op, v).valor; }, 0);
+    var somaPaletes = 0, somaGaiolasFisicas = 0, somaRedes = 0;
+    op.gaiolas.forEach(function (rota) { var qr = quantidadesDaRota(rota); somaGaiolasFisicas += qr.gaiolasFisicas; somaPaletes += qr.paletes; });
+    vs.forEach(function (v) { somaRedes += quantidadesDoVeiculo(op, v).redes; });
     var r = {
-      totalProdutos: n(q.pacotes) + n(q.volumosos) + n(q.extraVolumosos),    // BK não entra na soma (significado não confirmado)
-      gaiolas: op.gaiolas.length,
+      totalProdutos: n(q.pacotes) + n(q.volumosos) + n(q.extraVolumosos),
+      rotas: op.gaiolas.length, gaiolasFisicas: somaGaiolasFisicas,
       paletesVeiculos: somaPaletes, redesVeiculos: somaRedes, avisos: []
     };
-    if (q.paletes != null && vs.length && q.paletes !== somaPaletes) r.avisos.push('Paletes legados: total informado (' + q.paletes + ') difere da soma dos veículos (' + somaPaletes + ').');
+    if (q.paletes != null && vs.length && q.paletes !== somaPaletes) r.avisos.push('Paletes legados: total informado (' + q.paletes + ') difere da soma das quantidades registradas nas rotas (' + somaPaletes + ').');
     return r;
   }
+
   function inteiroOuNulo(v) {
     if (v === '' || v == null) return { ok: true, valor: null };
     var x = Number(v); return Number.isInteger(x) && x >= 0 ? { ok: true, valor: x } : { ok: false };
@@ -344,21 +362,21 @@
     var qs = [['Pacotes', q.pacotes], ['Volumosos', q.volumosos], ['Extra volumosos', q.extraVolumosos]].filter(function (x) { return x[1] != null; });
     if (qs.length) L.push(qs.map(function (x) { return x[0] + ': ' + U.formatarNumeroBR(x[1]); }).join(' · '));
     if (qs.length) L.push('Total de produtos: *' + U.formatarNumeroBR(t.totalProdutos) + '*');
-    var o = ['Gaiolas: ' + t.gaiolas];
-    if (q.paletes != null) o.push('Paletes (legado): ' + q.paletes); if (q.totalBK != null) o.push('Total BK: ' + q.totalBK);
+    var o = ['Rotas cadastradas: ' + t.rotas, 'Gaiolas f?sicas transportadas: ' + t.gaiolasFisicas, 'Paletes registrados nas rotas: ' + t.paletesVeiculos];
+    if (q.paletes != null) o.push('Paletes informados na opera??o (legado): ' + q.paletes); if (q.totalBK != null) o.push('Total BK: ' + q.totalBK);
     L.push(o.join(' · '));
     var rotas = rotasDaOperacao(op); if (rotas.length) { L.push(''); L.push('🗺️ *Rotas:* ' + rotas.join(', ')); }
     if (op.veiculos.length) {
       L.push(''); L.push('🚚 *Veículos* — ' + op.veiculos.length);
       op.veiculos.forEach(function (v) {
         var p = [v.placa]; if (v.motorista) p.push(v.motorista);
-        p.push(v.gaiolaIds.length + ' gaiola(s)'); p.push('redes calculadas: ' + redesDoVeiculo(op, v).valor); if (v.paletes != null) p.push(v.paletes + ' palete(s) (legado)');
+        var tv = quantidadesDoVeiculo(op, v); p.push(tv.rotas + ' rota(s)'); p.push('gaiolas f?sicas: ' + tv.gaiolasFisicas); p.push('paletes: ' + tv.paletes); p.push('redes calculadas: ' + tv.redes);
         p.push(v.saidaAt ? 'saída ' + hm(v.saidaAt) : 'sem horário de saída');
         L.push('└ ' + p.join(' · '));
       });
     }
-    L.push(''); L.push('🔎 *Auditoria de gaiolas*');
-    if (!a.total) L.push('Sem gaiolas registradas.');
+    L.push(''); L.push('🔎 *Auditoria de rotas*');
+    if (!a.total) L.push('Nenhuma rota cadastrada.');
     else {
       var comDivergencia = a.concluidasCom;
       var semDivergencia = a.concluidasSem;
@@ -366,13 +384,13 @@
       L.push('Pendentes: ' + a.pendentes + ' · Não iniciadas: ' + a.naoIniciadas);
     }
 
-    L.push(''); L.push('*Gaiolas, auditoria e ocorrências*');
-    if (!op.gaiolas.length) L.push('Nenhuma gaiola cadastrada.');
+    L.push(''); L.push('*Rotas, auditoria e ocorrencias*');
+    if (!op.gaiolas.length) L.push('Nenhuma rota cadastrada.');
     op.gaiolas.forEach(function (g) {
-      L.push('- Gaiola ' + g.codigo + ': ' + rotuloAuditoria(op, g) + ' | Auditor: ' + (g.auditoria.auditor || 'não informado'));
+      var qr = quantidadesDaRota(g); L.push('- Rota ' + g.codigo + ': ' + rotuloAuditoria(op, g) + ' | Gaiolas f?sicas: ' + (g.auditoria.quantidades && g.auditoria.quantidades.g != null ? qr.gaiolasFisicas : 'nao informado') + ' | Paletes: ' + (g.auditoria.quantidades && g.auditoria.quantidades.p != null ? qr.paletes : 'nao informado') + ' | Auditor: ' + (g.auditoria.auditor || 'nao informado'));
       ocorrenciasDaGaiola(op, g).forEach(function (oc) {
         L.push('  Ocorrência: produto ' + (oc.produtoId || '-') + ' | categoria: ' + rotuloCategoria(oc) +
-          ' | encontrado por: ' + (oc.identificadoPor || '-') + ' | gaiola correta: ' + (oc.gaiolaCorreta || '-') +
+          ' | encontrado por: ' + (oc.identificadoPor || '-') + ' | rota correta: ' + (oc.gaiolaCorreta || '-') +
           ' | ' + oc.status + (oc.observacao ? ' | observações: ' + oc.observacao : ''));
       });
     });
@@ -385,7 +403,7 @@
     limpar: limpar, chave: chave, diaRef: diaRef, interpretarCodigos: interpretarCodigos, novaOperacao: novaOperacao, situacaoOperacao: situacaoOperacao,
     diasAberta: diasAberta, adicionarGaiolas: adicionarGaiolas, definirAuditoria: definirAuditoria, iniciarAuditoria: iniciarAuditoria, statusAuditoria: statusAuditoria, validarQuantidadesAuditoria: validarQuantidadesAuditoria, resumoAuditoria: resumoAuditoria,
     ocorrenciasDaGaiola: ocorrenciasDaGaiola, rotuloAuditoria: rotuloAuditoria,
-    totais: totais, redesDoVeiculo: redesDoVeiculo, inteiroOuNulo: inteiroOuNulo, normalizarPlaca: normalizarPlaca, placaPadraoConhecido: placaPadraoConhecido, listaTexto: listaTexto,
+    totais: totais, quantidadesDaRota: quantidadesDaRota, quantidadesDoVeiculo: quantidadesDoVeiculo, redesDoVeiculo: redesDoVeiculo, inteiroOuNulo: inteiroOuNulo, normalizarPlaca: normalizarPlaca, placaPadraoConhecido: placaPadraoConhecido, listaTexto: listaTexto,
     novoVeiculo: novoVeiculo, veiculoDaGaiola: veiculoDaGaiola, carregarGaiola: carregarGaiola, descarregarGaiola: descarregarGaiola,
     novaOcorrencia: novaOcorrencia, produtoJaRegistrado: produtoJaRegistrado, mudarStatus: mudarStatus, rotuloCategoria: rotuloCategoria,
     rotasDaOperacao: rotasDaOperacao, pendentesAbertas: pendentesAbertas, relatorioBasico: relatorioBasico,

@@ -82,7 +82,7 @@ test('quantidades: total de produtos soma pacotes+volumosos+extra; redes não us
   let v = X.novoVeiculo({ placa: 'abc-1234', paletes: 4, redes: 2 }, T).veiculo; op.veiculos.push(v);
   v = X.novoVeiculo({ placa: 'DEF1G23', paletes: 3, redes: 2 }, T).veiculo; op.veiculos.push(v);
   const t = X.totais(op);
-  assert.strictEqual(t.paletesVeiculos, 7); assert.strictEqual(t.redesVeiculos, 0);
+  assert.strictEqual(t.paletesVeiculos, 0, 'valores legados do ve?culo n?o entram no total por rota'); assert.strictEqual(t.redesVeiculos, 0);
   assert.strictEqual(t.avisos.length, 1); assert.ok(t.avisos[0].includes('Paletes'));
 });
 
@@ -99,6 +99,21 @@ test('redes por veículo: soma G+V das rotas associadas uma única vez e exclui 
   assert.ok(!X.relatorioBasico(op).includes('Redes: 4'));
   assert.ok(X.relatorioBasico(op).includes('redes calculadas: 10'));
 });
+test('rotas A1/A2: quantidades de gaiolas f?sicas e paletes somam separadas do n?mero de rotas', () => {
+  const op = opComGaiolas(['A1', 'A2']);
+  op.gaiolas[0].auditoria.quantidades = { g: 2, v: 0, p: 1 };
+  op.gaiolas[1].auditoria.quantidades = { g: 1, v: 0, p: 0 };
+  const v = X.novoVeiculo({ placa: 'ABC1234' }, T).veiculo; op.veiculos.push(v);
+  v.gaiolaIds.push(op.gaiolas[0].id, op.gaiolas[1].id);
+  const tv = X.quantidadesDoVeiculo(op, v), t = X.totais(op), rel = X.relatorioBasico(op);
+  assert.deepStrictEqual([tv.rotas, tv.gaiolasFisicas, tv.paletes], [2, 3, 1]);
+  assert.deepStrictEqual([t.rotas, t.gaiolasFisicas, t.paletesVeiculos], [2, 3, 1]);
+  assert.ok(rel.includes('Rotas cadastradas: 2'));
+  assert.match(rel, /Gaiolas f.sicas transportadas: 3/);
+  assert.match(rel, /gaiolas f.sicas: 3/);
+  assert.ok(rel.includes('paletes: 1'));
+});
+
 test('quantidades vazias valem zero na soma, sem virar NaN', () => {
   assert.strictEqual(X.totais(X.novaOperacao(T)).totalProdutos, 0);
   assert.deepStrictEqual(JSON.parse(JSON.stringify(X.inteiroOuNulo(''))), { ok: true, valor: null });
@@ -152,7 +167,7 @@ test('ocorrências: divergência da auditoria é derivada das ocorrências na ga
   assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluído com divergência');
   assert.strictEqual(X.rotuloAuditoria(op, op.gaiolas[0]), 'Não auditado');
   const relatorio = X.relatorioBasico(op);
-  assert.ok(relatorio.includes('Gaiola A4: Concluído com divergência'));
+  assert.ok(relatorio.includes('Rota A4:'));
   assert.ok(relatorio.includes('produto PKG-9'));
   assert.ok(relatorio.includes('encontrado por: Carlos'));
 });
