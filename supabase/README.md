@@ -78,6 +78,16 @@ Validação automatizada do contrato frontend/SQL: `node --test tests/unit/supab
 
 **Estado desta etapa:** a migração está aplicada e validada no Supabase local; não foi aplicada ao banco remoto. A CLI local está configurada para trabalhar com o banco Docker `supabase_db_MeliNotepad`, sem vincular o projeto local ao remoto. A integração frontend permanece desativada enquanto as políticas operacionais e a autenticação não forem concluídas.
 
+## Cliente de autenticação do frontend (26/10/2026)
+
+O frontend tem uma camada REST própria (`js/supabase-auth.js`) para Supabase Auth e RPCs, sem enviar `service_role` ao navegador. O arquivo `js/supabase-config.js` está deliberadamente sem valores por padrão. Antes de ativar o modo autenticado, configure `supabaseUrl` e `supabaseAnonKey` com a URL e a chave pública/publishable (ou anon) do projeto correto. Não coloque senhas nem chaves secret/service-role nesse arquivo.
+
+Quando URL e chave estão configuradas, a tela de login bloqueia a navegação dos módulos até o contexto de funcionário ser validado. O fluxo inclui criar conta, confirmar por e-mail, entrar/sair, recuperar senha, solicitar acesso com código numérico de sete dígitos e revisar solicitações como administrador. A sessão fica em `sessionStorage`, não persiste ao fechar a aba. Configure no Supabase Auth as URLs de site/redirecionamento para o endereço real da aplicação e habilite confirmação de e-mail/CAPTCHA conforme a política de publicação.
+
+**Limite importante:** a autenticação e o fluxo de acesso não significam que os dados operacionais já estão na nuvem. A interface exibe um aviso explícito; NEX, XPT e Intervalos continuam usando o armazenamento local até que as RPCs operacionais e a sincronização sejam implementadas. Não habilite isso em produção como se fosse sincronização concluída.
+
+Testes: `node --test tests/unit/supabase-auth.test.js` e `node tests/e2e/auth-gate.test.js` (o E2E simula as respostas Auth/RPC; não substitui teste contra o projeto Supabase real).
+
 ## Modelo XPT (26/10/2026)
 
 A migração `20261026100000_add_xpt_operational_schema.sql` adiciona o modelo relacional para operações, gaiolas/auditorias, veículos, associações gaiola-veículo com histórico de remoção, ocorrências e reauditorias. O esquema mantém códigos legados, quantidades, históricos JSON, vínculos entre registros da mesma operação e restrições de unicidade/validação. As seis tabelas têm RLS habilitada e grants diretos revogados para `PUBLIC`, `anon`, `authenticated` e `service_role`.

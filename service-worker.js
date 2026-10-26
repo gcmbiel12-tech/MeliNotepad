@@ -13,7 +13,7 @@
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v9';
+var CACHE_VERSION = 'v10';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [
@@ -21,6 +21,10 @@ var ARQUIVOS_ESSENCIAIS = [
   './index.html',
   './css/styles.css',
   './css/modulos.css',
+  './css/auth.css',
+  './js/supabase-config.js',
+  './js/supabase-auth.js',
+  './js/auth-ui.js',
   './js/save-status.js',
   './js/constants.js',
   './js/utils.js',

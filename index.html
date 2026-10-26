@@ -8,11 +8,13 @@
 <meta name="theme-color" content="#FFD400">
 <meta name="application-name" content="MeliNotepad">
 <meta name="apple-mobile-web-app-title" content="MeliNotepad">
+<script src="js/supabase-config.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/modulos.css">
+<link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
 
@@ -35,10 +37,72 @@
       <button type="button" class="tab-modulo" data-modulo="intervalos">Intervalos</button>
     </div>
   </nav>
+  <div id="auth-header" class="auth-header" hidden>
+    <span id="auth-user-label" class="auth-header__usuario"></span>
+    <button type="button" id="auth-admin-toggle" class="botao botao--secundario" hidden>Solicitações de acesso</button>
+    <button type="button" id="auth-signout" class="botao botao--texto">Sair</button>
+  </div>
 </header>
 
 <!-- Mensagens do sistema (avisos de carregamento de dados, etc.) -->
 <div id="avisos-sistema" aria-live="polite"></div>
+<div id="auth-config-warning" class="auth-config-warning" role="status" hidden>Configuração Supabase incompleta ou inválida. O app continua em modo local; preencha a URL e a chave pública corretas em <code>js/supabase-config.js</code>. Não use a chave <code>service_role</code>.</div>
+
+<section id="auth-panel" class="auth-panel" hidden aria-labelledby="auth-titulo">
+  <div class="auth-panel__cabecalho">
+    <h1 id="auth-titulo">Acesso ao MeliNotepad</h1>
+    <p>Entre com sua conta. O código de funcionário de sete dígitos identifica o cadastro, mas não substitui a senha.</p>
+  </div>
+  <p id="auth-message" class="auth-mensagem" role="status" aria-live="polite"></p>
+
+  <div id="auth-login-area" class="auth-grid">
+    <form id="auth-login-form" class="cartao" novalidate>
+      <h2>Entrar</h2>
+      <div class="campo"><label for="auth-login-email">E-mail</label><input id="auth-login-email" type="email" autocomplete="username" required></div>
+      <div class="campo"><label for="auth-login-password">Senha</label><input id="auth-login-password" type="password" autocomplete="current-password" minlength="8" required></div>
+      <button type="submit" class="botao botao--primario">Entrar</button>
+      <button type="button" id="auth-show-recover" class="botao botao--texto">Esqueci minha senha</button>
+    </form>
+    <form id="auth-register-form" class="cartao" novalidate>
+      <h2>Criar conta</h2>
+      <p class="texto-apoio">Use seu e-mail de trabalho. Se a confirmação de e-mail estiver habilitada, confirme a mensagem antes de entrar.</p>
+      <div class="campo"><label for="auth-register-email">E-mail</label><input id="auth-register-email" type="email" autocomplete="email" required></div>
+      <div class="campo"><label for="auth-register-password">Criar senha</label><input id="auth-register-password" type="password" autocomplete="new-password" minlength="8" required></div>
+      <button type="submit" class="botao botao--secundario">Criar conta</button>
+    </form>
+  </div>
+
+  <form id="auth-recover-form" class="cartao auth-form-curto" hidden novalidate>
+    <h2>Recuperar senha</h2>
+    <div class="campo"><label for="auth-recover-email">E-mail da conta</label><input id="auth-recover-email" type="email" autocomplete="email" required></div>
+    <div class="acoes-form"><button type="submit" class="botao botao--primario">Enviar instruções</button><button type="button" id="auth-cancel-recover" class="botao botao--texto">Voltar</button></div>
+  </form>
+
+  <form id="auth-reset-form" class="cartao auth-form-curto" hidden novalidate>
+    <h2>Definir nova senha</h2>
+    <div class="campo"><label for="auth-reset-password">Nova senha</label><input id="auth-reset-password" type="password" autocomplete="new-password" minlength="8" required></div>
+    <div class="campo"><label for="auth-reset-confirm">Confirmar nova senha</label><input id="auth-reset-confirm" type="password" autocomplete="new-password" minlength="8" required></div>
+    <button type="submit" class="botao botao--primario">Salvar nova senha</button>
+  </form>
+
+  <form id="auth-request-form" class="cartao auth-form-curto" hidden novalidate>
+    <h2>Solicitar acesso operacional</h2>
+    <p>Esta conta ainda não tem acesso operacional ativo. Informe o código numérico de sete dígitos do seu cadastro. Um administrador precisará confirmar sua identidade antes de aprovar.</p>
+    <div class="campo"><label for="auth-employee-code">Código do funcionário</label><input id="auth-employee-code" type="text" inputmode="numeric" autocomplete="off" pattern="[0-9]{7}" minlength="7" maxlength="7" required placeholder="0000000"></div>
+    <div class="acoes-form"><button type="submit" class="botao botao--primario">Solicitar acesso</button><button type="button" id="auth-unlinked-signout" class="botao botao--texto">Sair</button></div>
+  </form>
+</section>
+
+<div id="auth-local-data-warning" class="auth-aviso-local" role="status" hidden>
+  <strong>Autenticação ativa; dados ainda locais.</strong> Os registros operacionais continuam neste navegador e ainda não sincronizam com o Supabase.
+</div>
+
+<section id="auth-admin-panel" class="auth-admin-panel cartao" hidden aria-labelledby="auth-admin-title">
+  <div class="cartao__cabecalho"><h2 id="auth-admin-title">Solicitações de acesso</h2><button type="button" id="auth-admin-refresh" class="botao botao--secundario">Atualizar</button></div>
+  <p class="texto-apoio">Confirme a identidade do funcionário por um canal organizacional confiável antes de aprovar. O código sozinho não comprova identidade.</p>
+  <p id="auth-admin-message" class="texto-aviso" role="status" aria-live="polite"></p>
+  <ul id="auth-pending-list" class="auth-pending-list"></ul>
+</section>
 
 <main id="conteudo-principal" data-modulo="nex">
 
@@ -374,5 +438,7 @@
 <script src="js/fotos.js"></script>
 <script src="js/impressao.js"></script>
 <script src="js/xpt.js"></script>
+<script src="js/supabase-auth.js"></script>
+<script src="js/auth-ui.js"></script>
 </body>
 </html>

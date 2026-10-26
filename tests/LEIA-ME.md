@@ -10,6 +10,8 @@ Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional e 
 ## Ponta a ponta (Playwright + Chromium)
     cd tests && npm install && npx playwright install chromium && cd ..
     python3 -m http.server 8743 --bind 127.0.0.1      # em outro terminal, na raiz do projeto
+    node tests/e2e/auth-gate.test.js                  # login, bloqueio, solicitação e logout (Auth simulado)
+    node tests/e2e/auth-layout.test.js                # tela de autenticação em 7 larguras (320–1280 px)
     node tests/e2e/nex-regressao.test.js              # NEX, filtros e impressão PDF
     node tests/e2e/nex-melhorias.test.js              # Bingo/Faltando, duplicidade, pendências e filtros do histórico
     node tests/e2e/intervalos.test.js                 # Intervalos, filtros, relógio simulado e impressão PDF
