@@ -857,24 +857,37 @@
   function imprimirRelatorioDetalhado(opId) {
     var o = estado.operacoes.filter(function (x) { return x.id === opId; })[0]; if (!o) return;
     var titulo = 'MeliNotepad_XPT_' + (o.diaRef || X.diaRef(Date.parse(o.inicioAt)));
+    var totaisRelatorio = X.totais(o), resumoAuditoriaRelatorio = X.resumoAuditoria(o.gaiolas);
     NS.Impressao.imprimir(titulo, function (raiz, criar) {
-      raiz.appendChild(criar('h1', { text: 'MeliNotepad — Relatório operacional XPT' }));
+      raiz.classList.add('print-xpt');
+      raiz.appendChild(criar('p', { class: 'print-marca', text: 'MELINOTEPAD  /  EXPEDI\u00c7\u00c3O' }));
+      raiz.appendChild(criar('h1', { class: 'print-titulo', text: 'Relat\u00f3rio operacional XPT' }));
       raiz.appendChild(criar('p', { text: 'Data de referência: ' + U.formatarData(new Date(o.inicioAt)) }));
       raiz.appendChild(criar('p', { text: 'Início: ' + dataHora(o.inicioAt) + ' · Fim do carregamento: ' + (o.fimCarregamentoAt ? dataHora(o.fimCarregamentoAt) : 'não registrado') + ' · Encerramento: ' + (o.encerradaAt ? dataHora(o.encerradaAt) : 'operação aberta') }));
-      raiz.appendChild(criar('h2', { text: 'Quantidades' }));
+      raiz.appendChild(criar('h2', { class: 'print-subtitulo', text: 'Resumo executivo' }));
+      raiz.appendChild(criar('div', { class: 'print-indicadores' }, [
+        criar('div', { class: 'print-indicador' }, [criar('span', { text: 'Rotas' }), criar('strong', { text: String(totaisRelatorio.rotas) })]),
+        criar('div', { class: 'print-indicador' }, [criar('span', { text: 'Gaiolas f\u00edsicas' }), criar('strong', { text: String(totaisRelatorio.gaiolasFisicas) })]),
+        criar('div', { class: 'print-indicador' }, [criar('span', { text: 'Paletes nas rotas' }), criar('strong', { text: String(totaisRelatorio.paletesVeiculos) })]),
+        criar('div', { class: 'print-indicador' }, [criar('span', { text: 'Produtos' }), criar('strong', { text: String(totaisRelatorio.totalProdutos) })])
+      ]));
+      raiz.appendChild(criar('p', { class: 'print-info', text: 'Auditoria: ' + resumoAuditoriaRelatorio.concluidas + '/' + resumoAuditoriaRelatorio.total + ' conclu\u00eddas (' + (resumoAuditoriaRelatorio.percentual == null ? '\u2014' : String(resumoAuditoriaRelatorio.percentual).replace('.', ',') + '%') + ') | Pendentes: ' + resumoAuditoriaRelatorio.pendentes + ' | N\u00e3o iniciadas: ' + resumoAuditoriaRelatorio.naoIniciadas + ' | Ocorr\u00eancias pendentes: ' + X.pendentesAbertas(o).length }));
+      raiz.appendChild(criar('h2', { class: 'print-subtitulo', text: 'Quantidades da opera\u00e7\u00e3o' }));
       raiz.appendChild(criar('p', { text: 'Pacotes: ' + (o.quantidades.pacotes == null ? '—' : o.quantidades.pacotes) + ' · Volumosos: ' + (o.quantidades.volumosos == null ? '—' : o.quantidades.volumosos) + ' · Extra volumosos: ' + (o.quantidades.extraVolumosos == null ? '—' : o.quantidades.extraVolumosos) + ' · Total de produtos: ' + X.totais(o).totalProdutos }));
       raiz.appendChild(criar('p', { text: 'Paletes registrados na operacao: ' + (o.quantidades.paletes == null ? '—' : o.quantidades.paletes) + ' · Redes: ' + (o.quantidades.redes == null ? '—' : o.quantidades.redes) + ' · Total BK: ' + (o.quantidades.totalBK == null ? '—' : o.quantidades.totalBK) }));
-      raiz.appendChild(criar('h2', { text: 'Rotas e auditoria' }));
+      raiz.appendChild(criar('h2', { class: 'print-subtitulo', text: 'Rotas e auditoria' }));
       var a = X.resumoAuditoria(o.gaiolas);
       raiz.appendChild(criar('p', { text: 'Rotas: ' + a.total + ' · Concluídas: ' + a.concluidas + ' · Pendentes: ' + a.pendentes + ' · Não iniciadas: ' + a.naoIniciadas + ' · Percentual: ' + (a.percentual == null ? '—' : a.percentual + '%') }));
-      raiz.appendChild(criar('table', { class: 'tabela-modulo' }, [
-        criar('thead', {}, [criar('tr', {}, ['Codigo da rota', 'Estado', 'Auditor', 'Data da auditoria'].map(function (x) { return criar('th', { text: x }); }))]),
-        criar('tbody', {}, o.gaiolas.map(function (g) { return criar('tr', {}, [
+      raiz.appendChild(criar('table', { class: 'print-tabela' }, [
+        criar('thead', {}, [criar('tr', {}, ['C\u00f3digo da rota', 'Estado', 'Auditor', 'Data da auditoria', 'Gaiolas f\u00edsicas', 'Paletes'].map(function (x) { return criar('th', { text: x }); }))]),
+        criar('tbody', {}, o.gaiolas.map(function (g) { var q = X.quantidadesDaRota(g), qa = g.auditoria && g.auditoria.quantidades || {}; return criar('tr', {}, [
           criar('td', { text: g.codigo }), criar('td', { text: X.rotuloAuditoria(o, g) }), criar('td', { text: g.auditoria.auditor || '-' }),
-          criar('td', { text: g.auditoria.em ? dataHora(g.auditoria.em) : '—' })
+          criar('td', { text: g.auditoria.em ? dataHora(g.auditoria.em) : '?' }),
+          criar('td', { text: qa.g == null ? 'N\u00e3o informado' : String(q.gaiolasFisicas) }),
+          criar('td', { text: qa.p == null ? 'N\u00e3o informado' : String(q.paletes) })
         ]); }))
       ]));
-      raiz.appendChild(criar('h2', { text: 'Historico de reauditorias por rota' }));
+      raiz.appendChild(criar('h2', { class: 'print-subtitulo', text: 'Hist\u00f3rico de reauditorias por rota' }));
       var reauditorias = [];
       o.gaiolas.forEach(function (g) {
         (g.auditoria && g.auditoria.reauditorias || []).forEach(function (ra) {
@@ -882,12 +895,12 @@
         });
       });
       raiz.appendChild(reauditorias.length ? criar('ul', {}, reauditorias) : criar('p', { text: 'Nenhuma reauditoria registrada.' }));
-      raiz.appendChild(criar('h2', { text: 'Veiculos, rotas e fotos' }));
+      raiz.appendChild(criar('h2', { class: 'print-subtitulo', text: 'Ve\u00edculos, rotas e fotos' }));
       return Promise.all(o.veiculos.map(function (v) { return v.fotoId && F ? F.urlDe(v.fotoId) : Promise.resolve(null); })).then(function (urlsFotos) {
         o.veiculos.forEach(function (v, i) {
           raiz.appendChild(criar('h3', { text: v.placa + (v.motorista ? ' · ' + v.motorista : '') }));
           var tv = X.quantidadesDoVeiculo(o, v);
-          raiz.appendChild(criar('p', { text: 'Rotas associadas: ' + tv.rotas + ' | Gaiolas fisicas: ' + tv.gaiolasFisicas + ' | Paletes das rotas: ' + tv.paletes + ' | Redes calculadas: ' + tv.redes + ' | Saida: ' + (v.saidaAt ? dataHora(v.saidaAt) : 'nao registrada') }));
+          raiz.appendChild(criar('p', { text: 'Rotas associadas: ' + tv.rotas + ' | Gaiolas f\u00edsicas: ' + tv.gaiolasFisicas + ' | Paletes das rotas: ' + tv.paletes + ' | Redes calculadas (G + V): ' + tv.redes + ' | Sa\u00edda: ' + (v.saidaAt ? dataHora(v.saidaAt) : 'n\u00e3o registrada') }));
           var codigos = (v.gaiolaIds || []).map(function (gid) { var g = o.gaiolas.filter(function (x) { return x.id === gid; })[0]; return g ? g.codigo : null; }).filter(Boolean);
           raiz.appendChild(criar('p', { text: 'Rotas associadas: ' + (codigos.join(', ') || 'nenhuma') }));
           if (urlsFotos[i]) {
