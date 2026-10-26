@@ -26,7 +26,7 @@
     editandoOcorrenciaId: null,
     importPendente: null,
     historicoAbertoId: null,
-    filtroHistorico: { periodo: 'todos', data: '', inicio: '', fim: '', busca: '' }
+    filtroHistorico: { periodo: 'todos', data: '', inicio: '', fim: '', busca: '', categoria: '', status: '' }
   };
 
   // Trava de reentrância simples: impede que um clique duplo real (dois
@@ -50,15 +50,15 @@
       'info-data', 'info-sacas', 'info-pacotes',
       'form-editar-totais', 'input-sacas-edit', 'input-pacotes-edit', 'btn-cancelar-editar-totais',
       'btn-abrir-camera', 'btn-fechar-camera', 'label-select-camera', 'select-camera', 'video-camera', 'aviso-camera',
-      'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'input-observacao',
+      'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'ajuda-categoria', 'input-observacao',
       'contagem-total', 'contagem-pendente', 'contagem-resolvida',
-      'filtro-categoria', 'filtro-status', 'filtro-codigo', 'btn-limpar-filtros',
+      'filtro-categoria', 'filtro-status', 'filtro-codigo', 'btn-ver-pendentes', 'btn-limpar-filtros',
       'lista-ocorrencias-vazia', 'lista-ocorrencias',
       'btn-pre-visualizar', 'btn-finalizar-sessao', 'painel-relatorio', 'texto-relatorio',
       'area-copia-manual',
       'lista-historico', 'historico-vazio',
       'historico-sem-resultados', 'historico-periodo', 'historico-data', 'historico-data-wrap',
-      'historico-inicio', 'historico-fim', 'historico-inicio-wrap', 'historico-fim-wrap', 'historico-busca', 'historico-limpar',
+      'historico-inicio', 'historico-fim', 'historico-inicio-wrap', 'historico-fim-wrap', 'historico-busca', 'historico-categoria', 'historico-status', 'historico-limpar',
       'nex-relatorio-historico',
       'detalhe-historico', 'detalhe-historico-info', 'detalhe-historico-ocorrencias', 'detalhe-historico-relatorio',
       'btn-fechar-detalhe-historico', 'btn-copiar-resumo-historico', 'btn-gerar-pdf-historico', 'aviso-copiar-historico',
@@ -68,7 +68,7 @@
       'modal-editar', 'form-editar-ocorrencia', 'edit-codigo', 'edit-categoria', 'edit-observacao', 'btn-cancelar-editar',
       'modal-importar', 'modal-importar-resumo', 'btn-cancelar-importar', 'btn-confirmar-importar',
       'modal-sessao-bloqueio', 'btn-bloqueio-finalizar', 'btn-bloqueio-descartar', 'btn-bloqueio-cancelar',
-      'modal-finalizar', 'modal-finalizar-aviso-pendentes', 'form-finalizar', 'finalizar-horario', 'btn-cancelar-finalizar',
+      'modal-finalizar', 'modal-finalizar-resumo', 'modal-finalizar-aviso-pendentes', 'form-finalizar', 'finalizar-horario', 'btn-cancelar-finalizar',
       'print-area', 'toast-container'
     ];
     ids.forEach(function (id) {
@@ -172,6 +172,14 @@
       opt.textContent = cat.label;
       selectEl.appendChild(opt);
     });
+  }
+
+  function atualizarAjudaCategoria() {
+    var descricoes = {
+      bingo: 'Bingo: produto que não foi encontrado fisicamente durante a auditoria.',
+      faltando: 'Faltando: pacote a mais, que não deveria estar naquele local.'
+    };
+    $.ajudaCategoria.textContent = descricoes[$.selectCategoria.value] || 'Selecione a categoria que melhor descreve a divergência.';
   }
 
   // -----------------------------------------------------------------------
@@ -312,6 +320,9 @@
     $.contagemTotal.textContent = String(total);
     $.contagemPendente.textContent = String(pendentes);
     $.contagemResolvida.textContent = String(total - pendentes);
+    var mostrandoPendentes = estado.filtros.status === C.STATUS.PENDENTE;
+    $.btnVerPendentes.textContent = mostrandoPendentes ? 'Ver todas' : 'Ver pendentes';
+    $.btnVerPendentes.setAttribute('aria-pressed', String(mostrandoPendentes));
 
     var filtradas = ocorrenciasFiltradas(sessao.occurrences).slice().sort(function (a, b) {
       return new Date(b.createdAt) - new Date(a.createdAt);
@@ -331,11 +342,22 @@
   function renderHistoricoLista() {
     var f = estado.filtroHistorico;
     var todos = estado.dados.history.slice();
+    var termoHistorico = U.normalizarTexto(f.busca || '').toLocaleLowerCase('pt-BR');
     var historico = U.consultarHistorico(todos, {
-      periodo: f.periodo, data: f.data, inicio: f.inicio, fim: f.fim, busca: f.busca,
-      campoData: 'startTime', buscar: function (sessao) {
-        return (sessao.occurrences || []).map(function (o) { return o.code || ''; }).join(' ');
-      }
+      periodo: f.periodo, data: f.data, inicio: f.inicio, fim: f.fim, busca: '',
+      campoData: 'startTime'
+    }).filter(function (sessao) {
+      var ocorrencias = sessao.occurrences || [];
+      if (!f.categoria && !f.status && !termoHistorico) return true;
+      return ocorrencias.some(function (o) {
+        if (f.categoria && o.category !== f.categoria) return false;
+        if (f.status && o.status !== f.status) return false;
+        if (termoHistorico) {
+          var texto = [o.code || '', C.categoriaLabel(o.category), o.note || ''].join(' ').toLocaleLowerCase('pt-BR');
+          if (texto.indexOf(termoHistorico) === -1) return false;
+        }
+        return true;
+      });
     });
 
     while ($.listaHistorico.firstChild) $.listaHistorico.removeChild($.listaHistorico.firstChild);
@@ -640,11 +662,11 @@
   // Eventos: registrar ocorrência
   // -----------------------------------------------------------------------
 
-  function buscarDuplicados(codigo) {
+  function buscarDuplicados(codigo, ignorarId) {
     var sessao = sessaoAtiva();
     var alvo = U.normalizarCodigoParaComparacao(codigo);
     return sessao.occurrences.filter(function (o) {
-      return U.normalizarCodigoParaComparacao(o.code) === alvo;
+      return o.id !== ignorarId && U.normalizarCodigoParaComparacao(o.code) === alvo;
     });
   }
 
@@ -660,7 +682,7 @@
       updatedAt: agora,
       note: nota || undefined
     });
-    if (!persistir()) return false;
+    if (!persistir()) { sessao.occurrences.pop(); return false; }
     renderListaOcorrencias();
     return true;
   }
@@ -816,15 +838,32 @@
     }
     codigo = leituraEdicao.codigo;
 
-    ocorrencia.code = codigo;
-    ocorrencia.category = categoria;
-    ocorrencia.note = nota || undefined;
-    ocorrencia.updatedAt = U.agora().toISOString();
+    var duplicados = buscarDuplicados(codigo, ocorrencia.id);
+    var prosseguir = duplicados.length ? confirmar({
+      titulo: 'Código já registrado nesta sessão',
+      mensagem: 'O código "' + codigo + '" já aparece em outra ocorrência: ' + duplicados.map(function (o) {
+        return C.categoriaLabel(o.category) + ' (' + C.STATUS_LABEL[o.status] + ')';
+      }).join('; ') + '. Deseja manter o código repetido?',
+      confirmarLabel: 'Salvar mesmo assim', cancelarLabel: 'Cancelar'
+    }) : Promise.resolve(true);
 
-    if (!persistir()) return;
-    $.modalEditar.close();
-    renderListaOcorrencias();
-    toast('Ocorrência atualizada.', 'sucesso');
+    prosseguir.then(function (ok) {
+      if (!ok) return;
+      var codigoAnterior = ocorrencia.code, categoriaAnterior = ocorrencia.category;
+      var notaAnterior = ocorrencia.note, atualizadoAnterior = ocorrencia.updatedAt;
+      ocorrencia.code = codigo;
+      ocorrencia.category = categoria;
+      ocorrencia.note = nota || undefined;
+      ocorrencia.updatedAt = U.agora().toISOString();
+      if (!persistir()) {
+        ocorrencia.code = codigoAnterior; ocorrencia.category = categoriaAnterior;
+        ocorrencia.note = notaAnterior; ocorrencia.updatedAt = atualizadoAnterior;
+        return;
+      }
+      $.modalEditar.close();
+      renderListaOcorrencias();
+      toast('Ocorrência atualizada.', 'sucesso');
+    });
   }
 
   // -----------------------------------------------------------------------
@@ -846,6 +885,11 @@
     renderListaOcorrencias();
   }
 
+  function alternarFiltroPendentes() {
+    $.filtroStatus.value = estado.filtros.status === C.STATUS.PENDENTE ? '' : C.STATUS.PENDENTE;
+    aoMudarFiltros();
+  }
+
   // -----------------------------------------------------------------------
   // Eventos: pré-visualizar e finalizar
   // -----------------------------------------------------------------------
@@ -859,7 +903,19 @@
 
   function finalizarSessao() {
     var sessao = sessaoAtiva();
-    var pendentes = sessao.occurrences.filter(function (o) { return o.status === C.STATUS.PENDENTE; }).length;
+    var status = Report.contarStatus(sessao.occurrences);
+    var porCategoria = Report.contarPorCategoria(sessao.occurrences);
+    var linhasResumo = [
+      'Ocorrências: ' + status.total,
+      'Pendentes: ' + status.pendentes,
+      'Resolvidas: ' + status.resolvidas
+    ];
+    C.CATEGORIES.forEach(function (cat) {
+      var quantidade = porCategoria[cat.key].length;
+      if (quantidade) linhasResumo.push(cat.label + ': ' + quantidade);
+    });
+    $.modalFinalizarResumo.textContent = linhasResumo.join('\n');
+    var pendentes = status.pendentes;
 
     if (pendentes > 0) {
       $.modalFinalizarAvisoPendentes.textContent = pendentes + ' ocorrência(s) ainda está(ão) pendente(s). Elas continuam pendentes no relatório — isso não impede a finalização, mas confira se não esqueceu nada.';
@@ -1060,6 +1116,7 @@
     $.selectCamera.addEventListener('change', aoTrocarCamera);
 
     $.formRegistrarOcorrencia.addEventListener('submit', aoEnviarRegistrarOcorrencia);
+    $.selectCategoria.addEventListener('change', atualizarAjudaCategoria);
     $.listaOcorrencias.addEventListener('click', aoClicarListaOcorrencias);
 
     $.formEditarOcorrencia.addEventListener('submit', aoEnviarEditarOcorrencia);
@@ -1068,6 +1125,7 @@
     $.filtroCategoria.addEventListener('change', aoMudarFiltros);
     $.filtroStatus.addEventListener('change', aoMudarFiltros);
     $.filtroCodigo.addEventListener('input', aoMudarFiltros);
+    $.btnVerPendentes.addEventListener('click', alternarFiltroPendentes);
     $.btnLimparFiltros.addEventListener('click', limparFiltros);
 
     $.btnPreVisualizar.addEventListener('click', preVisualizarRelatorio);
@@ -1082,7 +1140,8 @@
     function atualizarFiltroHistorico() {
       estado.filtroHistorico = {
         periodo: $.historicoPeriodo.value, data: $.historicoData.value,
-        inicio: $.historicoInicio.value, fim: $.historicoFim.value, busca: $.historicoBusca.value
+        inicio: $.historicoInicio.value, fim: $.historicoFim.value, busca: $.historicoBusca.value,
+        categoria: $.historicoCategoria.value, status: $.historicoStatus.value
       };
       renderHistoricoLista();
     }
@@ -1091,8 +1150,11 @@
     $.historicoInicio.addEventListener('change', atualizarFiltroHistorico);
     $.historicoFim.addEventListener('change', atualizarFiltroHistorico);
     $.historicoBusca.addEventListener('input', atualizarFiltroHistorico);
+    $.historicoCategoria.addEventListener('change', atualizarFiltroHistorico);
+    $.historicoStatus.addEventListener('change', atualizarFiltroHistorico);
     $.historicoLimpar.addEventListener('click', function () {
       $.historicoPeriodo.value = 'todos'; $.historicoData.value = ''; $.historicoInicio.value = ''; $.historicoFim.value = ''; $.historicoBusca.value = '';
+      $.historicoCategoria.value = ''; $.historicoStatus.value = '';
       atualizarFiltroHistorico();
     });
     $.btnFecharDetalheHistorico.addEventListener('click', fecharDetalheHistorico);
@@ -1136,13 +1198,29 @@
       return { periodo: 'todo', tipo: 'resumido' };
     };
     relatorioUiNex = Relatorios.iniciarInterface($.nexRelatorioHistorico, 'NEX', function () { return estado.dados.history; }, function (registros) {
-      var busca = estado.filtroHistorico.busca.trim().toLocaleLowerCase('pt-BR');
-      if (!busca) return registros;
-      return registros.filter(function (s) { return (s.occurrences || []).some(function (o) { return String(o.code || '').toLocaleLowerCase('pt-BR').indexOf(busca) !== -1; }); });
-    }, selector, function () { var busca = estado.filtroHistorico.busca.trim(); return busca ? 'Código contém “' + busca + '”' : ''; });
+      var f = estado.filtroHistorico;
+      var busca = f.busca.trim().toLocaleLowerCase('pt-BR');
+      if (!busca && !f.categoria && !f.status) return registros;
+      return registros.filter(function (s) {
+        return (s.occurrences || []).some(function (o) {
+          if (f.categoria && o.category !== f.categoria) return false;
+          if (f.status && o.status !== f.status) return false;
+          var texto = [o.code || '', C.categoriaLabel(o.category), o.note || ''].join(' ').toLocaleLowerCase('pt-BR');
+          return !busca || texto.indexOf(busca) !== -1;
+        });
+      });
+    }, selector, function () {
+      var f = estado.filtroHistorico, partes = [];
+      if (f.busca.trim()) partes.push('Busca: “' + f.busca.trim() + '”');
+      if (f.categoria) partes.push('Categoria: ' + C.categoriaLabel(f.categoria));
+      if (f.status) partes.push('Status: ' + C.STATUS_LABEL[f.status]);
+      return partes.join(' • ');
+    });
     popularSelectCategorias($.selectCategoria, false);
     popularSelectCategorias($.filtroCategoria, true);
     popularSelectCategorias($.editCategoria, false);
+    popularSelectCategorias($.historicoCategoria, true);
+    atualizarAjudaCategoria();
     conectarEventos();
     renderTudo();
     registrarServiceWorker();

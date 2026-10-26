@@ -76,7 +76,9 @@
       var itens = porCategoria[cat.key];
       if (itens.length === 0) return;
       linhas.push('');
-      linhas.push(cat.emoji + ' *' + cat.label + '* — ' + itens.length);
+      var descricao = cat.key === 'bingo' ? ' (produto não encontrado na auditoria)' :
+        (cat.key === 'faltando' ? ' (pacote a mais, que não deveria estar no local)' : '');
+      linhas.push(cat.emoji + ' *' + cat.label + '*' + descricao + ' — ' + itens.length);
       itens.forEach(function (o) {
         linhas.push('└ ' + C.STATUS_EMOJI[o.status] + ' ' + o.code + ' — ' + C.STATUS_LABEL[o.status]);
       });
@@ -114,6 +116,7 @@
       categorias: C.CATEGORIES.map(function (cat) {
         return {
           label: cat.label,
+          descricao: cat.key === 'bingo' ? 'Produto não encontrado na auditoria' : (cat.key === 'faltando' ? 'Pacote a mais, que não deveria estar no local' : ''),
           quantidade: porCategoria[cat.key].length,
           itens: porCategoria[cat.key].map(function (o) {
             return {

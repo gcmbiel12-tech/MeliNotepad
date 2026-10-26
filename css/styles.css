@@ -352,6 +352,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--cor-azul); }
   padding: var(--espaco-3);
 }
 .item-ocorrencia--resolvido { border-left-color: var(--cor-verde); }
+.item-ocorrencia--pendente { box-shadow: 0 0 0 1px rgba(194, 65, 12, .08); }
+.resumo-finalizacao { white-space: pre-line; background: var(--cor-fundo, #f7f8fa); border: 1px solid var(--cor-borda); border-radius: 8px; padding: .75rem; line-height: 1.6; margin: .75rem 0; }
+#btn-ver-pendentes[aria-pressed="true"] { border-color: var(--cor-laranja); background: var(--cor-laranja-fundo); color: var(--cor-laranja); }
 
 .item-ocorrencia__cabecalho { display: flex; justify-content: space-between; align-items: center; gap: var(--espaco-2); }
 .item-ocorrencia__codigo { font-weight: 700; font-size: 1rem; word-break: break-all; }

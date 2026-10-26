@@ -130,6 +130,7 @@
             <select id="select-categoria" name="categoria" required>
               <option value="" selected disabled>Selecione uma categoria</option>
             </select>
+            <p id="ajuda-categoria" class="campo__ajuda" aria-live="polite">Selecione a categoria que melhor descreve a divergência.</p>
           </div>
           <fieldset class="campo campo-fieldset">
             <legend>Status da ocorrência</legend>
@@ -181,6 +182,7 @@
             <label for="filtro-codigo">Buscar código</label>
             <input type="text" id="filtro-codigo" autocomplete="off" placeholder="Digite parte do código">
           </div>
+          <button type="button" id="btn-ver-pendentes" class="botao botao--secundario" aria-pressed="false">Ver pendentes</button>
           <button type="button" id="btn-limpar-filtros" class="botao botao--texto">Limpar filtros</button>
         </div>
 
@@ -222,7 +224,9 @@
         <label id="historico-data-wrap" hidden>Data<input id="historico-data" type="date"></label>
         <label id="historico-inicio-wrap" hidden>De<input id="historico-inicio" type="date"></label>
         <label id="historico-fim-wrap" hidden>Até<input id="historico-fim" type="date"></label>
-        <label>Código<input id="historico-busca" type="search" placeholder="Buscar código" autocomplete="off"></label>
+        <label>Código, categoria ou observação<input id="historico-busca" type="search" placeholder="Buscar código, categoria ou observação" autocomplete="off"></label>
+        <label>Categoria<select id="historico-categoria"><option value="">Todas as categorias</option></select></label>
+        <label>Status<select id="historico-status"><option value="">Todos os status</option><option value="pendente">Com pendentes</option><option value="resolvido">Com resolvidas</option></select></label>
         <button type="button" id="historico-limpar" class="botao botao--texto">Limpar filtros</button>
       </div>
       <p id="historico-vazio" class="texto-apoio" hidden>Nenhuma conferência foi finalizada ainda.</p>
@@ -310,6 +314,7 @@
 
 <dialog id="modal-finalizar" class="modal">
   <h2>Finalizar conferência</h2>
+  <p id="modal-finalizar-resumo" class="resumo-finalizacao" aria-live="polite"></p>
   <p id="modal-finalizar-aviso-pendentes" class="texto-aviso" hidden></p>
   <form id="form-finalizar" novalidate>
     <div class="campo">

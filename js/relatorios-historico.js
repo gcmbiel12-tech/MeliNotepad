@@ -36,6 +36,13 @@
     return dias[dia];
   }
 
+  function rotuloCategoriaNex(chave) {
+    var rotulo = C.categoriaLabel(chave);
+    if (chave === 'bingo') return rotulo + ' (produto não encontrado na auditoria)';
+    if (chave === 'faltando') return rotulo + ' (pacote a mais, que não deveria estar no local)';
+    return rotulo;
+  }
+
   function construirNex(registros, o) {
     var selecionados = selecionar(registros, 'startTime', o);
     if (!selecionados.ok) return selecionados;
@@ -45,7 +52,7 @@
       d.quantidade++; d.sacas += Number(s.sacas) || 0; d.pacotes += Number(s.pacotes) || 0;
       totais.sacas += Number(s.sacas) || 0; totais.pacotes += Number(s.pacotes) || 0;
       (s.occurrences || []).forEach(function (oc) {
-        var cat = C.categoriaLabel(oc.category), resolvida = oc.status === C.STATUS.RESOLVIDO;
+        var cat = rotuloCategoriaNex(oc.category), resolvida = oc.status === C.STATUS.RESOLVIDO;
         d.ocorrencias++; totais.ocorrencias++;
         if (resolvida) { d.resolvidas++; totais.resolvidas++; }
         else if (oc.status === C.STATUS.PENDENTE) { d.pendentes++; totais.pendentes++; }
@@ -53,7 +60,7 @@
         totais.categorias[cat] = (totais.categorias[cat] || 0) + 1;
       });
     });
-    return { ok: true, modulo: 'NEX', tipo: o.tipo, periodo: periodoTexto(o, sessoes, 'startTime'), quantidade: sessoes.length, geradoEm: U.formatarDataHoraOperacional(o.agora || new Date()), totais: totais, dias: Object.keys(dias).sort().map(function (k) { return dias[k]; }), registros: o.tipo === 'detalhado' ? sessoes.map(function (s) { return { id: s.id, startTime: s.startTime, endTime: s.endTime || '', sacas: Number(s.sacas) || 0, pacotes: Number(s.pacotes) || 0, occurrences: (s.occurrences || []).map(function (oc) { return { code: oc.code || '', category: C.categoriaLabel(oc.category), status: C.STATUS_LABEL[oc.status] || 'Não informado', note: oc.note || '', createdAt: oc.createdAt || '' }; }) }; }) : [] };
+    return { ok: true, modulo: 'NEX', tipo: o.tipo, periodo: periodoTexto(o, sessoes, 'startTime'), quantidade: sessoes.length, geradoEm: U.formatarDataHoraOperacional(o.agora || new Date()), totais: totais, dias: Object.keys(dias).sort().map(function (k) { return dias[k]; }), registros: o.tipo === 'detalhado' ? sessoes.map(function (s) { return { id: s.id, startTime: s.startTime, endTime: s.endTime || '', sacas: Number(s.sacas) || 0, pacotes: Number(s.pacotes) || 0, occurrences: (s.occurrences || []).map(function (oc) { return { code: oc.code || '', category: rotuloCategoriaNex(oc.category), status: C.STATUS_LABEL[oc.status] || 'Não informado', note: oc.note || '', createdAt: oc.createdAt || '' }; }) }; }) : [] };
   }
 
   function construirIntervalos(registros, o) {

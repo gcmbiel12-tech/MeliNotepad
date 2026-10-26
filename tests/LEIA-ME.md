@@ -5,12 +5,13 @@ Nada daqui é necessário para o app funcionar. Não há `package.json` na raiz 
 
 ## Unitários (só precisam do Node 20+)
     node --test tests/unit/*.test.js
-Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional e construção dos relatórios NEX/Intervalos.
+Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional e construção dos relatórios NEX/Intervalos, incluindo a semântica de Bingo/Faltando.
 
 ## Ponta a ponta (Playwright + Chromium)
     cd tests && npm install && npx playwright install chromium && cd ..
     python3 -m http.server 8743 --bind 127.0.0.1      # em outro terminal, na raiz do projeto
     node tests/e2e/nex-regressao.test.js              # NEX, filtros e impressão PDF
+    node tests/e2e/nex-melhorias.test.js              # Bingo/Faltando, duplicidade, pendências e filtros do histórico
     node tests/e2e/intervalos.test.js                 # Intervalos, filtros, relógio simulado e impressão PDF
 Use `BASE_URL=http://127.0.0.1:PORTA` se mudar a porta.
 

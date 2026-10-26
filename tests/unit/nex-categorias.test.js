@@ -1,0 +1,36 @@
+const test = require('node:test');
+const assert = require('node:assert');
+const { carregar } = require('../lib/carregar');
+const NS = carregar(['js/constants.js', 'js/utils.js', 'js/report.js', 'js/relatorios-historico.js']);
+const Report = NS.Report;
+
+test('NEX distingue Bingo e Faltando nos relatórios de texto e estruturados', () => {
+  const sessao = {
+    id: 'sessao-teste',
+    startTime: '2026-10-26T12:00:00.000Z',
+    endTime: '2026-10-26T13:00:00.000Z',
+    status: 'finalizada',
+    sacas: 10,
+    pacotes: 20,
+    occurrences: [
+      { id: 'b1', code: 'PKG-BINGO', category: 'bingo', status: 'pendente' },
+      { id: 'f1', code: 'PKG-EXTRA', category: 'faltando', status: 'resolvido' }
+    ]
+  };
+  const texto = Report.gerarTextoRelatorio(sessao);
+  assert.match(texto, /Bingo.*produto não encontrado na auditoria/i);
+  assert.match(texto, /Faltando.*pacote a mais, que não deveria estar no local/i);
+  const estruturado = Report.montarDadosCompletos(sessao);
+  const bingo = estruturado.categorias.find(c => c.label === 'Bingo');
+  const faltando = estruturado.categorias.find(c => c.label === 'Faltando');
+  assert.strictEqual(bingo.quantidade, 1);
+  assert.strictEqual(bingo.descricao, 'Produto não encontrado na auditoria');
+  assert.strictEqual(faltando.quantidade, 1);
+  assert.strictEqual(faltando.descricao, 'Pacote a mais, que não deveria estar no local');
+
+  const relatorioHistorico = NS.RelatoriosHistorico.construirNex([sessao], { periodo: 'todo', tipo: 'detalhado' });
+  assert.ok(Object.keys(relatorioHistorico.totais.categorias).some(k => /Bingo.*produto não encontrado/i.test(k)));
+  assert.ok(Object.keys(relatorioHistorico.totais.categorias).some(k => /Faltando.*pacote a mais/i.test(k)));
+  assert.match(relatorioHistorico.registros[0].occurrences[0].category, /produto não encontrado/i);
+  assert.match(relatorioHistorico.registros[0].occurrences[1].category, /pacote a mais/i);
+});
