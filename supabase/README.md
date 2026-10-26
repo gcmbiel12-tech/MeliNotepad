@@ -114,9 +114,15 @@ Validação transacional: `tests/supabase-employee-context-validation.sql`, cobr
 
 A migração `20261026130000_add_versioned_module_snapshots.sql` adiciona uma camada de compatibilidade com o estado JSON que o frontend já usa. Há um snapshot compartilhado por módulo (`nex`, `xpt`, `intervalos`), protegido por RLS e sem grants diretos; as RPCs `get_module_snapshot` e `save_module_snapshot` exigem conta/funcionário ativos. A gravação usa `expected_version`: conflito concorrente retorna SQLSTATE `40001` em vez de sobrescrever silenciosamente alterações de outro dispositivo. A trilha de auditoria guarda versão e hash do payload, não uma segunda cópia do JSON inteiro.
 
-O frontend agora inclui um painel de sincronização por módulo. A primeira comparação não substitui dados automaticamente: o usuário escolhe se envia a cópia local (preservando antes uma cópia da versão remota), baixa a cópia remota (com backup local antes de substituir) ou mantém o módulo apenas neste aparelho. Depois de ativado, cada gravação local é enviada com versão esperada; conflito concorrente desativa a sincronização daquele módulo e preserva os dados locais. Ao voltar a abrir a aplicação, alterações remotas podem ser baixadas automaticamente somente quando a cópia local não mudou desde a última sincronização.
+O frontend agora inclui um painel de sincronização por módulo. A primeira comparação não substitui dados automaticamente: o usuário escolhe se envia a cópia local (preservando antes uma cópia da versão remota), baixa a cópia remota (com backup local antes de substituir) ou mantém o módulo apenas neste aparelho.
 
-O XPT com referências de fotos fica deliberadamente bloqueado para sincronização até que os arquivos do IndexedDB sejam migrados para um bucket privado do Supabase Storage. Os testes de interface simulam as respostas Auth/RPC; ainda é necessário testar contra o projeto Supabase real. O modelo relacional XPT continua disponível como destino para uma migração gradual.
+### Fotos do XPT
+
+A migração `20261026140000_add_xpt_photo_storage.sql` prepara o bucket privado `xpt-fotos`, limitado a JPEG de até 10 MiB por objeto. Leitura, upload e atualização dependem de uma sessão autenticada vinculada a funcionário autorizado; não há política de exclusão pelo cliente. A sincronização transfere as fotos referenciadas antes de enviar ou aplicar o snapshot XPT e interrompe a operação se uma foto necessária não existir localmente nem na nuvem. O teste `tests/supabase-photo-storage-validation.sql` valida a configuração do bucket e as políticas no banco local.
+
+A migração e o código permanecem locais até validação e publicação autorizadas. Não executar `supabase db push` nem aplicar migrações no projeto remoto sem autorização explícita. Depois de ativado, cada gravação local é enviada com versão esperada; conflito concorrente desativa a sincronização daquele módulo e preserva os dados locais. Ao voltar a abrir a aplicação, alterações remotas podem ser baixadas automaticamente somente quando a cópia local não mudou desde a última sincronização.
+
+O XPT com referências de fotos transfere os arquivos do IndexedDB para o bucket privado antes de sincronizar o snapshot. Os testes de interface simulam as respostas Auth/RPC; ainda é necessário testar contra um projeto Supabase configurado com usuários de teste. O modelo relacional XPT continua disponível como destino para uma migração gradual.
 
 Validação transacional: `tests/supabase-snapshot-rpc-validation.sql`, incluindo os três contratos de módulo, versionamento, conflito, payload inválido e grants. O fluxo frontend é coberto por `tests/e2e/auth-gate.test.js`.
 
@@ -125,5 +131,4 @@ Validação transacional: `tests/supabase-snapshot-rpc-validation.sql`, incluind
 - Configurar URL e chave pública do projeto em `js/supabase-config.js`, aplicar as migrações aprovadas ao ambiente remoto e testar Auth/RPC com usuários de teste.
 - Estratégia de recuperação/restauração lógica e testes de concorrência e reconciliação antes de migrar dados locais.
 - Tokens de ativação/recuperação, caso sejam necessários além do fluxo de senha escolhido pelo usuário no Supabase Auth.
-- Bucket privado no Supabase Storage e migração validada dos arquivos de foto XPT antes de sincronizar referências de imagens.
 - Limitação por IP/CAPTCHA configurados e testados em Supabase Auth/Edge Function antes de abertura pública.

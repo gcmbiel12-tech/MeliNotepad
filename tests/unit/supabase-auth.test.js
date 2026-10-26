@@ -23,7 +23,8 @@ function criarAuth(responder, configuracao, localizacao) {
       return {
         ok: resultado.status >= 200 && resultado.status < 300,
         status: resultado.status,
-        text: async () => resultado.body == null ? '' : JSON.stringify(resultado.body)
+        text: async () => resultado.body == null ? '' : JSON.stringify(resultado.body),
+        blob: async () => resultado.blob || new Blob(['foto-teste'], { type: 'image/jpeg' })
       };
     }
   });
@@ -132,4 +133,36 @@ test('RPC repete uma vez após 401 usando token renovado', async () => {
   const ctx = await auth.contextoFuncionario();
   assert.equal(ctx.authorized, false);
   assert.equal(chamadasRpc, 2);
+});
+
+test('upload de foto usa bucket privado, bearer token e upsert JPEG', async () => {
+  const { auth, valores, chamadas } = criarAuth(async (url, options) => {
+    if (url.endsWith('/storage/v1/object/xpt-fotos/foto-123.jpg')) {
+      assert.equal(options.method, 'POST');
+      assert.equal(options.headers.Authorization, 'Bearer access-photo');
+      assert.equal(options.headers.apikey, 'public-test-key');
+      assert.equal(options.headers['Content-Type'], 'image/jpeg');
+      assert.equal(options.headers['x-upsert'], 'true');
+      assert.ok(options.body instanceof Blob);
+      return { status: 200, body: { Key: 'xpt-fotos/foto-123.jpg' } };
+    }
+    throw new Error('URL inesperada: ' + url);
+  });
+  valores.set('melinotepad_auth_session_v1', JSON.stringify(session('access-photo', 'refresh-photo')));
+  await auth.storageUpload('xpt-fotos', 'foto-123.jpg', new Blob(['imagem']), 'image/jpeg');
+  assert.equal(chamadas.length, 1);
+});
+
+test('download de foto exige bearer token e retorna blob autenticado', async () => {
+  const foto = new Blob(['imagem-remota'], { type: 'image/jpeg' });
+  const { auth, valores, chamadas } = criarAuth(async (url, options) => {
+    assert.ok(url.endsWith('/storage/v1/object/authenticated/xpt-fotos/foto-456.jpg'));
+    assert.equal(options.method, 'GET');
+    assert.equal(options.headers.Authorization, 'Bearer access-download');
+    return { status: 200, blob: foto };
+  });
+  valores.set('melinotepad_auth_session_v1', JSON.stringify(session('access-download', 'refresh-download')));
+  const baixada = await auth.storageDownload('xpt-fotos', 'foto-456.jpg');
+  assert.equal(await baixada.text(), 'imagem-remota');
+  assert.equal(chamadas.length, 1);
 });
