@@ -70,6 +70,14 @@ As migrações pressupõem Supabase Auth (`auth.users`, `auth.uid()`) e papéis 
 - bootstrap único pelo papel proprietário; chamadas por `anon`, `authenticated` e `service_role` falham;
 - introspecção de grants efetivos e confirmação de que `app_private` não está exposto pelo PostgREST.
 
+## Migração de categorias NEX (26/10/2026)
+
+O frontend agora inclui as categorias `bingo` e `faltando`. A migração `20261026000000_add_nex_bingo_faltando_categories.sql` atualiza a restrição `nex_occurrences_category_valid` para aceitar essas categorias sem apagar ou reescrever ocorrências existentes. Ela usa `NOT VALID` seguido de `VALIDATE CONSTRAINT` para explicitar a validação da restrição.
+
+Validação automatizada do contrato frontend/SQL: `node --test tests/unit/supabase-nex-schema.test.js`. Para testar inserções reais, depois de aplicar as migrações num Supabase local descartável, execute `tests/supabase-nex-category-validation.sql`; o script insere dados sintéticos dentro de uma transação e faz `ROLLBACK`.
+
+**Estado desta etapa:** a migração está versionada no repositório, mas não foi aplicada ao banco remoto. Nesta máquina, o Docker Desktop não está disponível e o projeto local não está vinculado; portanto, não foi possível executar `supabase db reset`, lint SQL local ou validação de inserção real. Não habilite a integração frontend enquanto as políticas operacionais e a autenticação não forem concluídas.
+
 ## Dependências de etapas seguintes
 
 - Políticas RLS e autorização para dados operacionais compartilhados, com bloqueio efetivo de conta desativada em cada operação protegida.

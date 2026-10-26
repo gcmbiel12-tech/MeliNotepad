@@ -64,6 +64,12 @@ As migrações atuais incluem NEX e Intervalos, mas não apresentam tabelas espe
 - Validação SQL transacional: solicitação de acesso, aprovação pelo administrador, bloqueio de operador na listagem administrativa, grants diretos, RLS e restrição do bootstrap passaram; dados de teste foram revertidos.
 - Banco remoto: histórico de migrações e definição/permissões da RPC corrigida foram verificados.
 
-## 7. Conclusão e próximos passos
+## 7. Atualização — 2026-10-26
+
+A revisão do esquema identificou uma incompatibilidade entre as categorias NEX do frontend e a restrição SQL `nex_occurrences_category_valid`: o frontend passou a aceitar `bingo` e `faltando`, mas a migração inicial do banco não permitia gravá-las. Foi criada a migração incremental `20261026000000_add_nex_bingo_faltando_categories.sql`, junto com teste unitário de alinhamento frontend/SQL e script SQL transacional para validar inserções sintéticas.
+
+A migração ainda não foi aplicada ao banco remoto. O Supabase CLI está disponível via `npx`, porém o projeto local não está vinculado e o Docker Desktop não está ativo nesta máquina; a validação de banco real fica pendente. Nenhuma política RLS foi aberta, nenhuma tabela remota foi alterada e nenhuma integração frontend foi ativada nesta etapa.
+
+## 8. Conclusão e próximos passos
 
 O banco remoto contém as migrações de identidade e dados para NEX/Intervalos, mas o frontend ainda não está integrado. As tabelas seguem fechadas por segurança. Antes de ativar sincronização, é necessário definir/testar políticas de acesso operacional, mapear XPT (ainda sem tabelas próprias), adicionar autenticação/configuração pública segura no PWA e planejar migração/reconciliação dos dados locais. Nenhum dado operacional foi migrado, nenhum dado local foi removido, e não houve push para Git nem publicação do app.
