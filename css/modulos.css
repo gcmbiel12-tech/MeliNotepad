@@ -427,3 +427,46 @@ dialog.modal[id^="dlg-xpt-"] {
 
 /* Preserva o atributo hidden nos itens de definição que usam display:grid. */
 .lista-definicao #info-rotas-wrap[hidden] { display: none !important; }
+
+/* Tela inicial do NEX, equivalente ao fluxo de início do XPT. */
+.nex-tela-iniciar-operacao { max-width: 980px; margin: 1rem auto; }
+.nex-tela-iniciar-operacao > h2 { margin-bottom: .35rem; }
+.nex-tela-iniciar-operacao > .texto-apoio { margin-top: 0; }
+#nex-tela-iniciar-operacao[hidden], #nex-abas-principais[hidden] { display: none !important; }
+
+/* Abas do NEX: largura previsível em desktop e mobile. */
+#nex-abas-principais { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; min-width: 0; }
+#nex-abas-principais .btn-nav { min-width: 0; white-space: normal; overflow-wrap: anywhere; padding-inline: .5rem; }
+@media (max-width: 600px) {
+  #nex-abas-principais { gap: .25rem; }
+  #nex-abas-principais .btn-nav { padding: .4rem .2rem; font-size: .72rem; line-height: 1.2; }
+}
+
+
+/* NEX — lista de rotas HYBRID e auditoria sem recursos de carregamento/veículo. */
+.nex-lista-rotas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: .75rem; margin-top: 1rem; }
+.nex-rota-card { display: flex; flex-direction: column; gap: .65rem; min-width: 0; margin: 0; padding: 1rem; }
+.nex-rota-card.is-concluida { border-color: var(--cor-verde, #26834a); }
+.nex-rota-card__cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.nex-rota-card__cabecalho h3 { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.nex-rota-status { display: inline-flex; flex: 0 0 auto; padding: .25rem .5rem; border-radius: 999px; background: var(--cor-amarelo-fundo, #fff4bd); font-size: .78rem; font-weight: 700; }
+.nex-rota-status.is-concluida { background: var(--cor-verde-fundo, #e3f4e8); }
+.nex-rota-detalhes, .nex-rota-auditor { margin: 0; overflow-wrap: anywhere; }
+.nex-rota-form { display: grid; gap: .5rem; }
+.nex-rota-form .campo { margin: 0; }
+.nex-rota-form input { width: 100%; min-width: 0; }
+.nex-rota-erro { margin: 0; }
+.nex-rotas-contadores { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin-top: 1rem; }
+.nex-rotas-contadores .contador { min-width: 0; }
+.nex-rotas-contadores .contador__rotulo { overflow-wrap: anywhere; }
+#nex-historico-inicial { margin-top: 1rem; }
+#nex-historico-inicial > #view-historico { display: block; }
+#nex-historico-inicial > #view-historico[hidden] { display: none !important; }
+@media (max-width: 600px) {
+  .nex-lista-rotas { grid-template-columns: minmax(0, 1fr); }
+  .nex-rota-card { padding: .75rem; }
+  .nex-rota-card .botao { width: 100%; min-height: 44px; white-space: normal; }
+  .nex-rotas-contadores .contador { padding: .5rem .25rem; }
+  .nex-rotas-contadores .contador__valor { font-size: 1.2rem; }
+  .nex-rotas-contadores .contador__rotulo { font-size: .68rem; }
+}

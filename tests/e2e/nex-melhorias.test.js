@@ -16,6 +16,7 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
   await page.fill('#input-sacas', '10');
   await page.fill('#input-pacotes', '20');
   await page.click('#form-iniciar-sessao button[type=submit]');
+  await page.click('#nex-tab-btn-ocorrencias');
   await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
 
   await page.fill('#input-codigo', 'PKG-B1');
@@ -57,6 +58,7 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
   await page.click('#modal-confirmar-ok');
   await page.waitForSelector('#modal-editar[open]', { state: 'hidden' });
 
+  await page.click('#nex-tab-btn-relatorios');
   await page.click('#btn-pre-visualizar');
   const relatorio = await page.textContent('#texto-relatorio');
   assert.match(relatorio, /Bingo.*produto não encontrado na auditoria/i);

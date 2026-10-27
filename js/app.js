@@ -1348,6 +1348,36 @@
     });
   }
 
+  // API restrita à interface de abas NEX: mantém auditorias no mesmo armazenamento da sessão.
+  window.MeliNotepad.NexOperations = {
+    getCurrentSession: function () { return estado.dados ? sessaoAtiva() : null; },
+    auditRoute: function (routeName, auditor, concluir) {
+      var sessao = sessaoAtiva();
+      if (!sessao || !Array.isArray(sessao.rotasHybrid)) return { sucesso: false, erro: 'Não há rotas HYBRID na sessão atual.' };
+      var rota = sessao.rotasHybrid.filter(function (item) { return item.rota === routeName; })[0];
+      if (!rota) return { sucesso: false, erro: 'A rota não foi encontrada na sessão atual.' };
+      if (concluir && !String(auditor || '').trim()) return { sucesso: false, erro: 'Informe o nome do auditor.' };
+      var anterior = { auditStatus: rota.auditStatus, auditor: rota.auditor, auditedAt: rota.auditedAt };
+      if (concluir) {
+        rota.auditStatus = 'concluida';
+        rota.auditor = String(auditor).trim();
+        rota.auditedAt = new Date().toISOString();
+      } else {
+        delete rota.auditStatus;
+        delete rota.auditor;
+        delete rota.auditedAt;
+      }
+      if (!persistir()) {
+        if (anterior.auditStatus === undefined) delete rota.auditStatus; else rota.auditStatus = anterior.auditStatus;
+        if (anterior.auditor === undefined) delete rota.auditor; else rota.auditor = anterior.auditor;
+        if (anterior.auditedAt === undefined) delete rota.auditedAt; else rota.auditedAt = anterior.auditedAt;
+        return { sucesso: false, erro: 'Não foi possível salvar a auditoria.' };
+      }
+      renderTudo();
+      return { sucesso: true };
+    }
+  };
+
   // -----------------------------------------------------------------------
   // Início
   // -----------------------------------------------------------------------

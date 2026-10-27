@@ -70,6 +70,15 @@
     linhas.push('');
     linhas.push('🧺 Sacas: *' + U.formatarNumeroBR(sessao.sacas) + '*');
     linhas.push('📦 Pacotes: *' + U.formatarNumeroBR(sessao.pacotes) + '*');
+    var rotasHybrid = Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : [];
+    if (rotasHybrid.length) {
+      var rotasConcluidas = rotasHybrid.filter(function (rota) { return rota.auditStatus === 'concluida'; }).length;
+      linhas.push('');
+      linhas.push('🛒 *Auditoria das rotas HYBRID* — ' + rotasConcluidas + '/' + rotasHybrid.length + ' concluída(s)');
+      rotasHybrid.forEach(function (rota) {
+        linhas.push('└ ' + rota.rota + ' — ' + (rota.auditStatus === 'concluida' ? 'Concluída · Auditor: ' + rota.auditor : 'Não auditada'));
+      });
+    }
     linhas.push(divisoria);
 
     C.CATEGORIES.forEach(function (cat) {
@@ -113,6 +122,9 @@
       estado: sessao.status === C.SESSION_STATUS.FINALIZADA ? 'Finalizada' : 'Em andamento',
       sacas: U.formatarNumeroBR(sessao.sacas),
       pacotes: U.formatarNumeroBR(sessao.pacotes),
+      rotasHybrid: (Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : []).map(function (rota) {
+        return { rota: rota.rota, sacas: rota.sacas, pacotes: rota.pacotes, auditStatus: rota.auditStatus === 'concluida' ? 'Concluída' : 'Não auditada', auditor: rota.auditor || null, auditedAt: rota.auditedAt || null };
+      }),
       categorias: C.CATEGORIES.map(function (cat) {
         return {
           label: cat.label,
