@@ -116,6 +116,13 @@
 
   <!-- ======================= MÓDULO NEX (conteúdo existente, preservado) ======================= -->
   <div id="modulo-nex" class="modulo">
+  <nav id="nex-abas-principais" class="app-header__nav nav-sub nex-abas-principais" aria-label="Seções do NEX" role="tablist">
+    <button type="button" id="nex-tab-btn-gaiolas" class="btn-nav is-ativo" role="tab" aria-selected="true" aria-controls="nex-tab-gaiolas" data-nex-tab="gaiolas">Gaiolas e Auditoria</button>
+    <button type="button" id="nex-tab-btn-ocorrencias" class="btn-nav" role="tab" aria-selected="false" aria-controls="nex-tab-ocorrencias" data-nex-tab="ocorrencias">Ocorrências</button>
+    <button type="button" id="nex-tab-btn-quantidades" class="btn-nav" role="tab" aria-selected="false" aria-controls="nex-tab-quantidades" data-nex-tab="quantidades">Quantidades</button>
+    <button type="button" id="nex-tab-btn-relatorios" class="btn-nav" role="tab" aria-selected="false" aria-controls="nex-tab-relatorios" data-nex-tab="relatorios">Relatórios</button>
+  </nav>
+  <div id="nex-tab-gaiolas" class="nex-tab-panel" role="tabpanel" aria-labelledby="nex-tab-btn-gaiolas">
   <nav class="app-header__nav nav-sub" aria-label="Navegação do NEX">
     <button type="button" id="btn-ver-sessao" class="btn-nav is-ativo" aria-pressed="true">Sessão atual</button>
     <button type="button" id="btn-ver-historico" class="btn-nav" aria-pressed="false">Histórico</button>
@@ -369,6 +376,10 @@
     </section>
   </section>
 
+  </div>
+  <section id="nex-tab-ocorrencias" class="nex-tab-panel" role="tabpanel" aria-labelledby="nex-tab-btn-ocorrencias" hidden></section>
+  <section id="nex-tab-quantidades" class="nex-tab-panel" role="tabpanel" aria-labelledby="nex-tab-btn-quantidades" hidden></section>
+  <section id="nex-tab-relatorios" class="nex-tab-panel" role="tabpanel" aria-labelledby="nex-tab-btn-relatorios" hidden></section>
   </div><!-- /#modulo-nex -->
 
   <!-- ======================= MÓDULO XPT ======================= -->
@@ -471,6 +482,7 @@
 <script src="js/intervalos-regras.js"></script>
 <script src="js/relatorios-historico.js"></script>
 <script src="js/app.js"></script>
+<script src="js/nex-tabs.js"></script>
 <script src="js/intervalos.js"></script>
 <script src="js/xpt-regras.js"></script>
 <script src="js/fotos.js"></script>
