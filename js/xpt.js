@@ -450,7 +450,7 @@
         cont(String(a.concluidas), 'Concluídas', 'xg-conc'), cont(String(a.pendentes + a.naoIniciadas), 'Não realizadas', 'xg-pend'), cont(a.percentual == null ? '—' : String(a.percentual).replace('.', ',') + '%', 'Auditado', 'xg-pct')]),
       h('p', { class: 'texto-apoio', text: 'Status: Não auditado, Auditando, Concluído ou Concluído com divergência. Ocorrências ativas vinculadas à gaiola indicam divergência.' }),
       h('div', { class: 'acoes-form' }, [
-        h('button', { type: 'button', class: 'botao botao--primario', id: 'xg-adicionar', text: '+ Adicionar gaiolas', onclick: dialogoAdicionarGaiolas }),
+        h('button', { type: 'button', class: 'botao botao--primario', id: 'xg-adicionar', text: '+ Adicionar Rota', onclick: dialogoAdicionarGaiolas }),
         h('button', { type: 'button', class: 'botao botao--secundario', id: 'xg-lote', text: 'Auditar em lote', onclick: dialogoAuditoriaLote })])]));
     el.pGaiolas.appendChild(h('div', { class: 'cartao' }, [h('div', { class: 'interv-filtros' }, [UI.campo('Status da auditoria', filtro), UI.campo('Veículo', veiculoFiltro), UI.campo('Buscador', busca)]),
       h('p', { class: 'texto-apoio', id: 'xg-contagem', text: itens.length + ' de ' + o.gaiolas.length + ' gaiola(s)' }),
@@ -540,7 +540,7 @@
   function dialogoAdicionarGaiolas() {
     var c = estadoAuditorCampos(true); c.est.value = 'nao_iniciada';
     c.est.addEventListener('change', function () { c.auditor.required = c.est.value.indexOf('concluida') === 0; });
-    dialogoCodigos({ titulo: 'Adicionar gaiolas', modo: 'adicionar', confirmar: 'Adicionar',
+    dialogoCodigos({ titulo: 'Adicionar Rotas', modo: 'adicionar', confirmar: 'Adicionar',
       existentes: function () { return op().gaiolas.map(function (g) { return g.codigo; }); },
       extras: [c.est, c.auditor], blocoExtra: function () { return h('div', {}, [h('p', { class: 'texto-apoio', text: 'Situa\u00e7\u00e3o inicial da auditoria das gaiolas adicionadas:' }), c.bloco]); },
       aoConfirmar: function (res) {
