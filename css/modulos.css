@@ -425,6 +425,96 @@ dialog.modal[id^="dlg-xpt-"] {
   .nex-totais-operacao { grid-template-columns: 1fr; gap: .5rem; }
 }
 
+/* NEX — cartão de auditoria de saca, com hierarquia visual alinhada aos cartões do XPT. */
+.nex-lista-sacas { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.nex-saca-item {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: .75rem;
+  padding: 1rem;
+  border: 1px solid #dedad0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(28, 27, 24, .045);
+  min-width: 0;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.nex-saca-item:hover { border-color: #c8c1b2; box-shadow: 0 5px 16px rgba(28, 27, 24, .075); }
+.nex-saca-item__topo { grid-column: 1 / -1; align-items: center; gap: .75rem; padding-bottom: .65rem; border-bottom: 1px solid #eee9df; }
+.nex-saca-item__topo strong { font-size: 1.1rem; letter-spacing: -.015em; }
+.nex-saca-item .texto-apoio,
+.nex-saca-observacao,
+.nex-saca-historico { grid-column: 1 / -1; }
+.nex-saca-item .texto-apoio { font-size: .88rem; line-height: 1.45; }
+.nex-saca-item .botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  margin: 0;
+  padding: .7rem .8rem;
+  border-radius: .65rem;
+  font-weight: 700;
+  white-space: normal;
+  line-height: 1.3;
+}
+.nex-saca-item .botao--primario { box-shadow: 0 2px 4px rgba(28, 27, 24, .1); }
+.nex-saca-item .nex-remover-saca { font-size: .9rem; }
+.nex-saca-item.auditada { border-left-width: 4px; border-left-color: var(--cor-verde, #26834a); }
+.nex-saca-item.tem-divergencia { border-left-width: 4px; border-left-color: var(--cor-vermelho, #b42318); }
+.nex-saca-item.pendente { border-left-width: 4px; border-left-color: var(--cor-amarelo-escuro, #c49b00); }
+.nex-saca-item.auditada .nex-saca-item__topo { border-bottom-color: #d9eadf; }
+.nex-saca-item.tem-divergencia .nex-saca-item__topo { border-bottom-color: #f1d9d6; }
+.nex-saca-historico { padding-top: .25rem; }
+.nex-saca-historico summary { padding: .35rem 0; }
+@media (max-width: 600px) {
+  .nex-lista-sacas { grid-template-columns: minmax(0, 1fr); }
+  .nex-saca-item { gap: .65rem; padding: .85rem; }
+  .nex-saca-item .botao { min-height: 48px; padding-inline: .55rem; font-size: .9rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nex-saca-item { transition: none; }
+}
+
+/* NEX — aba Quantidades: resumo visual no padrão operacional do XPT, com regras próprias do NEX. */
+#nex-tab-quantidades .nex-resumo-quantidades { border-top: 3px solid var(--cor-amarelo-escuro, #c49b00); }
+#nex-tab-quantidades .nex-quantidades-contadores {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  margin: 1rem 0;
+}
+#nex-tab-quantidades .nex-quantidades-contadores .contador {
+  min-width: 0;
+  padding: 1rem .75rem;
+  border: 1px solid var(--cor-borda, #dedad0);
+  border-radius: 12px;
+  background: var(--cor-papel, #fff);
+  text-align: center;
+}
+#nex-tab-quantidades .nex-quantidades-contadores .contador__valor {
+  display: block;
+  font-size: clamp(1.35rem, 3vw, 1.9rem);
+  font-weight: 800;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+#nex-tab-quantidades .nex-quantidades-contadores .contador__rotulo {
+  display: block;
+  margin-top: .35rem;
+  font-size: .85rem;
+  line-height: 1.35;
+}
+#nex-tab-quantidades .nex-quantidades-nota { margin-bottom: 0; }
+@media (max-width: 600px) {
+  #nex-tab-quantidades .nex-quantidades-contadores { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  #nex-tab-quantidades .nex-quantidades-contadores .contador { padding: .8rem .55rem; }
+}
+
 /* Preserva o atributo hidden nos itens de definição que usam display:grid. */
 .lista-definicao #info-rotas-wrap[hidden] { display: none !important; }
 
@@ -556,4 +646,102 @@ dialog.modal[id^="dlg-xpt-"] {
   .nex-dialogo__form { gap: .85rem; padding: 1rem; }
   .nex-dialogo__acoes { display: grid; grid-template-columns: minmax(0, 1fr); }
   .nex-dialogo__acoes .botao { width: 100%; }
+}
+
+/* Polimento visual transversal: hierarquia, respiro e cartões mais consistentes. */
+@media screen {
+  body { background: var(--cor-papel-suave); }
+  .app-header { box-shadow: 0 2px 10px rgba(28, 27, 24, .08); }
+  .app-header__marca { min-width: 0; }
+  .app-header__nome { letter-spacing: -.025em; }
+  .nav-modulos { align-items: center; }
+  .tab-modulo { border-radius: 999px; transition: background-color .15s ease, color .15s ease, transform .15s ease; }
+  .tab-modulo:hover { background: rgba(255,255,255,.55); }
+  .tab-modulo.is-ativo:hover { background: var(--cor-tinta); color: var(--cor-amarelo); }
+
+  main { width: 100%; }
+  main[data-modulo="nex"] { max-width: 1120px; }
+  main[data-modulo="xpt"], main[data-modulo="intervalos"] { max-width: 1240px; }
+  .modulo { gap: 1.1rem; }
+  .modulo > .cartao, .modulo .view > .cartao, #auth-panel .cartao, #auth-admin-panel, #auth-sync-panel {
+    border-radius: 14px;
+    box-shadow: 0 3px 14px rgba(28, 27, 24, .045);
+  }
+  .cartao__cabecalho { align-items: center; }
+  .cartao__cabecalho h2 { letter-spacing: -.015em; }
+  .btn-nav { border-radius: 999px; transition: background-color .15s ease, color .15s ease; }
+  .btn-nav:not(.is-ativo):hover { background: var(--cor-amarelo-fundo); }
+  .contador { border-radius: 12px; padding: .8rem .65rem; box-shadow: 0 1px 4px rgba(28,27,24,.035); }
+  .contador__valor { line-height: 1.2; }
+
+  /* NEX: rotas claramente identificadas e sacas com hierarquia visual. */
+  .nex-lista-rotas { gap: .8rem; }
+  .nex-rota-card { background: #fff; border-color: #d9d5ca; }
+  .nex-rota-card.is-aberta { border-color: var(--cor-azul); box-shadow: 0 6px 20px rgba(26,63,160,.09); }
+  .nex-rota-toggle { border-radius: .65rem; }
+  .nex-rota-toggle:hover { background: #faf8f3; }
+  .nex-rota-status { line-height: 1.35; }
+  .nex-rota-conteudo { border-top-color: #e9e5dc; }
+  .nex-saca-item { background: #fcfbf8; border-color: #e1ddd3; }
+  .nex-saca-item.auditada { background: #f5fbf7; }
+  .nex-saca-item.tem-divergencia { background: #fff8f7; }
+  .nex-saca-item__topo { align-items: flex-start; }
+
+  /* XPT: cartões de operação, gaiolas e ocorrências com contorno consistente. */
+  #modulo-xpt .xpt-card-operacao,
+  #modulo-xpt .xpt-card-gaiola,
+  #modulo-xpt .xpt-ocorrencia,
+  #modulo-xpt .xpt-veiculo,
+  #modulo-xpt .xpt-importacao__arquivo {
+    border-radius: 12px;
+    border-color: #dedad0;
+    box-shadow: 0 2px 8px rgba(28,27,24,.04);
+  }
+  #modulo-xpt .xpt-lista-ocorrencias { gap: .85rem; }
+  #modulo-xpt .contadores--xpt .contador { min-height: 76px; }
+
+  /* Intervalos: filtros alinhados e tabelas com leitura mais confortável. */
+  #modulo-intervalos .interv-filtros { padding: .85rem; border: 1px solid var(--cor-borda); border-radius: 12px; background: #fff; }
+  #modulo-intervalos .tabela-rolavel { border: 1px solid var(--cor-borda); border-radius: 10px; background: #fff; }
+  #modulo-intervalos .tabela-modulo th { background: #f3f0e8; }
+  #modulo-intervalos .tabela-modulo tbody tr:hover { background: #fff9df; }
+
+  .botao, .nex-campo__input, .nex-campo__textarea, .modulo input, .modulo select, .modulo textarea { transition: border-color .15s ease, box-shadow .15s ease; }
+  .botao:focus-visible, .tab-modulo:focus-visible, .btn-nav:focus-visible { outline-offset: 3px; }
+}
+
+@media screen and (min-width: 720px) {
+  main[data-modulo="nex"] { padding-inline: 2rem; }
+  #nex-abas-principais { position: sticky; top: 88px; z-index: 5; padding: .55rem; border: 1px solid var(--cor-borda); border-radius: 999px; background: rgba(250,248,243,.96); backdrop-filter: blur(8px); }
+  #nex-abas-principais .btn-nav { min-height: 42px; }
+  .nex-rota-toggle { padding-inline: .7rem; }
+}
+
+@media screen and (max-width: 719px) {
+  body { background: #fff; }
+  .app-header { padding: .7rem .75rem; gap: .65rem; }
+  .app-header__marca { width: 100%; gap: .4rem .55rem; }
+  .app-header__nome { font-size: 1.08rem; }
+  .nav-modulos { width: 100%; gap: .45rem; }
+  .nav-modulos__grupo { gap: .35rem; }
+  .nav-modulos__grupo + .nav-modulos__grupo { padding-left: .45rem; }
+  .tab-modulo { min-height: 42px; padding: .45rem .9rem; }
+  main { padding: .85rem; gap: .85rem; }
+  main[data-modulo="nex"], main[data-modulo="xpt"], main[data-modulo="intervalos"] { padding-inline: .75rem; }
+  .modulo { gap: .85rem; }
+  .modulo > .cartao, .modulo .view > .cartao { padding: .9rem; }
+  .cartao__cabecalho { align-items: flex-start; }
+  .cartao__cabecalho-acoes { width: 100%; }
+  .cartao__cabecalho-acoes .botao { flex: 1 1 auto; }
+  .contador { padding: .65rem .35rem; }
+  .nex-rota-card { border-radius: 12px; padding-inline: .65rem; }
+  .nex-rota-toggle { min-height: 68px; gap: .5rem; }
+  .nex-rota-nome { font-size: 1rem; }
+  .nex-saca-item { border-radius: 10px; }
+  #nex-abas-principais { border-radius: 12px; padding: .25rem; background: #f7f4ec; }
+  #nex-abas-principais .btn-nav { min-height: 44px; border-radius: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-modulo, .btn-nav, .botao, .nex-campo__input, .nex-campo__textarea { transition: none !important; }
 }

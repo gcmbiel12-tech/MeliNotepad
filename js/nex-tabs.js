@@ -35,9 +35,129 @@
     if (node && target && node.parentNode !== target) target.appendChild(node);
   }
 
-  // Totais e edição permanecem em Quantidades; ocorrências ficam em sua própria aba.
+  // Quantidades no NEX é um resumo operacional: preserva totais estimados e mostra
+  // separadamente os cadastros/auditorias reais, sem somar estimativas como registros.
+  var quantitySummary = document.createElement('section');
+  quantitySummary.id = 'nex-resumo-quantidades';
+  quantitySummary.className = 'cartao nex-resumo-quantidades';
+  quantitySummary.setAttribute('aria-labelledby', 'nex-resumo-quantidades-titulo');
+  var quantityHeader = document.createElement('div');
+  quantityHeader.className = 'cartao__cabecalho';
+  var quantityTitle = document.createElement('h2');
+  quantityTitle.id = 'nex-resumo-quantidades-titulo';
+  quantityTitle.textContent = 'Resumo da conferência';
+  quantityHeader.appendChild(quantityTitle);
+  quantitySummary.appendChild(quantityHeader);
+  var quantityDescription = criarElemento('p', 'texto-apoio nex-quantidades-descricao',
+    'Os totais da operação são estimativas da planilha ou valores informados no início. As sacas cadastradas e suas auditorias são contagens individuais, separadas desses totais.');
+  quantitySummary.appendChild(quantityDescription);
+  var quantityCounters = document.createElement('div');
+  quantityCounters.id = 'nex-quantidades-contadores';
+  quantityCounters.className = 'contadores nex-quantidades-contadores';
+  quantityCounters.setAttribute('role', 'group');
+  quantityCounters.setAttribute('aria-label', 'Resumo de quantidades e auditorias');
+  quantitySummary.appendChild(quantityCounters);
+  var quantityNote = criarElemento('p', 'texto-apoio nex-quantidades-nota',
+    'Para conferir ou corrigir os totais, use os controles da sessão abaixo. Para auditar uma saca, abra Gaiolas e Auditoria.');
+  quantitySummary.appendChild(quantityNote);
+  panels.quantidades.insertBefore(quantitySummary, panels.quantidades.firstChild);
+
+  // Importação acessível também durante a operação, sem substituir a importação inicial.
+  var activeImport = document.createElement('section');
+  activeImport.id = 'nex-importacao-quantidades';
+  activeImport.className = 'cartao nex-importacao nex-importacao--ativa';
+  activeImport.setAttribute('aria-labelledby', 'nex-importacao-quantidades-titulo');
+  var activeImportTitle = criarElemento('h2', '', 'Importar planilha');
+  activeImportTitle.id = 'nex-importacao-quantidades-titulo';
+  activeImport.appendChild(activeImportTitle);
+  activeImport.appendChild(criarElemento('p', 'texto-apoio', 'Atualize os totais estimados e os dados das rotas durante a operação. As sacas individuais e o histórico de auditorias serão preservados. Rotas que não estiverem na nova planilha não serão removidas.'));
+  var activeImportInput = document.createElement('input');
+  activeImportInput.type = 'file'; activeImportInput.accept = '.xlsx,.csv'; activeImportInput.hidden = true;
+  activeImportInput.id = 'nex-arquivo-planilha-quantidades';
+  var activeImportArea = criarElemento('div', 'nex-importacao__area');
+  activeImportArea.tabIndex = 0; activeImportArea.setAttribute('role', 'region');
+  activeImportArea.setAttribute('aria-label', 'Selecionar ou arrastar uma planilha para atualizar as quantidades');
+  activeImportArea.appendChild(criarElemento('span', 'nex-importacao__icone', '⇧'));
+  var activeImportButton = document.createElement('button');
+  activeImportButton.type = 'button'; activeImportButton.className = 'botao botao--primario';
+  activeImportButton.textContent = 'Selecionar planilha para atualizar';
+  activeImportArea.appendChild(activeImportButton);
+  activeImportArea.appendChild(criarElemento('p', 'texto-apoio', 'Formatos aceitos: Excel (.xlsx) ou CSV (.csv). Também é possível arrastar o arquivo para esta área.'));
+  var activeImportStatus = criarElemento('div', 'nex-importacao__estado');
+  activeImportStatus.id = 'nex-importacao-quantidades-estado'; activeImportStatus.setAttribute('aria-live', 'polite');
+  activeImport.appendChild(activeImportInput); activeImport.appendChild(activeImportArea); activeImport.appendChild(activeImportStatus);
+  panels.quantidades.insertBefore(activeImport, quantitySummary.nextSibling);
+  function importarPlanilhaAtiva(arquivo) {
+    if (!arquivo) return;
+    var extensao = String(arquivo.name || '').split('.').pop().toLowerCase();
+    if (['xlsx', 'csv'].indexOf(extensao) < 0) { activeImportStatus.textContent = 'Formato não suportado. Selecione um arquivo .xlsx ou .csv.'; return; }
+    if (!arquivo.size || arquivo.size > 20 * 1024 * 1024) { activeImportStatus.textContent = 'O arquivo está vazio ou excede o limite de 20 MB.'; return; }
+    if (!window.confirm('Importar "' + arquivo.name + '" para atualizar os totais e as rotas desta operação? As sacas individuais, auditorias e rotas ausentes da planilha serão preservadas.')) { activeImportInput.value = ''; return; }
+    var api = window.MeliNotepad && window.MeliNotepad.NexOperations;
+    if (!api || typeof api.importPlanilha !== 'function') { activeImportStatus.textContent = 'A função de importação não está disponível. Atualize a página e tente novamente.'; return; }
+    activeImportButton.disabled = true; activeImportStatus.textContent = 'Lendo e validando a planilha…';
+    api.importPlanilha(arquivo).then(function (resultado) {
+      activeImportStatus.textContent = 'Importação concluída: ' + resultado.rotas + ' rota(s), ' + resultado.sacas + ' sacas e ' + resultado.pacotes + ' pacotes estimados. Cadastros individuais e auditorias preservados.';
+      activeImportInput.value = '';
+      renderRotas();
+    }).catch(function (erro) {
+      activeImportStatus.textContent = erro && erro.message ? erro.message : 'Não foi possível importar a planilha.';
+      activeImportInput.value = '';
+    }).then(function () { activeImportButton.disabled = false; });
+  }
+  activeImportButton.addEventListener('click', function () { activeImportInput.click(); });
+  activeImportArea.addEventListener('click', function (e) { if (e.target === activeImportArea || e.target.tagName === 'P' || e.target.tagName === 'SPAN') activeImportInput.click(); });
+  activeImportArea.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activeImportInput.click(); } });
+  activeImportInput.addEventListener('change', function () { importarPlanilhaAtiva(activeImportInput.files && activeImportInput.files[0]); });
+  activeImportArea.addEventListener('dragover', function (e) { e.preventDefault(); activeImportArea.classList.add('is-arrastando'); });
+  activeImportArea.addEventListener('dragleave', function () { activeImportArea.classList.remove('is-arrastando'); });
+  activeImportArea.addEventListener('drop', function (e) { e.preventDefault(); activeImportArea.classList.remove('is-arrastando'); importarPlanilhaAtiva(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]); });
+
   move(sectionFor('titulo-sessao'), panels.quantidades);
   move(activeSession, panels.ocorrencias);
+
+  function renderQuantidades() {
+    while (quantityCounters.firstChild) quantityCounters.removeChild(quantityCounters.firstChild);
+    var api = window.MeliNotepad && window.MeliNotepad.NexOperations;
+    var sessao = api && api.getCurrentSession ? api.getCurrentSession() : null;
+    var rotas = sessao && Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : [];
+    var sacas = [], auditadas = 0, divergencias = 0;
+    rotas.forEach(function (rota) {
+      (rota.sacasIndividuais || []).forEach(function (saca) {
+        sacas.push(saca);
+        var ultima = (saca.auditorias || []).slice(-1)[0];
+        if (ultima) {
+          auditadas++;
+          if (ultima.status === 'divergencia') divergencias++;
+        }
+      });
+    });
+    var pendentes = Math.max(0, sacas.length - auditadas);
+    var ocorrenciasTotal = document.getElementById('contagem-total');
+    var ocorrenciasPendentes = document.getElementById('contagem-pendente');
+    var itens = [
+      [document.getElementById('info-sacas') ? document.getElementById('info-sacas').textContent : '—', 'Sacas estimadas'],
+      [document.getElementById('info-pacotes') ? document.getElementById('info-pacotes').textContent : '—', 'Pacotes estimados'],
+      [String(rotas.length), 'Rotas cadastradas'],
+      [String(sacas.length), 'Sacas individuais'],
+      [String(pendentes), 'Sacas pendentes'],
+      [String(divergencias), 'Com divergência']
+    ];
+    itens.forEach(function (item) {
+      var counter = criarElemento('div', 'contador');
+      counter.appendChild(criarElemento('span', 'contador__valor', item[0] || '—'));
+      counter.appendChild(criarElemento('span', 'contador__rotulo', item[1]));
+      quantityCounters.appendChild(counter);
+    });
+    quantityDescription.textContent = 'Totais estimados da operação não representam cadastros individuais. ' +
+      sacas.length + ' saca(s) individual(is) cadastrada(s), ' + auditadas + ' auditada(s) e ' + pendentes + ' pendente(s).';
+    if (ocorrenciasTotal && ocorrenciasPendentes) {
+      quantityNote.textContent = 'Ocorrências da sessão: ' + ocorrenciasTotal.textContent + ' no total, ' +
+        ocorrenciasPendentes.textContent + ' pendente(s). Para registrar ou resolver ocorrências, use a aba Ocorrências.';
+    } else {
+      quantityNote.textContent = 'Para conferir ou corrigir os totais, use os controles da sessão abaixo. Para auditar uma saca, abra Gaiolas e Auditoria.';
+    }
+  }
 
   // A aba apresenta rotas recolhidas; as sacas e suas auditorias aparecem ao expandir cada rota.
   var routePanel = document.createElement('section');
@@ -221,6 +341,59 @@
       });
   }
 
+  function abrirDialogoSacasMultiplasRotas(api, rotas) {
+    criarDialogoNex('Adicionar sacas por rota', 'Informe uma rota por linha, seguida dos numeros ou intervalos de sacas. Exemplo: J1 10-20 e K2 50-65.', 'Cadastrar sacas',
+      function (corpo) {
+        var campo = criarElemento('label', 'nex-campo');
+        campo.appendChild(criarElemento('span', 'nex-campo__rotulo', 'Rotas e intervalos de sacas'));
+        var area = document.createElement('textarea'); area.className = 'nex-campo__textarea'; area.rows = 6; area.placeholder = 'J1 10-20\nK2 50-65\nRota 3 72, 74, 80-82';
+        campo.appendChild(area);
+        campo.appendChild(criarElemento('span', 'nex-campo__ajuda', 'Uma rota por linha. Informe primeiro o nome exato de uma rota ja cadastrada e depois os numeros individuais ou intervalos separados por virgula, espaco ou ponto e virgula.'));
+        corpo.appendChild(campo);
+        var previa = criarElemento('div', 'nex-lote-sacas__previa'); previa.appendChild(criarElemento('strong', '', 'Previa do cadastro'));
+        var resumo = criarElemento('p', 'nex-lote-sacas__resumo', 'Digite as rotas e os numeros para validar antes de salvar.'); previa.appendChild(resumo); corpo.appendChild(previa);
+        function analisar() {
+          var linhas = area.value.split(/\r?\n/), itens = [], erros = [], vistos = Object.create(null);
+          linhas.forEach(function (linha, indice) {
+            linha = linha.trim(); if (!linha) return;
+            var rota = rotas.slice().sort(function (a, b) { return String(b.rota).length - String(a.rota).length; }).find(function (r) { return linha.toLocaleLowerCase('pt-BR').indexOf(String(r.rota).toLocaleLowerCase('pt-BR') + ' ') === 0; });
+            if (!rota) { erros.push('Linha ' + (indice + 1) + ': informe uma rota cadastrada, seguida dos numeros das sacas.'); return; }
+            var resto = linha.slice(String(rota.rota).length).trim();
+            var expandidas = expandirSacas(resto);
+            expandidas.erros.forEach(function (e) { erros.push('Linha ' + (indice + 1) + ': ' + e); });
+            expandidas.numeros.forEach(function (numero) {
+              var chave = String(Number(numero));
+              if (vistos[chave]) erros.push('A saca ' + chave + ' aparece mais de uma vez nesta lista.');
+              else { vistos[chave] = true; itens.push({ rota: rota.rota, numero: chave }); }
+            });
+          });
+          if (itens.length > 1000) erros.push('O lote excede o limite de 1.000 sacas por envio.');
+          resumo.textContent = erros.length ? erros.slice(0, 8).join(' | ') + (erros.length > 8 ? '...' : '') : (itens.length ? itens.length + ' saca(s) em ' + new Set(itens.map(function (i) { return i.rota; })).size + ' rota(s). Previa: ' + itens.slice(0, 12).map(function (i) { return i.rota + ' ' + i.numero; }).join(', ') + (itens.length > 12 ? '...' : '') : 'Digite as rotas e os numeros para validar antes de salvar.');
+          previa.classList.toggle('tem-erro', erros.length > 0); return { itens: itens, erros: erros };
+        }
+        area.addEventListener('input', analisar);
+        return { foco: area, area: area, analisar: analisar };
+      },
+      function (campos, erro) {
+        var lote = campos.analisar();
+        if (!campos.area.value.trim() || !lote.itens.length) { erro.textContent = 'Informe ao menos uma rota com numeros de sacas validos.'; erro.hidden = false; return false; }
+        if (lote.erros.length) { erro.textContent = lote.erros.slice(0, 8).join(' '); erro.hidden = false; return false; }
+        var ok = [], falhas = [];
+        lote.itens.forEach(function (item) {
+          var resultado = api.addSaca(item.rota, item.numero);
+          if (resultado.sucesso) { ok.push(item.rota + ' ' + item.numero); rotasAbertas[item.rota] = true; }
+          else falhas.push(item.rota + ' ' + item.numero + ': ' + resultado.erro);
+        });
+        renderRotas();
+        if (falhas.length) {
+          erro.textContent = ok.length + ' saca(s) cadastrada(s). Algumas nao foram adicionadas: ' + falhas.slice(0, 6).join(' | ') + (falhas.length > 6 ? '...' : '');
+          erro.hidden = false;
+          campos.area.value = falhas.map(function (f) { return f.split(':')[0]; }).join('\n');
+          campos.analisar(); return false;
+        }
+        return true;
+      });
+  }
   function renderRotas() {
     while (routeList.firstChild) routeList.removeChild(routeList.firstChild);
     while (routeCounters.firstChild) routeCounters.removeChild(routeCounters.firstChild);
@@ -236,7 +409,11 @@
     var routeActions = criarElemento('div', 'nex-rota-acoes');
     var addRoute = document.createElement('button'); addRoute.type = 'button'; addRoute.className = 'botao botao--primario nex-adicionar-rota'; addRoute.textContent = '+ Adicionar rota';
     addRoute.addEventListener('click', function () { abrirDialogoNovaRota(api); });
-    routeActions.appendChild(addRoute);
+    var addSacasRotas = document.createElement('button'); addSacasRotas.type = 'button'; addSacasRotas.className = 'botao botao--secundario nex-adicionar-sacas-rotas'; addSacasRotas.textContent = '+ Adicionar sacas';
+    addSacasRotas.disabled = !rotas.length;
+    addSacasRotas.title = rotas.length ? 'Cadastrar sacas em várias rotas de uma só vez' : 'Cadastre uma rota antes de adicionar sacas';
+    addSacasRotas.addEventListener('click', function () { abrirDialogoSacasMultiplasRotas(api, rotas); });
+    routeActions.appendChild(addRoute); routeActions.appendChild(addSacasRotas);
     routeList.appendChild(routeActions);
     if (!rotas.length) { routeList.appendChild(criarElemento('p', 'texto-apoio', 'As rotas importadas ou cadastradas manualmente aparecerão aqui.')); return; }
     rotas.forEach(function (rota) {
@@ -308,6 +485,7 @@
       });
       conteudo.appendChild(lista); card.appendChild(conteudo); routeList.appendChild(card);
     });
+    renderQuantidades();
   }
 
   function selecionar(name, focus) {
@@ -375,6 +553,11 @@
     });
   });
   if (typeof MutationObserver !== 'undefined') {
+    var quantitySourceNodes = ['info-sacas', 'info-pacotes', 'contagem-total', 'contagem-pendente'].map(function (id) { return document.getElementById(id); }).filter(Boolean);
+    if (quantitySourceNodes.length) {
+      var quantityObserver = new MutationObserver(renderQuantidades);
+      quantitySourceNodes.forEach(function (node) { quantityObserver.observe(node, { childList: true, characterData: true, subtree: true }); });
+    }
     if (activeSession) new MutationObserver(atualizarTelaOperacao).observe(activeSession, { attributes: true, attributeFilter: ['hidden'] });
     if (historyView) new MutationObserver(function () {
       if (!activeSession || activeSession.hidden) {

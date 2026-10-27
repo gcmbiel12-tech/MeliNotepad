@@ -1351,6 +1351,37 @@
   // API restrita à interface de rotas/sacas. A persistência continua no armazenamento NEX existente.
   window.MeliNotepad.NexOperations = {
     getCurrentSession: function () { return estado.dados ? sessaoAtiva() : null; },
+    importPlanilha: function (arquivo) {
+      var sessao = sessaoAtiva();
+      if (!sessao) return Promise.reject(new Error('Não há operação ativa para atualizar.'));
+      if (!arquivo || !arquivo.size || arquivo.size > 20 * 1024 * 1024) return Promise.reject(new Error('Selecione um arquivo válido de até 20 MB.'));
+      return window.MeliNotepad.NexPlanilha.analisarArquivo(arquivo).then(function (resultado) {
+        var snapshot = JSON.parse(JSON.stringify(sessao));
+        if (!Array.isArray(sessao.rotasHybrid)) sessao.rotasHybrid = [];
+        resultado.rotas.forEach(function (importada) {
+          var existente = sessao.rotasHybrid.find(function (r) { return String(r.rota).toLocaleLowerCase('pt-BR') === String(importada.rota).toLocaleLowerCase('pt-BR'); });
+          if (existente) {
+            existente.idOtimizado = importada.idOtimizado;
+            existente.servico = importada.servico;
+            existente.sacas = importada.sacas;
+            existente.pacotes = importada.pacotes;
+            if (!Array.isArray(existente.sacasIndividuais)) existente.sacasIndividuais = [];
+          } else {
+            sessao.rotasHybrid.push({ rota: importada.rota, idOtimizado: importada.idOtimizado, servico: importada.servico, sacas: importada.sacas, pacotes: importada.pacotes, sacasIndividuais: [], origem: 'planilha' });
+          }
+        });
+        sessao.sacas = resultado.totalSacas;
+        sessao.pacotes = resultado.totalPacotes;
+        sessao.planilhaOptimization = arquivo.name;
+        if (!persistir()) {
+          Object.keys(sessao).forEach(function (k) { delete sessao[k]; });
+          Object.keys(snapshot).forEach(function (k) { sessao[k] = snapshot[k]; });
+          return Promise.reject(new Error('Não foi possível salvar a importação. Nenhuma alteração foi mantida.'));
+        }
+        renderTudo();
+        return { sucesso: true, rotas: resultado.rotas.length, sacas: resultado.totalSacas, pacotes: resultado.totalPacotes };
+      });
+    },
     removeRoute: function (nome) {
       var sessao = sessaoAtiva();
       if (!sessao || !Array.isArray(sessao.rotasHybrid)) return { sucesso: false, erro: 'Não há operação ativa.' };
