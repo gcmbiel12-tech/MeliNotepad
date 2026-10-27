@@ -861,3 +861,59 @@ dialog.modal[id^="dlg-xpt-"] {
   #nex-rotas-auditoria .nex-saca-item .nex-rota-status { max-width: 58%; font-size: .72rem; }
   #nex-rotas-auditoria .nex-saca-item .botao { min-height: 48px; padding-inline: .45rem; font-size: .86rem; }
 }
+
+
+/* NEX — grade compacta de sacas e filtros sempre acessiveis. */
+#nex-rotas-auditoria .nex-filtros-rotas {
+  position: sticky;
+  top: .35rem;
+  z-index: 12;
+  display: grid;
+  gap: .55rem;
+  margin: .8rem 0 1rem;
+  padding: .7rem;
+  border: 1px solid var(--cor-borda, #dedbd2);
+  border-radius: 12px;
+  background: var(--cor-fundo-cartao, #fff);
+  box-shadow: 0 4px 14px rgba(20, 20, 20, .08);
+}
+#nex-rotas-auditoria .nex-busca-sacas {
+  width: 100%; min-width: 0; min-height: 42px; padding: .65rem .8rem;
+  border: 1px solid #d5d2c9; border-radius: 9px; font: inherit; background: #fff;
+}
+#nex-rotas-auditoria .nex-filtros-status { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: 1px; }
+#nex-rotas-auditoria .nex-filtro-status {
+  flex: 0 0 auto; min-height: 36px; padding: .45rem .75rem; border: 1px solid #d9d6cd;
+  border-radius: 8px; background: #f7f6f2; color: #393832; font: inherit; font-size: .84rem; cursor: pointer;
+}
+#nex-rotas-auditoria .nex-filtro-status.is-ativo { color: #fff; border-color: #2563eb; background: #2563eb; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-lista-sacas {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .45rem; align-items: stretch;
+}
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item {
+  display: flex; min-width: 0; flex-direction: column; align-items: stretch; gap: .35rem;
+  padding: .45rem; border: 1px solid #d9d6cd; border-left: 3px solid #b9a34a;
+  border-radius: 9px; background: #fffdf5; box-shadow: none;
+}
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item.auditada { border-color: #b9dfc4; border-left-color: #27834b; background: #f0faf3; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item.tem-divergencia { border-color: #efc4c0; border-left-color: #b42318; background: #fff2f0; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item__topo { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem; padding: .15rem 0 .3rem; border: 0; text-align: center; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item__topo strong { font-size: .94rem; line-height: 1.2; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item .nex-rota-status { max-width: 100%; padding: .12rem .28rem; border: 0; border-radius: 5px; font-size: .67rem; line-height: 1.3; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item .texto-apoio { font-size: .68rem; line-height: 1.3; overflow-wrap: anywhere; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item .nex-saca-observacao,
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item .nex-saca-historico { display: none; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item .botao { min-height: 32px; width: 100%; padding: .3rem .2rem; border-radius: 6px; font-size: .7rem; line-height: 1.2; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item .nex-remover-saca { min-height: 26px; border: 0; }
+#nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item:hover { transform: translateY(-1px); box-shadow: 0 3px 9px rgba(20,20,20,.07); }
+@media (min-width: 900px) {
+  #nex-rotas-auditoria .nex-filtros-rotas { grid-template-columns: minmax(220px, 1fr) auto; align-items: center; }
+  #nex-rotas-auditoria .nex-rota-conteudo .nex-lista-sacas { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+@media (max-width: 600px) {
+  #nex-rotas-auditoria .nex-filtros-rotas { top: 0; margin-inline: -.25rem; padding: .5rem; }
+  #nex-rotas-auditoria .nex-filtros-status { margin-inline: -.1rem; }
+  #nex-rotas-auditoria .nex-filtro-status { min-height: 36px; padding-inline: .6rem; }
+  #nex-rotas-auditoria .nex-rota-conteudo .nex-lista-sacas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; }
+  #nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item { padding: .4rem .25rem; }
+}

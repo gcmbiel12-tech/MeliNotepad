@@ -177,6 +177,20 @@
   routeCounters.setAttribute('role', 'group');
   routeCounters.setAttribute('aria-label', 'Resumo de rotas e auditorias individuais de sacas');
   routePanel.appendChild(routeCounters);
+  var filtrosRotas = criarElemento('div', 'nex-filtros-rotas');
+  var buscaSaca = document.createElement('input');
+  buscaSaca.type = 'search'; buscaSaca.className = 'nex-busca-sacas'; buscaSaca.placeholder = 'Buscar rota ou número da saca...'; buscaSaca.setAttribute('aria-label', 'Buscar rota ou número da saca');
+  filtrosRotas.appendChild(buscaSaca);
+  var filtroStatus = criarElemento('div', 'nex-filtros-status');
+  var statusSelecionado = 'todas';
+  [['todas', 'Todas'], ['pendente', 'Pendentes'], ['concluida', 'Concluídas'], ['divergencia', 'Divergências']].forEach(function (f) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'nex-filtro-status'; b.textContent = f[1]; b.dataset.status = f[0]; b.setAttribute('aria-pressed', String(f[0] === statusSelecionado));
+    b.addEventListener('click', function () { statusSelecionado = f[0]; filtroStatus.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-ativo', x.dataset.status === statusSelecionado); x.setAttribute('aria-pressed', String(x.dataset.status === statusSelecionado)); }); renderRotas(); });
+    filtroStatus.appendChild(b);
+  });
+  filtrosRotas.appendChild(filtroStatus);
+  buscaSaca.addEventListener('input', renderRotas);
+  routePanel.appendChild(filtrosRotas);
   var routeList = document.createElement('div');
   routeList.id = 'nex-lista-rotas';
   routeList.className = 'nex-lista-rotas';
@@ -416,13 +430,25 @@
     routeActions.appendChild(addRoute); routeActions.appendChild(addSacasRotas);
     routeList.appendChild(routeActions);
     if (!rotas.length) { routeList.appendChild(criarElemento('p', 'texto-apoio', 'As rotas importadas ou cadastradas manualmente aparecerão aqui.')); return; }
+    var termoBusca = buscaSaca.value.trim().toLocaleLowerCase('pt-BR');
     rotas.forEach(function (rota) {
-      var listaSacas = Array.isArray(rota.sacasIndividuais) ? rota.sacasIndividuais : [];
-      var contAuditadas = listaSacas.filter(function (s) { return (s.auditorias || []).length > 0; }).length;
-      var aberto = !!rotasAbertas[rota.rota];
+      var todasSacasRota = Array.isArray(rota.sacasIndividuais) ? rota.sacasIndividuais : [];
+      var rotaCombina = String(rota.rota).toLocaleLowerCase('pt-BR').includes(termoBusca);
+      var listaSacas = todasSacasRota.filter(function (s) {
+        var ultima = (s.auditorias || []).slice(-1)[0];
+        var status = !ultima ? 'pendente' : ultima.status === 'divergencia' ? 'divergencia' : 'concluida';
+        var statusCombina = statusSelecionado === 'todas' || statusSelecionado === status;
+        var numeroCombina = !termoBusca || rotaCombina || String(s.numero).toLocaleLowerCase('pt-BR').includes(termoBusca);
+        return statusCombina && numeroCombina;
+      });
+      if (termoBusca && !rotaCombina && !listaSacas.length) return;
+      if (termoBusca && rotaCombina) listaSacas = todasSacasRota.filter(function (s) { var ultima = (s.auditorias || []).slice(-1)[0]; var status = !ultima ? 'pendente' : ultima.status === 'divergencia' ? 'divergencia' : 'concluida'; return statusSelecionado === 'todas' || statusSelecionado === status; });
+      if (!listaSacas.length && (termoBusca || statusSelecionado !== 'todas')) return;
+      var contAuditadas = todasSacasRota.filter(function (s) { return (s.auditorias || []).length > 0; }).length;
+      var aberto = !!rotasAbertas[rota.rota] || !!termoBusca || statusSelecionado !== 'todas';
       var card = criarElemento('article', 'cartao nex-rota-card' + (aberto ? ' is-aberta' : ''));
       var toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'nex-rota-toggle'; toggle.setAttribute('aria-expanded', String(aberto));
-      var toggleInfo = criarElemento('span', 'nex-rota-toggle__info'); toggleInfo.appendChild(criarElemento('strong', 'nex-rota-nome', rota.rota)); toggleInfo.appendChild(criarElemento('span', 'texto-apoio', listaSacas.length + ' saca(s) cadastrada(s) · ' + contAuditadas + ' auditada(s)')); toggle.appendChild(toggleInfo); toggle.appendChild(criarElemento('span', 'nex-rota-chevron', aberto ? '−' : '+'));
+      var toggleInfo = criarElemento('span', 'nex-rota-toggle__info'); toggleInfo.appendChild(criarElemento('strong', 'nex-rota-nome', rota.rota)); toggleInfo.appendChild(criarElemento('span', 'texto-apoio', todasSacasRota.length + ' sacas · ' + contAuditadas + ' auditadas')); toggle.appendChild(toggleInfo); toggle.appendChild(criarElemento('span', 'nex-rota-chevron', aberto ? '−' : '+'));
       var removerRota = document.createElement('button');
       removerRota.type = 'button';
       removerRota.className = 'botao botao--secundario nex-remover-rota';
