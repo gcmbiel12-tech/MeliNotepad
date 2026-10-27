@@ -184,7 +184,7 @@
   var filtroStatus = criarElemento('div', 'nex-filtros-status');
   var statusSelecionado = 'todas';
   [['todas', 'Todas'], ['pendente', 'Pendentes'], ['concluida', 'Concluídas'], ['divergencia', 'Divergências']].forEach(function (f) {
-    var b = document.createElement('button'); b.type = 'button'; b.className = 'nex-filtro-status'; b.textContent = f[1]; b.dataset.status = f[0]; b.setAttribute('aria-pressed', String(f[0] === statusSelecionado));
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'nex-filtro-status' + (f[0] === statusSelecionado ? ' is-ativo' : ''); b.textContent = f[1]; b.dataset.status = f[0]; b.setAttribute('aria-pressed', String(f[0] === statusSelecionado));
     b.addEventListener('click', function () { statusSelecionado = f[0]; filtroStatus.querySelectorAll('button').forEach(function (x) { x.classList.toggle('is-ativo', x.dataset.status === statusSelecionado); x.setAttribute('aria-pressed', String(x.dataset.status === statusSelecionado)); }); renderRotas(); });
     filtroStatus.appendChild(b);
   });
@@ -365,7 +365,13 @@
         campo.appendChild(criarElemento('span', 'nex-campo__ajuda', 'Uma rota por linha. Informe primeiro o nome exato de uma rota ja cadastrada e depois os numeros individuais ou intervalos separados por virgula, espaco ou ponto e virgula.'));
         corpo.appendChild(campo);
         var previa = criarElemento('div', 'nex-lote-sacas__previa'); previa.appendChild(criarElemento('strong', '', 'Previa do cadastro'));
-        var resumo = criarElemento('p', 'nex-lote-sacas__resumo', 'Digite as rotas e os numeros para validar antes de salvar.'); previa.appendChild(resumo); corpo.appendChild(previa);
+        var resumo = criarElemento('p', 'nex-lote-sacas__resumo', 'Digite as rotas e os numeros para validar antes de salvar.'); previa.appendChild(resumo);
+        var listaRotasCadastradas = criarElemento('div', 'nex-lote-sacas__rotas-cadastradas');
+        rotas.forEach(function (rota) {
+          listaRotasCadastradas.appendChild(criarElemento('span', 'nex-lote-sacas__rota-cadastrada', rota.rota));
+        });
+        previa.appendChild(listaRotasCadastradas);
+        corpo.appendChild(previa);
         function analisar() {
           var linhas = area.value.split(/\r?\n/), itens = [], erros = [], vistos = Object.create(null);
           linhas.forEach(function (linha, indice) {
@@ -408,16 +414,60 @@
         return true;
       });
   }
+  function ocorrenciasDaSaca(saca, sessao) {
+    var chave = String(Number(saca.numero));
+    return (sessao && Array.isArray(sessao.occurrences) ? sessao.occurrences : []).filter(function (o) {
+      return /^\d+$/.test(String(o.code || '').trim()) && String(Number(o.code)) === chave;
+    });
+  }
+
+  function situacaoVisualSaca(saca, sessao) {
+    var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : [];
+    var ultima = auditorias.slice(-1)[0];
+    var ocorrencias = ocorrenciasDaSaca(saca, sessao);
+    var dataAuditoria = ultima ? Date.parse(ultima.data) : 0;
+    var ocorrenciaNaoAuditada = ocorrencias.some(function (o) {
+      var dataOcorrencia = Date.parse(o.createdAt || o.updatedAt || 0);
+      return !ultima || !isFinite(dataOcorrencia) || dataOcorrencia > dataAuditoria;
+    });
+    if (ocorrenciaNaoAuditada) return 'ocorrencia-pendente';
+    if (ultima && (ultima.status === 'divergencia' || ocorrencias.length)) return 'divergencia';
+    return ultima ? 'concluida' : 'pendente';
+  }
+
+  function correspondeFiltroSaca(status, filtro) {
+    if (filtro === 'todas') return true;
+    if (filtro === 'pendente') return status === 'pendente' || status === 'ocorrencia-pendente';
+    if (filtro === 'concluida') return status === 'concluida' || status === 'divergencia';
+    if (filtro === 'divergencia') return status === 'divergencia' || status === 'ocorrencia-pendente';
+    return status === filtro;
+  }
+
+  function prioridadeVisualRota(rota, sessao) {
+    var sacas = rota.sacasIndividuais || [];
+    if (sacas.some(function (s) { return situacaoVisualSaca(s, sessao) === 'ocorrencia-pendente'; })) return 'ocorrencia-pendente';
+    if (sacas.some(function (s) { return situacaoVisualSaca(s, sessao) === 'divergencia'; })) return 'divergencia';
+    if (sacas.some(function (s) { return situacaoVisualSaca(s, sessao) === 'pendente'; })) return 'pendente';
+    return sacas.length ? 'concluida' : 'pendente';
+  }
+
   function renderRotas() {
     while (routeList.firstChild) routeList.removeChild(routeList.firstChild);
     while (routeCounters.firstChild) routeCounters.removeChild(routeCounters.firstChild);
     var api = window.MeliNotepad && window.MeliNotepad.NexOperations;
     var sessao = api && api.getCurrentSession ? api.getCurrentSession() : null;
     var rotas = sessao && Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : [];
-    var sacas = [], auditadas = 0, divergencias = 0;
-    rotas.forEach(function (rota) { (rota.sacasIndividuais || []).forEach(function (saca) { sacas.push(saca); var ult = (saca.auditorias || []).slice(-1)[0]; if (ult) { auditadas++; if (ult.status === 'divergencia') divergencias++; } }); });
-    routeSummary.textContent = rotas.length ? 'Selecione uma rota para ver as sacas vinculadas. As auditorias são registradas individualmente por saca.' : 'Nenhuma rota cadastrada. Você pode importar uma planilha ou adicionar uma rota manualmente.';
-    [[String(rotas.length), 'Rotas'], [String(sacas.length), 'Sacas cadastradas'], [String(sacas.length - auditadas), 'Sacas pendentes'], [String(divergencias), 'Com divergência']].forEach(function (item) {
+    var sacas = [], auditadas = 0, ocorrenciasNaoAuditadas = 0;
+    rotas.forEach(function (rota) {
+      (rota.sacasIndividuais || []).forEach(function (saca) {
+        sacas.push(saca);
+        var situacao = situacaoVisualSaca(saca, sessao);
+        if (situacao === 'concluida' || situacao === 'divergencia') auditadas++;
+        if (situacao === 'ocorrencia-pendente') ocorrenciasNaoAuditadas++;
+      });
+    });
+    routeSummary.textContent = rotas.length ? 'Selecione uma rota para ver as sacas vinculadas. Vermelho indica ocorrência aguardando auditoria; roxo, auditoria concluída com ocorrência; verde, auditoria sem ocorrência. Rotas com ocorrência pendente têm prioridade visual.' : 'Nenhuma rota cadastrada. Você pode importar uma planilha ou adicionar uma rota manualmente.';
+    [[String(rotas.length), 'Rotas'], [String(sacas.length), 'Sacas cadastradas'], [String(sacas.length - auditadas), 'Sacas pendentes'], [String(ocorrenciasNaoAuditadas), 'Ocorrências a auditar']].forEach(function (item) {
       var counter = criarElemento('div', 'contador'); counter.appendChild(criarElemento('span', 'contador__valor', item[0])); counter.appendChild(criarElemento('span', 'contador__rotulo', item[1])); routeCounters.appendChild(counter);
     });
     var routeActions = criarElemento('div', 'nex-rota-acoes');
@@ -433,20 +483,20 @@
     var termoBusca = buscaSaca.value.trim().toLocaleLowerCase('pt-BR');
     rotas.forEach(function (rota) {
       var todasSacasRota = Array.isArray(rota.sacasIndividuais) ? rota.sacasIndividuais : [];
+      var situacaoRota = prioridadeVisualRota(rota, sessao);
       var rotaCombina = String(rota.rota).toLocaleLowerCase('pt-BR').includes(termoBusca);
       var listaSacas = todasSacasRota.filter(function (s) {
-        var ultima = (s.auditorias || []).slice(-1)[0];
-        var status = !ultima ? 'pendente' : ultima.status === 'divergencia' ? 'divergencia' : 'concluida';
-        var statusCombina = statusSelecionado === 'todas' || statusSelecionado === status;
+        var status = situacaoVisualSaca(s, sessao);
+        var statusCombina = correspondeFiltroSaca(status, statusSelecionado);
         var numeroCombina = !termoBusca || rotaCombina || String(s.numero).toLocaleLowerCase('pt-BR').includes(termoBusca);
         return statusCombina && numeroCombina;
       });
       if (termoBusca && !rotaCombina && !listaSacas.length) return;
-      if (termoBusca && rotaCombina) listaSacas = todasSacasRota.filter(function (s) { var ultima = (s.auditorias || []).slice(-1)[0]; var status = !ultima ? 'pendente' : ultima.status === 'divergencia' ? 'divergencia' : 'concluida'; return statusSelecionado === 'todas' || statusSelecionado === status; });
+      if (termoBusca && rotaCombina) listaSacas = todasSacasRota.filter(function (s) { return correspondeFiltroSaca(situacaoVisualSaca(s, sessao), statusSelecionado); });
       if (!listaSacas.length && (termoBusca || statusSelecionado !== 'todas')) return;
       var contAuditadas = todasSacasRota.filter(function (s) { return (s.auditorias || []).length > 0; }).length;
       var aberto = !!rotasAbertas[rota.rota] || !!termoBusca || statusSelecionado !== 'todas';
-      var card = criarElemento('article', 'cartao nex-rota-card' + (aberto ? ' is-aberta' : ''));
+      var card = criarElemento('article', 'cartao nex-rota-card nex-rota-card--' + situacaoRota + (aberto ? ' is-aberta' : ''));
       var toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'nex-rota-toggle'; toggle.setAttribute('aria-expanded', String(aberto));
       var toggleInfo = criarElemento('span', 'nex-rota-toggle__info'); toggleInfo.appendChild(criarElemento('strong', 'nex-rota-nome', rota.rota)); toggleInfo.appendChild(criarElemento('span', 'texto-apoio', todasSacasRota.length + ' sacas · ' + contAuditadas + ' auditadas')); toggle.appendChild(toggleInfo); toggle.appendChild(criarElemento('span', 'nex-rota-chevron', aberto ? '−' : '+'));
       var removerRota = document.createElement('button');
@@ -492,8 +542,11 @@
       var lista = criarElemento('div', 'nex-lista-sacas');
       listaSacas.slice().sort(function (a,b) { return Number(a.numero)-Number(b.numero); }).forEach(function (saca) {
         var historico = Array.isArray(saca.auditorias) ? saca.auditorias : []; var ultima = historico.slice(-1)[0];
-        var item = criarElemento('article', 'nex-saca-item' + (ultima ? (ultima.status === 'divergencia' ? ' tem-divergencia' : ' auditada') : ' pendente'));
-        var topo = criarElemento('div', 'nex-saca-item__topo'); topo.appendChild(criarElemento('strong', '', 'Saca ' + saca.numero)); topo.appendChild(criarElemento('span', 'nex-rota-status' + (ultima ? (ultima.status === 'divergencia' ? ' is-divergencia' : ' is-concluida') : ''), !ultima ? 'Não realizada' : ultima.status === 'divergencia' ? 'Com divergência' : 'Concluída')); item.appendChild(topo);
+        var situacaoSaca = situacaoVisualSaca(saca, sessao);
+        var classeSaca = situacaoSaca === 'ocorrencia-pendente' ? ' tem-ocorrencia-pendente' : situacaoSaca === 'divergencia' ? ' tem-divergencia' : situacaoSaca === 'concluida' ? ' auditada' : ' pendente';
+        var rotuloSaca = situacaoSaca === 'ocorrencia-pendente' ? 'Ocorrência · auditar' : situacaoSaca === 'divergencia' ? 'Auditada com ocorrência' : situacaoSaca === 'concluida' ? 'Concluída sem ocorrência' : 'Pendente de auditoria';
+        var item = criarElemento('article', 'nex-saca-item' + classeSaca);
+        var topo = criarElemento('div', 'nex-saca-item__topo'); topo.appendChild(criarElemento('strong', '', 'Saca ' + saca.numero)); topo.appendChild(criarElemento('span', 'nex-rota-status' + (situacaoSaca === 'ocorrencia-pendente' ? ' is-ocorrencia-pendente' : situacaoSaca === 'divergencia' ? ' is-divergencia' : situacaoSaca === 'concluida' ? ' is-concluida' : ''), rotuloSaca)); item.appendChild(topo);
         if (ultima) { item.appendChild(criarElemento('p', 'texto-apoio', 'Auditor: ' + ultima.auditor + ' · ' + new Date(ultima.data).toLocaleString('pt-BR'))); if (ultima.observacao) item.appendChild(criarElemento('p', 'nex-saca-observacao', ultima.observacao)); }
         var auditar = document.createElement('button'); auditar.type = 'button'; auditar.className = 'botao botao--primario'; auditar.textContent = ultima ? 'Realizar nova auditoria' : 'Auditar saca';
         auditar.addEventListener('click', function () { var auditor = window.prompt('Nome do Auditor:'); if (auditor === null) return; auditor = auditor.trim(); if (!auditor) { window.alert('Informe o nome do auditor.'); return; } if (!window.confirm('Confirmar auditoria da saca ' + saca.numero + ' realizada por ' + auditor + '?')) return; var res = api.auditSaca(rota.rota, saca.id, auditor, 'concluida', ''); if (!res.sucesso) window.alert(res.erro); else { rotasAbertas[rota.rota] = true; renderRotas(); } }); item.appendChild(auditar);

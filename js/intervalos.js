@@ -163,15 +163,18 @@
       entradaMs = re.ms; duracao = rc.duracaoMin;
     } else entradaMs = saidaMs + duracao * MIN;
     var ativos = R.intervalosAtivosDe(estado, f.id);
-    if (ativos.length && !novo.confirmouDuplicado) {
-      novo.confirmouDuplicado = true; ok.textContent = 'Liberar mesmo assim';
-      erro.textContent = f.nome + ' já tem um intervalo em andamento. Confirme para registrar outro.'; return;
+    if (ativos.length) {
+      novo.confirmouDuplicado = false;
+      ok.textContent = 'Liberar intervalo';
+      erro.textContent = f.nome + ' já possui um intervalo em aberto. Registre o retorno antes de liberar outro.';
+      return;
     }
     var setor = R.normalizarSetor(setorInput.value, estado.setores);
     var r = R.novoIntervalo({ funcionario: f, setor: setor, duracaoMin: duracao, saidaMs: saidaMs, entradaMs: entradaMs, agoraMs: t });
     if (!r.ok) { erro.textContent = r.erro; return; }
     novo.salvando = true;
     var gravou = mutar(function (d) {
+      if (R.intervalosAtivosDe(d, f.id).length) throw new Error(f.nome + ' já possui um intervalo em aberto. Registre o retorno antes de liberar outro.');
       d.intervalos.push(r.intervalo);
       if (setor && !d.setores.some(function (s) { return R.normalizar(s) === R.normalizar(setor); })) d.setores.push(setor);
     });
@@ -263,6 +266,25 @@
     el.tabelaAtivos.hidden = ord.length === 0;
   }
 
+  function excluirFuncionario(id) {
+    recarregar();
+    var f = funcionarioPorId(id);
+    if (!f) return;
+    var vinculados = estado.intervalos.filter(function (i) { return i.funcionarioId === id; });
+    if (vinculados.length) {
+      UI.avisar('Este cadastro possui ' + vinculados.length + ' intervalo(s) no histórico. Para preservar os registros, não é possível excluí-lo.', 'erro');
+      return;
+    }
+    if (!global.confirm('Excluir o cadastro de ' + f.nome + '? Esta ação só é permitida porque não há intervalos vinculados.')) return;
+    var r = mutar(function (d) {
+      if (d.intervalos.some(function (i) { return i.funcionarioId === id; })) throw new Error('O cadastro recebeu intervalos vinculados. O histórico foi preservado e a exclusão foi cancelada.');
+      var indice = d.funcionarios.findIndex(function (x) { return x.id === id; });
+      if (indice < 0) throw new Error('Cadastro não encontrado.');
+      d.funcionarios.splice(indice, 1);
+    });
+    if (r) { renderTudo(true); UI.avisar('Cadastro de funcionário excluído.', 'sucesso'); }
+  }
+
   function renderFuncionarios() {
     var q = R.normalizar(ui.busca);
     var lista = estado.funcionarios.filter(function (f) { return !q || R.normalizar(f.nome).indexOf(q) >= 0 || R.normalizar(f.setor).indexOf(q) >= 0; })
@@ -271,7 +293,7 @@
     lista.forEach(function (f) {
       el.corpoFunc.appendChild(h('tr', { dataset: { id: f.id } }, [
         h('td', { text: f.nome }), h('td', { text: f.setor || '—' }), h('td', { text: f.ativo === false ? 'Inativo' : 'Ativo' }),
-        h('td', {}, [h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'editar', id: f.id }, text: 'Editar' })])
+        h('td', {}, [h('div', { class: 'acoes-tabela' }, [h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'editar', id: f.id }, text: 'Editar' }), h('button', { type: 'button', class: 'botao botao--texto botao--perigo', dataset: { acao: 'excluir', id: f.id }, text: 'Excluir', 'aria-label': 'Excluir cadastro de ' + f.nome })])])
       ]));
     });
     el.contFunc.textContent = estado.funcionarios.length + ' cadastrado(s)' + (q ? ' · ' + lista.length + ' na busca' : '');
@@ -432,7 +454,7 @@
         h('button', { type: 'submit', class: 'botao botao--primario', id: 'fn-cadastrar', text: 'Cadastrar' })])]),
       h('div', { class: 'cartao' }, [h('h3', { text: 'Funcionários' }), busca, el.contFunc, el.vazioFunc,
         h('div', { class: 'tabela-rolavel' }, [h('table', { class: 'tabela-modulo' }, [h('thead', {}, [h('tr', {}, ['Nome completo', 'Setor', 'Situação', ''].map(function (t) { return h('th', { scope: 'col', text: t }); }))]), el.corpoFunc])])])]);
-    el.corpoFunc.addEventListener('click', function (e) { var b = e.target.closest('button[data-acao="editar"]'); if (b) abrirEdicaoFuncionario(b.dataset.id); });
+    el.corpoFunc.addEventListener('click', function (e) { var b = e.target.closest('button[data-acao]'); if (!b) return; if (b.dataset.acao === 'editar') abrirEdicaoFuncionario(b.dataset.id); else if (b.dataset.acao === 'excluir') excluirFuncionario(b.dataset.id); });
 
     // --- Histórico
     el.fFunc = h('select', { id: 'hs-func' }); el.fSetor = h('select', { id: 'hs-setor' }); el.fData = h('input', { type: 'date', id: 'hs-data' });

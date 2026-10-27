@@ -15,7 +15,8 @@ const MIN = 60000;
   const erros = [];
   page.on('console', m => { if (m.type() === 'error') erros.push(m.text()); });
   page.on('pageerror', e => erros.push('pageerror: ' + e.message));
-  await page.clock.install({ time: new Date(T0.getTime() - 10000) });
+  // Folga de dez minutos para que a navegação inicial não ultrapasse o instante simulado em máquinas lentas.
+  await page.clock.install({ time: new Date(T0.getTime() - 10 * MIN) });
   await page.goto(BASE);
   await page.clock.pauseAt(T0);
 
@@ -74,6 +75,15 @@ const MIN = 60000;
     assert.ok((await page.textContent('#fn-contagem')).startsWith('5 cadastrado'), 'acento/caixa não escapam da validação');
   });
 
+  await etapa('Exclusão segura: permite apagar cadastro sem histórico e preserva cadastros vinculados', async () => {
+    await page.click('#iv-aba-funcionarios');
+    await cadastrar('Temporário Excluir', '');
+    page.once('dialog', dialog => dialog.accept());
+    await page.locator('#fn-corpo tr').filter({ hasText: 'Temporário Excluir' }).locator('button[data-acao="excluir"]').click();
+    assert.strictEqual(await page.locator('#fn-corpo tr').filter({ hasText: 'Temporário Excluir' }).count(), 0);
+    assert.ok((await page.textContent('#fn-contagem')).startsWith('5 cadastrado'));
+  });
+
   await etapa('Tabela: colunas na ordem exata e lista vazia no início', async () => {
     await page.click('#iv-aba-ativos');
     assert.deepStrictEqual(await page.$$eval('#iv-tabela thead th', t => t.map(x => x.textContent)), ['Status', 'Duração', 'Primeiro nome', 'HR saída', 'HR entrada', 'Setor']);
@@ -93,6 +103,21 @@ const MIN = 60000;
     await page.waitForFunction(() => document.getElementById('dlg-interv-novo').open === false);
     const l = await linhas();
     assert.deepStrictEqual([l[0].nome, l[0].dur, l[0].saida, l[0].entrada, l[0].setor], ['Carlos', '0 min', '14:00', '15:00', 'XPT']);
+  });
+
+  await etapa('Bloqueia intervalo simultâneo para o mesmo funcionário', async () => {
+    const antes = (await linhas()).length;
+    await page.click('#iv-novo'); await page.fill('#iv-busca', 'Carlos Lima');
+    await dlgNovo().locator('.lista-escolha__item', { hasText: 'Carlos Lima' }).click();
+    await page.click('#iv-confirmar');
+    assert.ok((await dlgNovo().locator('#iv-erro').textContent()).includes('já possui um intervalo em aberto'));
+    assert.strictEqual((await linhas()).length, antes, 'não pode criar um segundo intervalo ativo');
+    await page.click('#iv-cancelar');
+    await page.click('#iv-aba-funcionarios');
+    await page.locator('#fn-corpo tr').filter({ hasText: 'Carlos Lima' }).locator('button[data-acao="excluir"]').click();
+    assert.strictEqual(await page.locator('#fn-corpo tr').filter({ hasText: 'Carlos Lima' }).count(), 1, 'cadastro com intervalo vinculado deve ser preservado');
+    assert.ok((await page.locator('#toast-container').textContent()).includes('histórico'));
+    await page.click('#iv-aba-ativos');
   });
 
   await etapa('Liberação sem setor (setor limpo, mesmo com sugestão)', async () => {
