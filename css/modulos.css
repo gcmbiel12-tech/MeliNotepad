@@ -714,9 +714,29 @@ dialog.modal[id^="dlg-xpt-"] {
 
 @media screen and (min-width: 720px) {
   main[data-modulo="nex"] { padding-inline: 2rem; }
-  #nex-abas-principais { position: sticky; top: 88px; z-index: 5; padding: .55rem; border: 1px solid var(--cor-borda); border-radius: 999px; background: rgba(250,248,243,.96); backdrop-filter: blur(8px); }
+  #nex-abas-principais { padding: .55rem; border: 1px solid var(--cor-borda); border-radius: 999px; }
   #nex-abas-principais .btn-nav { min-height: 42px; }
   .nex-rota-toggle { padding-inline: .7rem; }
+}
+
+/* Navegação NEX fixa abaixo do cabeçalho global, tanto no PC quanto no celular. */
+.app-header { z-index: 30; }
+#nex-abas-principais {
+  position: sticky;
+  top: var(--app-header-height, 88px);
+  z-index: 20;
+  background: rgba(250, 248, 243, .97);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 3px 10px rgba(28, 27, 24, .08);
+}
+#nex-rotas-auditoria .nex-filtros-rotas {
+  top: calc(var(--app-header-height, 88px) + var(--nex-tabs-height, 52px) + .35rem);
+  z-index: 15;
+}
+@media screen and (max-width: 719px) {
+  #nex-abas-principais { border-radius: 12px; padding: .25rem; }
+  #nex-abas-principais .btn-nav { min-height: 44px; border-radius: 9px; }
+  #nex-rotas-auditoria .nex-filtros-rotas { top: calc(var(--app-header-height, 150px) + var(--nex-tabs-height, 52px) + .25rem); }
 }
 
 @media screen and (max-width: 719px) {
@@ -926,6 +946,67 @@ dialog.modal[id^="dlg-xpt-"] {
   #nex-rotas-auditoria .nex-filtro-status { min-height: 36px; padding-inline: .6rem; }
   #nex-rotas-auditoria .nex-rota-conteudo .nex-lista-sacas { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; }
   #nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item { padding: .4rem .25rem; }
+}
+
+/* NEX — Ocorrências: cartões e filtros no padrão visual do XPT, mantendo os dados e ações próprios do NEX. */
+#nex-tab-ocorrencias .cartao { min-width: 0; }
+#nex-tab-ocorrencias #form-registrar-ocorrencia {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .9rem;
+  margin-top: 1rem;
+}
+#nex-tab-ocorrencias #form-registrar-ocorrencia > .campo,
+#nex-tab-ocorrencias #form-registrar-ocorrencia > fieldset,
+#nex-tab-ocorrencias #form-registrar-ocorrencia > .acoes-form,
+#nex-tab-ocorrencias #form-registrar-ocorrencia > button,
+#nex-tab-ocorrencias #form-registrar-ocorrencia > p,
+#nex-tab-ocorrencias #form-registrar-ocorrencia > div { min-width: 0; }
+#nex-tab-ocorrencias #form-registrar-ocorrencia > button[type="submit"],
+#nex-tab-ocorrencias #form-registrar-ocorrencia > .acoes-form { grid-column: 1 / -1; }
+#nex-tab-ocorrencias .filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  align-items: end;
+  gap: .75rem;
+  margin: 1rem 0;
+  padding: .85rem;
+  border: 1px solid var(--cor-borda, #dedbd2);
+  border-radius: 12px;
+  background: #f8f7f3;
+}
+#nex-tab-ocorrencias .filtros .campo { min-width: 0; margin: 0; }
+#nex-tab-ocorrencias .filtros input,
+#nex-tab-ocorrencias .filtros select { width: 100%; min-height: 42px; }
+#nex-tab-ocorrencias #btn-ver-pendentes,
+#nex-tab-ocorrencias #btn-limpar-filtros { min-height: 42px; white-space: normal; }
+#nex-tab-ocorrencias .lista-ocorrencias { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: .85rem; margin-top: .85rem; }
+#nex-tab-ocorrencias .item-ocorrencia {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid #dedad0;
+  border-left: 4px solid #c78b20;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(28,27,24,.045);
+}
+#nex-tab-ocorrencias .item-ocorrencia--resolvido { border-left-color: #27834b; }
+#nex-tab-ocorrencias .item-ocorrencia--pendente { border-left-color: #b86a14; }
+#nex-tab-ocorrencias .item-ocorrencia__cabecalho { align-items: flex-start; gap: .6rem; padding-bottom: .65rem; border-bottom: 1px solid #eee9df; }
+#nex-tab-ocorrencias .item-ocorrencia__codigo { overflow-wrap: anywhere; font-size: 1.05rem; }
+#nex-tab-ocorrencias .item-ocorrencia__categoria { margin-top: .65rem; font-weight: 650; }
+#nex-tab-ocorrencias .item-ocorrencia__meta { line-height: 1.5; }
+#nex-tab-ocorrencias .item-ocorrencia__nota { margin-top: .65rem; padding: .65rem .75rem; border-radius: 9px; background: #f5f3ee; overflow-wrap: anywhere; }
+#nex-tab-ocorrencias .item-ocorrencia__acoes { gap: .45rem; margin-top: .85rem; padding-top: .7rem; border-top: 1px solid #eee9df; }
+#nex-tab-ocorrencias .item-ocorrencia__acoes .botao { min-height: 40px; padding: .45rem .7rem; border-radius: 8px; }
+@media (max-width: 719px) {
+  #nex-tab-ocorrencias #form-registrar-ocorrencia { grid-template-columns: minmax(0, 1fr); gap: .7rem; }
+  #nex-tab-ocorrencias #form-registrar-ocorrencia > button[type="submit"] { width: 100%; }
+  #nex-tab-ocorrencias .filtros { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .65rem; gap: .6rem; }
+  #nex-tab-ocorrencias .filtros > button { width: 100%; }
+  #nex-tab-ocorrencias .lista-ocorrencias { grid-template-columns: minmax(0, 1fr); gap: .7rem; }
+  #nex-tab-ocorrencias .item-ocorrencia { padding: .85rem; }
+  #nex-tab-ocorrencias .item-ocorrencia__acoes .botao { flex: 1 1 auto; }
 }
 
 /* Ações e formulários mais fáceis de usar em Funcionários e XPT. */

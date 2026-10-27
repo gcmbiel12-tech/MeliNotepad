@@ -46,12 +46,30 @@
     if (mudou) document.dispatchEvent(new CustomEvent('melios:modulo', { detail: { modulo: nome } }));
   }
 
+  function atualizarOffsetsFixos() {
+    var header = document.querySelector('.app-header');
+    var abasNex = document.getElementById('nex-abas-principais');
+    var raiz = document.documentElement;
+    if (header) raiz.style.setProperty('--app-header-height', Math.ceil(header.getBoundingClientRect().height) + 'px');
+    if (abasNex) raiz.style.setProperty('--nex-tabs-height', Math.ceil(abasNex.getBoundingClientRect().height) + 'px');
+  }
+
   function init() {
     Array.prototype.forEach.call(document.querySelectorAll('.tab-modulo'), function (t) {
-      t.addEventListener('click', function () { ativar(t.dataset.modulo); });
+      t.addEventListener('click', function () { ativar(t.dataset.modulo); atualizarOffsetsFixos(); });
     });
     global.addEventListener('hashchange', function () { var m = moduloDoHash(); if (m) ativar(m); });
+    global.addEventListener('resize', atualizarOffsetsFixos, { passive: true });
+    if (global.ResizeObserver) {
+      var observador = new ResizeObserver(atualizarOffsetsFixos);
+      var header = document.querySelector('.app-header');
+      var abasNex = document.getElementById('nex-abas-principais');
+      if (header) observador.observe(header);
+      if (abasNex) observador.observe(abasNex);
+    }
     ativar(moduloDoHash() || moduloSalvo() || 'nex');
+    atualizarOffsetsFixos();
+    global.requestAnimationFrame(atualizarOffsetsFixos);
   }
 
 
