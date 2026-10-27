@@ -1348,33 +1348,68 @@
     });
   }
 
-  // API restrita à interface de abas NEX: mantém auditorias no mesmo armazenamento da sessão.
+  // API restrita à interface de rotas/sacas. A persistência continua no armazenamento NEX existente.
   window.MeliNotepad.NexOperations = {
     getCurrentSession: function () { return estado.dados ? sessaoAtiva() : null; },
-    auditRoute: function (routeName, auditor, concluir) {
+    removeRoute: function (nome) {
       var sessao = sessaoAtiva();
-      if (!sessao || !Array.isArray(sessao.rotasHybrid)) return { sucesso: false, erro: 'Não há rotas HYBRID na sessão atual.' };
-      var rota = sessao.rotasHybrid.filter(function (item) { return item.rota === routeName; })[0];
-      if (!rota) return { sucesso: false, erro: 'A rota não foi encontrada na sessão atual.' };
-      if (concluir && !String(auditor || '').trim()) return { sucesso: false, erro: 'Informe o nome do auditor.' };
-      var anterior = { auditStatus: rota.auditStatus, auditor: rota.auditor, auditedAt: rota.auditedAt };
-      if (concluir) {
-        rota.auditStatus = 'concluida';
-        rota.auditor = String(auditor).trim();
-        rota.auditedAt = new Date().toISOString();
-      } else {
-        delete rota.auditStatus;
-        delete rota.auditor;
-        delete rota.auditedAt;
-      }
-      if (!persistir()) {
-        if (anterior.auditStatus === undefined) delete rota.auditStatus; else rota.auditStatus = anterior.auditStatus;
-        if (anterior.auditor === undefined) delete rota.auditor; else rota.auditor = anterior.auditor;
-        if (anterior.auditedAt === undefined) delete rota.auditedAt; else rota.auditedAt = anterior.auditedAt;
-        return { sucesso: false, erro: 'Não foi possível salvar a auditoria.' };
-      }
-      renderTudo();
-      return { sucesso: true };
+      if (!sessao || !Array.isArray(sessao.rotasHybrid)) return { sucesso: false, erro: 'Não há operação ativa.' };
+      var indice = sessao.rotasHybrid.findIndex(function (r) { return r.rota === nome; });
+      if (indice < 0) return { sucesso: false, erro: 'A rota não foi encontrada.' };
+      var removida = sessao.rotasHybrid.splice(indice, 1)[0];
+      if (!persistir()) { sessao.rotasHybrid.splice(indice, 0, removida); return { sucesso: false, erro: 'Não foi possível salvar a remoção da rota.' }; }
+      renderTudo(); return { sucesso: true };
+    },
+    removeSaca: function (routeName, sacaId) {
+      var sessao = sessaoAtiva();
+      var rota = sessao && (sessao.rotasHybrid || []).find(function (r) { return r.rota === routeName; });
+      if (!rota || !Array.isArray(rota.sacasIndividuais)) return { sucesso: false, erro: 'A rota ou a lista de sacas não foi encontrada.' };
+      var indice = rota.sacasIndividuais.findIndex(function (sc) { return sc.id === sacaId; });
+      if (indice < 0) return { sucesso: false, erro: 'A saca não foi encontrada.' };
+      var removida = rota.sacasIndividuais.splice(indice, 1)[0];
+      if (!persistir()) { rota.sacasIndividuais.splice(indice, 0, removida); return { sucesso: false, erro: 'Não foi possível salvar a remoção da saca.' }; }
+      renderTudo(); return { sucesso: true };
+    },
+    addRoute: function (nome) {
+      var sessao = sessaoAtiva();
+      nome = String(nome || '').trim();
+      if (!sessao) return { sucesso: false, erro: 'Não há operação ativa.' };
+      if (!nome) return { sucesso: false, erro: 'Informe o nome da rota.' };
+      if (!Array.isArray(sessao.rotasHybrid)) sessao.rotasHybrid = [];
+      if (sessao.rotasHybrid.some(function (r) { return String(r.rota).toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR'); })) return { sucesso: false, erro: 'Já existe uma rota com esse nome nesta operação.' };
+      sessao.rotasHybrid.push({ rota: nome, idOtimizado: nome, servico: 'MANUAL', sacas: 0, pacotes: 0, sacasIndividuais: [], origem: 'manual' });
+      if (!persistir()) { sessao.rotasHybrid.pop(); return { sucesso: false, erro: 'Não foi possível salvar a rota.' }; }
+      renderTudo(); return { sucesso: true };
+    },
+    addSaca: function (routeName, numero) {
+      var sessao = sessaoAtiva();
+      var normalizado = String(numero == null ? '' : numero).trim();
+      if (!sessao || !Array.isArray(sessao.rotasHybrid)) return { sucesso: false, erro: 'Não há rotas nesta operação.' };
+      if (!/^\d+$/.test(normalizado)) return { sucesso: false, erro: 'A saca deve ter um número inteiro, sem letras.' };
+      var chave = String(Number(normalizado));
+      if (!Number.isSafeInteger(Number(normalizado))) return { sucesso: false, erro: 'Número de saca inválido.' };
+      var sessoes = [sessao].concat(estado.dados.history || []);
+      var duplicada = sessoes.some(function (s) { return (s.rotasHybrid || []).some(function (r) { return (r.sacasIndividuais || []).some(function (sc) { return String(Number(sc.numero)) === chave; }); }); });
+      if (duplicada) return { sucesso: false, erro: 'Essa saca já está cadastrada. A numeração é única no NEX; por exemplo, 060 e 60 são o mesmo número.' };
+      var rota = sessao.rotasHybrid.filter(function (r) { return r.rota === routeName; })[0];
+      if (!rota) return { sucesso: false, erro: 'A rota não foi encontrada.' };
+      if (!Array.isArray(rota.sacasIndividuais)) rota.sacasIndividuais = [];
+      rota.sacasIndividuais.push({ id: 'saca-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), numero: normalizado, auditorias: [] });
+      if (!persistir()) { rota.sacasIndividuais.pop(); return { sucesso: false, erro: 'Não foi possível salvar a saca.' }; }
+      renderTudo(); return { sucesso: true };
+    },
+    auditSaca: function (routeName, sacaId, auditor, status, observacao) {
+      var sessao = sessaoAtiva();
+      var rota = sessao && (sessao.rotasHybrid || []).filter(function (r) { return r.rota === routeName; })[0];
+      var saca = rota && (rota.sacasIndividuais || []).filter(function (sc) { return sc.id === sacaId; })[0];
+      auditor = String(auditor || '').trim();
+      if (!saca) return { sucesso: false, erro: 'A saca não foi encontrada.' };
+      if (!auditor) return { sucesso: false, erro: 'Informe o nome do auditor.' };
+      if (['concluida', 'divergencia'].indexOf(status) < 0) return { sucesso: false, erro: 'Selecione um resultado válido.' };
+      if (!Array.isArray(saca.auditorias)) saca.auditorias = [];
+      saca.auditorias.push({ id: 'aud-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), status: status, auditor: auditor, observacao: String(observacao || '').trim(), data: new Date().toISOString() });
+      if (!persistir()) { saca.auditorias.pop(); return { sucesso: false, erro: 'Não foi possível salvar a auditoria.' }; }
+      renderTudo(); return { sucesso: true };
     }
   };
 

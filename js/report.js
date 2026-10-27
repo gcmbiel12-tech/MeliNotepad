@@ -71,13 +71,14 @@
     linhas.push('🧺 Sacas: *' + U.formatarNumeroBR(sessao.sacas) + '*');
     linhas.push('📦 Pacotes: *' + U.formatarNumeroBR(sessao.pacotes) + '*');
     var rotasHybrid = Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : [];
-    if (rotasHybrid.length) {
-      var rotasConcluidas = rotasHybrid.filter(function (rota) { return rota.auditStatus === 'concluida'; }).length;
+    var sacasIndividuais = [];
+    rotasHybrid.forEach(function (rota) { (rota.sacasIndividuais || []).forEach(function (saca) { var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : []; sacasIndividuais.push({ rota: rota.rota, saca: saca, ultima: auditorias.slice(-1)[0] || null }); }); });
+    if (sacasIndividuais.length) {
+      var auditadas = sacasIndividuais.filter(function (item) { return !!item.ultima; }).length;
+      var comDivergencia = sacasIndividuais.filter(function (item) { return item.ultima && item.ultima.status === 'divergencia'; }).length;
       linhas.push('');
-      linhas.push('🛒 *Auditoria das rotas HYBRID* — ' + rotasConcluidas + '/' + rotasHybrid.length + ' concluída(s)');
-      rotasHybrid.forEach(function (rota) {
-        linhas.push('└ ' + rota.rota + ' — ' + (rota.auditStatus === 'concluida' ? 'Concluída · Auditor: ' + rota.auditor : 'Não auditada'));
-      });
+      linhas.push('🛒 *Auditoria das sacas cadastradas* — ' + auditadas + '/' + sacasIndividuais.length + ' auditada(s) · ' + comDivergencia + ' com divergência');
+      rotasHybrid.forEach(function (rota) { (rota.sacasIndividuais || []).forEach(function (saca) { var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : []; var ultima = auditorias.slice(-1)[0]; linhas.push('└ Rota ' + rota.rota + ' · Saca ' + saca.numero + ' — ' + (!ultima ? 'Não realizada' : ultima.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída') + (ultima ? ' · Auditor: ' + ultima.auditor : '')); if (ultima && ultima.observacao) linhas.push('  Observação: ' + ultima.observacao); }); });
     }
     linhas.push(divisoria);
 
@@ -123,7 +124,18 @@
       sacas: U.formatarNumeroBR(sessao.sacas),
       pacotes: U.formatarNumeroBR(sessao.pacotes),
       rotasHybrid: (Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : []).map(function (rota) {
-        return { rota: rota.rota, sacas: rota.sacas, pacotes: rota.pacotes, auditStatus: rota.auditStatus === 'concluida' ? 'Concluída' : 'Não auditada', auditor: rota.auditor || null, auditedAt: rota.auditedAt || null };
+        return {
+          rota: rota.rota,
+          sacasEstimadasPlanilha: rota.sacas,
+          pacotesEstimadosPlanilha: rota.pacotes,
+          origem: rota.origem || 'planilha',
+          sacasIndividuais: (rota.sacasIndividuais || []).map(function (saca) {
+            var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : [];
+            var ultima = auditorias.slice(-1)[0] || null;
+            return { numero: saca.numero, status: !ultima ? 'Não realizada' : ultima.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída', auditor: ultima ? ultima.auditor : null, auditadaEm: ultima ? ultima.data : null, observacao: ultima ? (ultima.observacao || '') : '', historico: auditorias.map(function (a) { return { status: a.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída', auditor: a.auditor, data: a.data, observacao: a.observacao || '' }; }) };
+          }),
+          auditoriaLegada: rota.auditStatus ? { status: rota.auditStatus, auditor: rota.auditor || null, data: rota.auditedAt || null } : null
+        };
       }),
       categorias: C.CATEGORIES.map(function (cat) {
         return {

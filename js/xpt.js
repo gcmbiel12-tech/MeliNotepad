@@ -413,7 +413,7 @@
         h('td', { text: X.rotuloAuditoria(o, g) }), h('td', { text: g.auditoria.auditor || '-' }),
         h('td', {}, [veiculoSelect]),
         h('td', {}, [h('div', { class: 'acoes-form' }, [
-          h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'auditando' ? 'Terminar auditoria' : g.auditoria.estado === 'nao_iniciada' || g.auditoria.estado === 'pendente' ? 'Iniciar auditoria' : 'Editar auditoria' }),
+          h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'concluida' || g.auditoria.estado.indexOf('concluida_') === 0 ? 'Abrir auditoria' : 'Concluir auditoria' }),
           h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'excluir', id: g.id }, text: 'Excluir gaiola' })
         ])])
       ]);
@@ -430,7 +430,7 @@
         h('p', { class: 'texto-apoio', text: 'Auditor: ' + (g.auditoria.auditor || 'Não informado') }),
         UI.campo('Veículo associado', veiculoSelectMobile),
         h('div', { class: 'acoes-form' }, [
-          h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'auditando' ? 'Terminar auditoria' : g.auditoria.estado === 'nao_iniciada' || g.auditoria.estado === 'pendente' ? 'Iniciar auditoria' : 'Editar auditoria' }),
+          h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'concluida' || g.auditoria.estado.indexOf('concluida_') === 0 ? 'Abrir auditoria' : 'Concluir auditoria' }),
           h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'excluir', id: g.id }, text: 'Excluir gaiola' })
         ])
       ]));
@@ -506,34 +506,23 @@
     var dlg = UI.dialogo('dlg-xpt-aud'), erro = aviso(), q = g.auditoria.quantidades || {};
     var auditor = h('input', { type: 'text', id: 'xa-auditor', autocomplete: 'name', maxlength: '100', placeholder: 'Nome do auditor', value: g.auditoria.auditor || '', required: true });
     var campos = {}; [['g','Quantidade de gaiolas'],['p','Quantidade de paletes']].forEach(function (x) { campos[x[0]] = h('input', { type:'number', min:'0', step:'1', inputmode:'numeric', id:'xa-q-'+x[0], value:q[x[0]] == null ? '' : String(q[x[0]]), required:true }); });
-    var emAndamento = g.auditoria.estado === 'auditando';
     var concluida = g.auditoria.estado === 'concluida' || g.auditoria.estado.indexOf('concluida_') === 0;
-    dlg.appendChild(h('h2', { text: (emAndamento ? 'Terminar auditoria — rota ' : concluida ? 'Editar auditoria — rota ' : 'Iniciar auditoria — rota ') + g.codigo }));
+    dlg.appendChild(h('h2', { text: (concluida ? 'Abrir auditoria — rota ' : 'Concluir auditoria — rota ') + g.codigo }));
+    dlg.appendChild(h('p', { class: 'texto-apoio', text: 'Informe o nome do auditor e as quantidades. Ao confirmar, a auditoria será concluída em uma única etapa.' }));
     var camposQtd = h('div', { class:'interv-duas' }, [['g','Quantidade de gaiolas'],['p','Quantidade de paletes']].map(function (x) { return UI.campo(x[1], campos[x[0]], ''); }));
     dlg.appendChild(h('form', { novalidate:true, onsubmit:function(e) {
       e.preventDefault();
       var nome = auditor.value.trim();
-      if (!nome) { erro.textContent = 'Informe o nome do auditor.'; return; }
+      if (!nome) { erro.textContent = 'Informe o nome do auditor.'; auditor.focus(); return; }
       var quantidades = {};
       ['g','p'].forEach(function(k){ var bruto=campos[k].value.trim(); var n=bruto === '' ? {ok:true,valor:0} : X.inteiroOuNulo(bruto); quantidades[k]=n.ok?n.valor:null; }); quantidades.v = q.v == null ? 0 : q.v;
       if (!X.validarQuantidadesAuditoria(quantidades)) { erro.textContent='Informe quantidades de gaiolas e paletes como inteiros não negativos.'; return; }
-      if (!emAndamento && !concluida) {
-        var inicio = mutarOp(function(x) {
-          var alvo=x.gaiolas.filter(function(y){return y.id===g.id;})[0];
-          var z=X.iniciarAuditoria(alvo,nome,agora());
-          if(!z.ok) throw new Error(z.erro);
-          alvo.auditoria.quantidades = alvo.auditoria.quantidades || { g:null, v:null, p:null };
-          alvo.auditoria.quantidades.g = quantidades.g;
-          alvo.auditoria.quantidades.p = quantidades.p;
-        });
-        if (inicio) { dlg.close(); renderTudo(); UI.avisar('Auditoria iniciada para a rota '+g.codigo+'.','sucesso'); } return;
-      }
       var salvo=mutarOp(function(x){ var alvo=x.gaiolas.filter(function(y){return y.id===g.id;})[0]; var z=X.definirAuditoria(alvo,'concluida',nome,agora(),quantidades); if(!z.ok) throw new Error(z.erro); });
       if(salvo){dlg.close();renderTudo();UI.avisar('Auditoria da rota '+g.codigo+' concluída.','sucesso');}
     } }, [UI.campo('Auditor',auditor), camposQtd, erro,
       h('div',{class:'acoes-form acoes-form--modal'},[
         h('button',{type:'button',class:'botao botao--secundario',text:'Cancelar',onclick:function(){dlg.close();}}),
-        h('button',{type:'submit',class:'botao botao--primario',id:'xa-ok',text:'Registrar'})
+        h('button',{type:'submit',class:'botao botao--primario',id:'xa-ok',text:'Concluir auditoria'})
       ])]));
     dlg.showModal();
   }

@@ -470,3 +470,90 @@ dialog.modal[id^="dlg-xpt-"] {
   .nex-rotas-contadores .contador__valor { font-size: 1.2rem; }
   .nex-rotas-contadores .contador__rotulo { font-size: .68rem; }
 }
+[Reading 27 lines from start (total: 27 lines, 0 remaining)]
+
+/* NEX — rotas recolhidas e sacas exibidas sob demanda. */
+.nex-lista-rotas { display: grid; grid-template-columns: minmax(0, 1fr); gap: .65rem; margin-top: 1rem; }
+.nex-rota-card { display: block; min-width: 0; margin: 0; padding: .35rem .75rem; }
+.nex-rota-toggle { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; min-width: 0; padding: .8rem .25rem; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.nex-rota-toggle__info { display: grid; gap: .25rem; min-width: 0; }
+.nex-rota-nome { font-size: 1.05rem; overflow-wrap: anywhere; }
+.nex-rota-toggle .texto-apoio { margin: 0; font-size: .85rem; }
+.nex-rota-chevron { display: grid; place-items: center; flex: 0 0 2rem; width: 2rem; height: 2rem; border-radius: 50%; background: var(--superficie-secundaria, #f4f4f4); font-size: 1.3rem; font-weight: 700; }
+.nex-rota-conteudo { display: grid; gap: .75rem; padding: .5rem .1rem .75rem; border-top: 1px solid var(--borda, #dedede); }
+.nex-rota-conteudo[hidden] { display: none !important; }
+.nex-rota-detalhes { margin: 0; }
+.nex-adicionar-rota { width: 100%; }
+.nex-lista-sacas { display: grid; gap: .6rem; }
+.nex-saca-item { display: grid; gap: .5rem; min-width: 0; padding: .75rem; border: 1px solid var(--borda, #dedede); border-radius: .65rem; background: var(--superficie, #fff); }
+.nex-saca-item.auditada { border-left: 4px solid var(--cor-verde, #26834a); }
+.nex-saca-item.tem-divergencia { border-left: 4px solid var(--cor-perigo, #b42318); }
+.nex-saca-item__topo { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; }
+.nex-saca-item .texto-apoio, .nex-saca-observacao { margin: 0; overflow-wrap: anywhere; }
+.nex-rota-status.is-divergencia { background: #fde8e7; color: #8f1d18; }
+.nex-saca-item .botao { width: 100%; min-height: 44px; white-space: normal; }
+.nex-saca-historico { font-size: .9rem; overflow-wrap: anywhere; }
+.nex-saca-historico summary { cursor: pointer; font-weight: 600; }
+.nex-saca-historico p { margin: .45rem 0; }
+@media (min-width: 700px) {
+  .nex-lista-sacas { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+  .nex-adicionar-rota { width: auto; }
+}
+
+[executed on device: Gabriel (fe01d3bd-381a-41e3-a363-725a6f67c529)]
+/* NEX — formulários de cadastro com diálogo consistente, revisão de lote e layout responsivo. */
+.nex-rota-acoes { display: flex; justify-content: flex-end; margin: .25rem 0 .1rem; }
+.nex-rota-acoes .botao { min-height: 46px; padding-inline: 1.25rem; }
+.nex-sacas-acoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.nex-sacas-acoes .botao { width: 100%; min-width: 0; min-height: 44px; white-space: normal; }
+.nex-rota-card { border: 1px solid var(--cor-borda, #d8d8d8); border-radius: 1rem; background: var(--superficie, #fff); box-shadow: 0 2px 8px rgba(25, 25, 25, .045); transition: border-color .15s ease, box-shadow .15s ease; }
+.nex-rota-card.is-aberta { border-color: var(--cor-tinta, #292929); box-shadow: 0 5px 18px rgba(25, 25, 25, .075); }
+.nex-rota-toggle { min-height: 76px; padding: 1rem .4rem; }
+.nex-rota-nome { font-size: 1.12rem; letter-spacing: -.015em; }
+.nex-rota-chevron { background: var(--cor-amarelo-fundo, #fff4bd); }
+.nex-rota-conteudo { padding: 1rem .2rem .65rem; gap: 1rem; }
+.nex-saca-item { border-radius: .85rem; padding: .9rem; gap: .65rem; }
+.nex-saca-item__topo strong { font-size: 1rem; }
+.nex-saca-item .botao { margin-top: .1rem; }
+.nex-dialogo {
+  width: min(560px, calc(100% - 2rem)); max-width: 560px; max-height: min(88dvh, 760px);
+  padding: 0; border: 1px solid var(--cor-borda, #d8d8d8); border-radius: 1.15rem;
+  color: var(--cor-tinta, #242424); background: var(--cor-papel, #fff); box-shadow: 0 24px 80px rgba(0,0,0,.25);
+  overflow: auto;
+}
+.nex-dialogo::backdrop { background: rgba(20, 24, 30, .55); backdrop-filter: blur(3px); }
+.nex-dialogo__form { display: grid; gap: 1rem; padding: 1.25rem; }
+.nex-dialogo__cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.nex-dialogo__titulo-wrap { min-width: 0; }
+.nex-dialogo__sobretitulo { margin: 0 0 .3rem; color: var(--cor-tinta-suave, #666); font-size: .72rem; font-weight: 800; letter-spacing: .1em; }
+.nex-dialogo__titulo { margin: 0; font-size: clamp(1.35rem, 4vw, 1.7rem); line-height: 1.15; }
+.nex-dialogo__fechar { display: grid; place-items: center; flex: 0 0 2.5rem; width: 2.5rem; height: 2.5rem; border: 1px solid var(--cor-borda, #ddd); border-radius: 50%; background: transparent; color: inherit; font-size: 1.5rem; cursor: pointer; }
+.nex-dialogo__descricao { margin: 0; color: var(--cor-tinta-suave, #5f5f5f); line-height: 1.5; }
+.nex-dialogo__corpo { display: grid; gap: 1rem; min-width: 0; }
+.nex-campo { display: grid; gap: .5rem; min-width: 0; }
+.nex-campo__rotulo { font-weight: 750; font-size: .94rem; }
+.nex-campo__input, .nex-campo__textarea {
+  display: block; width: 100%; min-width: 0; padding: .85rem .9rem; border: 1.5px solid var(--cor-borda, #cfcfcf);
+  border-radius: .7rem; background: var(--cor-papel, #fff); color: inherit; font: inherit; box-sizing: border-box;
+}
+.nex-campo__input { min-height: 49px; }
+.nex-campo__textarea { min-height: 140px; resize: vertical; line-height: 1.55; }
+.nex-campo__input:focus, .nex-campo__textarea:focus { outline: 3px solid rgba(218, 177, 26, .25); border-color: var(--cor-tinta, #222); }
+.nex-campo__ajuda { color: var(--cor-tinta-suave, #666); font-size: .84rem; line-height: 1.45; }
+.nex-lote-sacas__previa { padding: .85rem 1rem; border: 1px solid var(--cor-borda, #ddd); border-radius: .75rem; background: var(--superficie-secundaria, #f7f7f5); }
+.nex-lote-sacas__previa strong { font-size: .88rem; }
+.nex-lote-sacas__resumo { margin: .35rem 0 0; font-size: .9rem; line-height: 1.5; overflow-wrap: anywhere; }
+.nex-lote-sacas__previa.tem-erro { border-color: #b42318; background: #fff3f2; color: #8f1d18; }
+.nex-dialogo__erro { margin: 0; padding: .7rem .8rem; border-radius: .6rem; background: #fff0ee; color: #912018; font-size: .9rem; line-height: 1.45; }
+.nex-dialogo__erro[hidden] { display: none !important; }
+.nex-dialogo__acoes { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .65rem; padding-top: .25rem; border-top: 1px solid var(--cor-borda, #e0e0e0); }
+.nex-dialogo__acoes .botao { min-height: 46px; }
+@media (max-width: 600px) {
+  .nex-rota-acoes { display: block; }
+  .nex-rota-acoes .botao { width: 100%; }
+  .nex-sacas-acoes { grid-template-columns: minmax(0, 1fr); }
+  .nex-dialogo { width: calc(100% - 1rem); max-height: 92dvh; border-radius: 1rem; }
+  .nex-dialogo__form { gap: .85rem; padding: 1rem; }
+  .nex-dialogo__acoes { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .nex-dialogo__acoes .botao { width: 100%; }
+}
