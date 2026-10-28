@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/styles.css">
-<link rel="stylesheet" href="css/modulos.css?v=20">
+<link rel="stylesheet" href="css/modulos.css?v=22">
 <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
@@ -217,6 +217,8 @@
         <h2 id="titulo-registrar">Registrar ocorrência</h2>
 
         <form id="form-registrar-ocorrencia" class="nex-form-ocorrencia" novalidate>
+          <section class="nex-form-grupo" aria-labelledby="nex-form-identificacao">
+            <h3 id="nex-form-identificacao">1. Identificação</h3>
           <div class="campo">
             <label for="select-categoria">Categoria</label>
             <select id="select-categoria" name="categoria" required>
@@ -236,21 +238,32 @@
           </div>
           <video id="video-camera" class="nex-ocorrencia-video" playsinline muted hidden></video>
           <p id="aviso-camera" class="texto-aviso nex-ocorrencia-aviso" aria-live="polite"></p>
+          </section>
+          <section class="nex-form-grupo" aria-labelledby="nex-form-localizacao">
+            <h3 id="nex-form-localizacao">2. Localização</h3>
           <div class="campo">
             <label for="input-tipo-produto">Tipo do produto</label>
             <input type="text" id="input-tipo-produto" name="tipoProduto" placeholder="Tipo do produto (se conhecido)">
           </div>
           <div class="campo">
+            <label for="input-rota-ocorrencia">Rota</label>
+            <input type="text" id="input-rota-ocorrencia" name="rota" autocomplete="off" placeholder="Digite a rota relacionada (opcional)">
+          </div>
+          <div class="campo">
+            <label for="input-saca-ocorrencia">Saca</label>
+            <input type="text" id="input-saca-ocorrencia" name="saca" inputmode="numeric" autocomplete="off" placeholder="Digite o número da saca (opcional)">
+          </div>
+          <div class="campo">
             <label for="select-gaiola-encontrada">Gaiola encontrada</label>
-            <select id="select-gaiola-encontrada" name="gaiolaEncontrada">
-              <option value="">Selecione a gaiola onde foi encontrado</option>
-              <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option><option value="A4">A4</option>
-            </select>
+            <input type="text" id="select-gaiola-encontrada" name="gaiolaEncontrada" autocomplete="off" placeholder="Digite a gaiola onde foi encontrado">
           </div>
           <div class="campo">
             <label for="input-gaiola-correta">Gaiola correta</label>
             <input type="text" id="input-gaiola-correta" name="gaiolaCorreta" placeholder="Código da gaiola correta, se conhecido">
           </div>
+          </section>
+          <section class="nex-form-grupo" aria-labelledby="nex-form-detalhes">
+            <h3 id="nex-form-detalhes">3. Detalhes do registro</h3>
           <div class="campo">
             <label for="input-encontrado-por">Encontrado por</label>
             <input type="text" id="input-encontrado-por" name="encontradoPor" placeholder="Nome de quem encontrou">
@@ -271,7 +284,8 @@
             <label><input type="radio" name="status-ocorrencia" value="pendente" checked> Pendente</label>
             <label><input type="radio" name="status-ocorrencia" value="resolvido"> Resolvido</label>
           </fieldset>
-          <button type="submit" class="botao botao--primario">Registrar ocorrência</button>
+          </section>
+          <button type="submit" class="botao botao--primario nex-registrar-ocorrencia">Registrar ocorrência</button>
         </form>
       </section>
 

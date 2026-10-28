@@ -646,25 +646,40 @@
         pararCamera(); renderTudo();
         UI.avisar('Ocorr\u00eancia registrada.' + (repetidos.length ? ' Aten\u00e7\u00e3o: este identificador j\u00e1 aparece em ' + repetidos.length + ' ocorr\u00eancia(s).' : ''), repetidos.length ? 'info' : 'sucesso');
       } }, [
-        h('div', { class: 'xpt-grid' }, [
-          UI.campo('Categoria', categoria), UI.campo('Identificador do produto', produto),
-          h('div', { class: 'xpt-scanner-controls' }, [abrirCamera, fecharCamera]), video, avisoCamera,
-          UI.campo('Tipo do produto', tipo), UI.campo('Gaiola encontrada', encontrada), UI.campo('Gaiola correta', correta),
-          UI.campo('Encontrado por', pessoa), UI.campo('Data e hora', quando), UI.campo('Descri\u00e7\u00e3o (categoria Outra)', outra), UI.campo('Observa\u00e7\u00f5es', nota)
-        ]), erro, h('button', { type: 'submit', class: 'botao botao--primario', text: 'Registrar ocorr\u00eancia' })
+        h('div', { class: 'xpt-form-grupo' }, [
+          h('h4', { text: 'Identifica\u00e7\u00e3o do produto' }),
+          h('div', { class: 'xpt-grid' }, [UI.campo('Categoria', categoria), UI.campo('Identificador do produto', produto),
+            h('div', { class: 'xpt-scanner-controls' }, [abrirCamera, fecharCamera]), video, avisoCamera])
+        ]),
+        h('div', { class: 'xpt-form-grupo' }, [
+          h('h4', { text: 'Localiza\u00e7\u00e3o' }),
+          h('div', { class: 'xpt-grid' }, [UI.campo('Tipo do produto', tipo), UI.campo('Gaiola encontrada', encontrada), UI.campo('Gaiola correta', correta)])
+        ]),
+        h('div', { class: 'xpt-form-grupo' }, [
+          h('h4', { text: 'Detalhes do registro' }),
+          h('div', { class: 'xpt-grid' }, [UI.campo('Encontrado por', pessoa), UI.campo('Data e hora', quando), UI.campo('Descri\u00e7\u00e3o (categoria Outra)', outra), UI.campo('Observa\u00e7\u00f5es', nota)])
+        ]),
+        erro, h('button', { type: 'submit', class: 'botao botao--primario xpt-registrar-ocorrencia', text: 'Registrar ocorr\u00eancia' })
       ])
     ]));
     var lista = o.ocorrencias.slice().sort(function (a, b) { return Date.parse(b.registradaEm) - Date.parse(a.registradaEm); });
     var corpo = h('div', { class: 'xpt-lista-ocorrencias' }, lista.map(function (oc) {
       var campos = [];
       if (oc.produtoId) campos.push('Produto: ' + oc.produtoId);
+      if (oc.gaiolaEncontrada) campos.push('Gaiola encontrada: ' + oc.gaiolaEncontrada);
       if (oc.gaiolaCorreta) campos.push('Gaiola correta: ' + oc.gaiolaCorreta);
       if (oc.tipoProduto) campos.push('Tipo: ' + oc.tipoProduto);
       if (oc.identificadoPor) campos.push('Encontrado por: ' + oc.identificadoPor);
-      if (oc.observacao) campos.push(oc.observacao);
+      if (oc.outraDescricao) campos.push('Descrição: ' + oc.outraDescricao);
+      if (oc.observacao) campos.push('Observações: ' + oc.observacao);
       return h('article', { class: 'cartao xpt-ocorrencia' }, [
         h('div', { class: 'cartao__cabecalho' }, [
-          h('div', {}, [h('h3', { text: X.rotuloCategoria(oc) }), h('p', { class: 'texto-apoio', text: dataHora(oc.registradaEm) + ' \u00b7 ' + (oc.status === 'resolvido' ? 'Resolvida' : 'Pendente') })]),
+          h('div', {}, [
+            h('h3', { class: 'xpt-ocorrencia__codigo', text: oc.produtoId ? 'Produto ' + oc.produtoId : X.rotuloCategoria(oc) }),
+            h('p', { class: 'xpt-ocorrencia__categoria', text: X.rotuloCategoria(oc) }),
+            h('span', { class: 'xpt-ocorrencia__status xpt-ocorrencia__status--' + (oc.status === 'resolvido' ? 'resolvido' : 'pendente'), text: oc.status === 'resolvido' ? 'Resolvido' : 'Pendente' }),
+            h('p', { class: 'texto-apoio', text: dataHora(oc.registradaEm) })
+          ]),
           h('div', { class: 'acoes-form' }, [
             h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'status-ocorrencia', id: oc.id }, text: oc.status === 'resolvido' ? 'Reabrir' : 'Registrar resolu\u00e7\u00e3o' }),
             o.gaiolas.some(function (g) { return X.chave(g.codigo) === X.chave(oc.gaiolaEncontrada); }) ? h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'reauditar', id: oc.id }, text: 'ReAuditar' }) : null

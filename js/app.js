@@ -54,7 +54,7 @@
       'form-editar-totais', 'input-sacas-edit', 'input-pacotes-edit', 'btn-cancelar-editar-totais',
       'btn-abrir-camera', 'btn-fechar-camera', 'label-select-camera', 'select-camera', 'video-camera', 'aviso-camera',
       'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'ajuda-categoria', 'input-observacao',
-      'input-tipo-produto', 'select-gaiola-encontrada', 'input-gaiola-correta', 'input-encontrado-por',
+      'input-tipo-produto', 'input-rota-ocorrencia', 'input-saca-ocorrencia', 'select-gaiola-encontrada', 'input-gaiola-correta', 'input-encontrado-por',
       'input-data-hora-ocorrencia', 'input-descricao-outra', 'campo-categoria-outra',
       'contagem-total', 'contagem-pendente', 'contagem-resolvida',
       'filtro-categoria', 'filtro-status', 'filtro-codigo', 'btn-ver-pendentes', 'btn-limpar-filtros',
@@ -284,6 +284,8 @@
 
     var detalhesOcorrencia = [];
     if (o.tipoProduto) detalhesOcorrencia.push('Tipo do produto: ' + o.tipoProduto);
+    if (o.rota) detalhesOcorrencia.push('Rota: ' + o.rota);
+    if (o.saca) detalhesOcorrencia.push('Saca: ' + o.saca);
     if (o.gaiolaEncontrada) detalhesOcorrencia.push('Gaiola encontrada: ' + o.gaiolaEncontrada);
     if (o.gaiolaCorreta) detalhesOcorrencia.push('Gaiola correta: ' + o.gaiolaCorreta);
     if (o.encontradoPor) detalhesOcorrencia.push('Encontrado por: ' + o.encontradoPor);
@@ -859,6 +861,8 @@
       updatedAt: agora,
       note: nota || undefined,
       tipoProduto: detalhes.tipoProduto || undefined,
+      rota: detalhes.rota || undefined,
+      saca: detalhes.saca || undefined,
       gaiolaEncontrada: detalhes.gaiolaEncontrada || undefined,
       gaiolaCorreta: detalhes.gaiolaCorreta || undefined,
       encontradoPor: detalhes.encontradoPor || undefined,
@@ -899,7 +903,9 @@
     var nota = U.normalizarTexto($.inputObservacao.value);
     var detalhes = {
       tipoProduto: U.normalizarTexto($.inputTipoProduto.value),
-      gaiolaEncontrada: $.selectGaiolaEncontrada.value,
+      rota: U.normalizarTexto($.inputRotaOcorrencia.value),
+      saca: U.normalizarTexto($.inputSacaOcorrencia.value),
+      gaiolaEncontrada: U.normalizarTexto($.selectGaiolaEncontrada.value),
       gaiolaCorreta: U.normalizarTexto($.inputGaiolaCorreta.value),
       encontradoPor: U.normalizarTexto($.inputEncontradoPor.value),
       quando: $.inputDataHoraOcorrencia.value ? new Date($.inputDataHoraOcorrencia.value).toISOString() : U.agora().toISOString(),
@@ -960,6 +966,8 @@
       $.inputCodigo.value = '';
       $.inputObservacao.value = '';
       $.inputTipoProduto.value = '';
+      $.inputRotaOcorrencia.value = '';
+      $.inputSacaOcorrencia.value = '';
       $.selectGaiolaEncontrada.value = '';
       $.inputGaiolaCorreta.value = '';
       $.inputEncontradoPor.value = '';

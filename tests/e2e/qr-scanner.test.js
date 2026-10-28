@@ -9,6 +9,7 @@ async function etapa(d, fn) { try { await fn(); passos++; console.log('OK  -', d
   const b = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
   const ctx = await b.newContext({ permissions: ['camera'] });
   const page = await ctx.newPage();
+  await page.addInitScript(() => { window.MeliNotepadConfig = { supabaseUrl: '', supabaseAnonKey: '' }; });
   const erros = []; page.on('console', m => { if (m.type() === 'error') erros.push(m.text()); }); page.on('pageerror', e => erros.push(e.message));
   await page.addInitScript(() => {
     window.__fila = [];
@@ -17,6 +18,7 @@ async function etapa(d, fn) { try { await fn(); passos++; console.log('OK  -', d
   await page.goto(BASE);
   await page.fill('#input-sacas', '1'); await page.fill('#input-pacotes', '1');
   await page.click('#form-iniciar-sessao button[type=submit]');
+  await page.click('#nex-tab-btn-ocorrencias');
   await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
 
   async function ler(raw) {

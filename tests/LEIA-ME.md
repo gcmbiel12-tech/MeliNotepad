@@ -12,11 +12,15 @@ Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional, r
     python3 -m http.server 8743 --bind 127.0.0.1      # em outro terminal, na raiz do projeto
     node tests/e2e/auth-gate.test.js                  # login, acesso, sync, conflito, backup e upload de foto XPT (Auth/Storage simulados)
     node tests/e2e/auth-layout.test.js                # tela de autenticação em 7 larguras (320–1280 px)
-    node tests/e2e/nex-regressao.test.js              # NEX, filtros e impressão PDF
+    node tests/e2e/nex-abas.test.js                   # Abas NEX, quantidades, ocorrências e relatórios
+    node tests/e2e/nex-regressao.test.js              # NEX, filtros, histórico, backup e impressão PDF
     node tests/e2e/nex-melhorias.test.js              # Bingo/Faltando, duplicidade, pendências e filtros do histórico
     node tests/e2e/intervalos.test.js                 # Intervalos, filtros, relógio simulado e impressão PDF
+    node tests/e2e/qr-scanner.test.js                  # Interpretação de QR e alternativa manual (sem câmera física)
     node tests/e2e/responsive-layout.test.js           # NEX/XPT/Intervalos em 8 larguras (320–1440 px)
-Use `BASE_URL=http://127.0.0.1:PORTA` se mudar a porta.
+    node tests/e2e/xpt-auditoria.test.js               # Auditoria XPT, G/V/P, persistência e filtros
+    node tests/e2e/xpt-importacao-planilha.test.js     # Importação, substituição, validação e preservação de dados
+Use BASE_URL=http://127.0.0.1:PORTA se mudar a porta.
 
 ## Supabase local (Docker + Supabase CLI)
     npx supabase migration up --local

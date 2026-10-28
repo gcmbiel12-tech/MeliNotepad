@@ -27,17 +27,43 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     await page.click('#nex-tab-btn-gaiolas');
     assert.strictEqual(await page.locator('#nex-lista-rotas .nex-rota-card').count(), 2, 'as rotas importadas devem aparecer recolhidas');
     assert.strictEqual(await page.locator('#nex-lista-rotas').innerText().then(t => t.includes('J1') && t.includes('K1')), true, 'a lista deve exibir os códigos das rotas');
-    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-saca-item').count(), 0, 'as sacas só aparecem ao expandir uma rota');
+    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-saca-numero').count(), 0, 'as sacas só aparecem ao expandir uma rota');
+    assert.strictEqual(await page.locator('#nex-rotas-auditoria .nex-rotas-contadores').evaluate(el => getComputedStyle(el).display), 'none', 'a tela inicial da auditoria deve priorizar as rotas sem contadores grandes');
+    assert.strictEqual(await page.locator('#nex-rotas-auditoria .nex-filtros-rotas').evaluate(el => getComputedStyle(el).display), 'none', 'os filtros avançados não devem ocupar a tela principal de rotas');
     await page.locator('#nex-lista-rotas .nex-rota-card').first().locator('.nex-rota-toggle').click();
-    await page.locator('#nex-lista-rotas .nex-rota-card').first().getByRole('button', { name: '+ Adicionar em lote' }).click();
+    await page.locator('#nex-lista-rotas .nex-rota-card').first().getByRole('button', { name: '+ Adicionar sacas em lote' }).click();
     await page.locator('#nex-dialogo-operacao textarea').fill('060-062');
     assert.match(await page.locator('.nex-lote-sacas__resumo').innerText(), /3 saca/);
     await page.locator('#nex-dialogo-operacao button[type=submit]').click();
-    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-saca-item').count(), 3, 'intervalo em lote deve criar três sacas individuais');
+    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-saca-numero').count(), 3, 'intervalo em lote deve criar três sacas individuais');
+    await page.waitForFunction(() => !document.getElementById('nex-dialogo-operacao'), null, { timeout: 2000 });
+    assert.strictEqual(await page.locator('#nex-dialogo-operacao').count(), 0, 'o diálogo deve fechar após cadastrar o lote com sucesso');
+    await page.locator('#nex-lista-rotas .nex-adicionar-saca').first().click();
+    assert.strictEqual(await page.locator('#nex-dialogo-operacao textarea').count(), 1, 'Adicionar saca deve usar a mesma interface de inclusão múltipla');
+    await page.locator('#nex-dialogo-operacao textarea').fill('70-71');
+    await page.locator('#nex-dialogo-operacao button[type=submit]').click();
+    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-saca-numero').count(), 5, 'Adicionar saca deve aceitar várias sacas no mesmo envio');
+    await page.waitForFunction(() => !document.getElementById('nex-dialogo-operacao'), null, { timeout: 2000 });
+    assert.strictEqual(await page.locator('#nex-dialogo-operacao').count(), 0, 'a inclusão múltipla na rota deve fechar após sucesso');
+    await page.locator('#nex-lista-rotas .nex-adicionar-saca').first().click();
+    await page.locator('#nex-dialogo-operacao textarea').fill('72');
+    await page.locator('#nex-dialogo-operacao button[type=submit]').click();
+    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-saca-numero').count(), 6, 'a rota deve continuar aceitando novas inclusões');
+    await page.locator('#nex-lista-rotas .nex-saca-numero').first().click();
     dialogAnswers.push('Gabriel');
-    await page.locator('#nex-lista-rotas .nex-saca-item').first().getByRole('button', { name: 'Auditar saca' }).click();
+    await page.locator('#nex-lista-rotas .nex-saca-item:visible').first().getByRole('button', { name: 'Auditar saca' }).click();
     assert.match(await page.locator('#nex-lista-rotas .nex-saca-item').first().innerText(), /Auditor: Gabriel/);
     assert.match(await page.locator('#nex-lista-rotas .nex-saca-item').first().innerText(), /Concluída/);
+    assert.strictEqual(
+      await page.locator('#nex-lista-rotas .nex-saca-numero').first().evaluate(el => getComputedStyle(el).backgroundColor),
+      'rgb(229, 244, 232)',
+      'saca auditada sem ocorrência deve ficar verde pastel'
+    );
+    assert.strictEqual(
+      await page.locator('#nex-lista-rotas .nex-saca-dialog .nex-saca-item').first().evaluate(el => getComputedStyle(el).backgroundColor),
+      'rgb(229, 244, 232)',
+      'cartão da saca auditada deve ficar verde pastel'
+    );
     await page.reload();
     await page.waitForSelector('#nex-abas-principais:not([hidden])');
     await page.click('#nex-tab-btn-gaiolas');
@@ -72,6 +98,16 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     const report = await page.locator('#texto-relatorio').textContent();
     assert.match(report, /PKG-TAB-1/);
     assert.doesNotMatch(report, /veículo|veiculo|carregamento|placa|paletes/i, 'relatório NEX não deve conter lógica de veículos');
+    await page.click('#nex-tab-btn-gaiolas');
+    await page.locator('.nex-adicionar-sacas-multiplas-rotas').click();
+    await page.locator('#nex-dialogo-operacao textarea').fill('J1 80-81\nK1 90,91');
+    assert.match(await page.locator('.nex-lote-sacas__resumo').innerText(), /4 saca/);
+    await page.locator('#nex-dialogo-operacao button[type=submit]').click();
+    await page.waitForFunction(() => !document.getElementById('nex-dialogo-operacao'), null, { timeout: 2000 });
+    assert.strictEqual(await page.locator('#nex-dialogo-operacao').count(), 0, 'cadastro global deve fechar o diálogo após sucesso');
+    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-rota-card').count(), 2, 'cadastro global não deve criar rotas adicionais');
+    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-rota-card').nth(0).locator('.nex-saca-numero').count(), 8, 'lote global deve adicionar sacas à primeira rota indicada');
+    assert.strictEqual(await page.locator('#nex-lista-rotas .nex-rota-card').nth(1).locator('.nex-saca-numero').count(), 2, 'lote global deve adicionar sacas à segunda rota indicada');
     assert.deepStrictEqual(errors, [], 'não deve haver erros de JavaScript');
     console.log('OK - abas NEX, fluxo de quantidades/ocorrências/relatórios e ausência de campos de veículos');
   } finally {

@@ -1,0 +1,3 @@
+-- MeliNotepad: intencionalmente sem dados iniciais.
+-- O cadastro operacional e o primeiro administrador devem ser configurados
+-- por fluxo administrativo controlado; não inserir funcionários ou credenciais fictícias.

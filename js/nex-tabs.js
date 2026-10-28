@@ -291,7 +291,7 @@
   }
 
   function expandirSacas(texto) {
-    var tokens = String(texto || '').split(/[\n,;\t ]+/).filter(Boolean), numeros = [], erros = [];
+    var tokens = String(texto || '').trim().split(/[\s,;]+/).filter(Boolean), numeros = [], erros = [];
     tokens.forEach(function (token) {
       var partes = token.split('-');
       if (partes.length > 2 || !partes.every(function (p) { return /^\d+$/.test(p); })) { erros.push('Entrada inválida: ' + token); return; }
@@ -473,11 +473,15 @@
     var routeActions = criarElemento('div', 'nex-rota-acoes');
     var addRoute = document.createElement('button'); addRoute.type = 'button'; addRoute.className = 'botao botao--primario nex-adicionar-rota'; addRoute.textContent = '+ Adicionar rota';
     addRoute.addEventListener('click', function () { abrirDialogoNovaRota(api); });
-    var addSacasRotas = document.createElement('button'); addSacasRotas.type = 'button'; addSacasRotas.className = 'botao botao--secundario nex-adicionar-sacas-rotas'; addSacasRotas.textContent = '+ Adicionar sacas';
-    addSacasRotas.disabled = !rotas.length;
-    addSacasRotas.title = rotas.length ? 'Cadastrar sacas em várias rotas de uma só vez' : 'Cadastre uma rota antes de adicionar sacas';
+    routeActions.appendChild(addRoute);
+    var addSacasRotas = document.createElement('button');
+    addSacasRotas.type = 'button';
+    addSacasRotas.className = 'botao botao--secundario nex-adicionar-sacas-multiplas-rotas';
+    addSacasRotas.textContent = '+ Adicionar sacas em lote';
+    addSacasRotas.disabled = rotas.length === 0;
+    if (!rotas.length) addSacasRotas.title = 'Cadastre ou importe uma rota antes de adicionar sacas.';
     addSacasRotas.addEventListener('click', function () { abrirDialogoSacasMultiplasRotas(api, rotas); });
-    routeActions.appendChild(addRoute); routeActions.appendChild(addSacasRotas);
+    routeActions.appendChild(addSacasRotas);
     routeList.appendChild(routeActions);
     if (!rotas.length) { routeList.appendChild(criarElemento('p', 'texto-apoio', 'As rotas importadas ou cadastradas manualmente aparecerão aqui.')); return; }
     var termoBusca = buscaSaca.value.trim().toLocaleLowerCase('pt-BR');
@@ -494,11 +498,15 @@
       if (termoBusca && !rotaCombina && !listaSacas.length) return;
       if (termoBusca && rotaCombina) listaSacas = todasSacasRota.filter(function (s) { return correspondeFiltroSaca(situacaoVisualSaca(s, sessao), statusSelecionado); });
       if (!listaSacas.length && (termoBusca || statusSelecionado !== 'todas')) return;
-      var contAuditadas = todasSacasRota.filter(function (s) { return (s.auditorias || []).length > 0; }).length;
+      var contAuditadas = todasSacasRota.filter(function (s) { var st = situacaoVisualSaca(s, sessao); return st === 'concluida' || st === 'divergencia'; }).length;
+      var contPendentes = Math.max(0, todasSacasRota.length - contAuditadas);
       var aberto = !!rotasAbertas[rota.rota] || !!termoBusca || statusSelecionado !== 'todas';
       var card = criarElemento('article', 'cartao nex-rota-card nex-rota-card--' + situacaoRota + (aberto ? ' is-aberta' : ''));
       var toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'nex-rota-toggle'; toggle.setAttribute('aria-expanded', String(aberto));
-      var toggleInfo = criarElemento('span', 'nex-rota-toggle__info'); toggleInfo.appendChild(criarElemento('strong', 'nex-rota-nome', rota.rota)); toggleInfo.appendChild(criarElemento('span', 'texto-apoio', todasSacasRota.length + ' sacas · ' + contAuditadas + ' auditadas')); toggle.appendChild(toggleInfo); toggle.appendChild(criarElemento('span', 'nex-rota-chevron', aberto ? '−' : '+'));
+      var toggleInfo = criarElemento('span', 'nex-rota-toggle__info');
+      toggleInfo.appendChild(criarElemento('strong', 'nex-rota-nome', rota.rota));
+      toggleInfo.appendChild(criarElemento('span', 'nex-rota-resumo', todasSacasRota.length + ' sacas · ' + contAuditadas + ' auditadas · ' + contPendentes + ' pendentes'));
+      toggle.appendChild(toggleInfo); toggle.appendChild(criarElemento('span', 'nex-rota-chevron', aberto ? '−' : '+'));
       var removerRota = document.createElement('button');
       removerRota.type = 'button';
       removerRota.className = 'botao botao--secundario nex-remover-rota';
@@ -529,15 +537,16 @@
         if (typeof window.requestAnimationFrame === 'function') {
           window.requestAnimationFrame(function () { window.scrollTo(scrollX, scrollY); });
         }
-      }); card.appendChild(toggle); card.appendChild(removerRota);
+      }); var rotaBarra = criarElemento('div', 'nex-rota-barra'); rotaBarra.appendChild(toggle); card.appendChild(rotaBarra);
       var conteudo = criarElemento('div', 'nex-rota-conteudo'); conteudo.hidden = !aberto;
       conteudo.appendChild(criarElemento('p', 'texto-apoio nex-rota-detalhes', rota.origem === 'manual' ? 'Rota cadastrada manualmente · sem totais estimados da planilha' : 'Totais da planilha (estimativas): ' + (rota.sacas || 0) + ' sacas · ' + (rota.pacotes || 0) + ' pacotes. Esses números não criam cadastros individuais de sacas.'));
-      var sacaActions = criarElemento('div', 'nex-sacas-acoes');
-      var addSaca = document.createElement('button'); addSaca.type = 'button'; addSaca.className = 'botao botao--secundario'; addSaca.textContent = '+ Uma saca';
-      addSaca.addEventListener('click', function () { abrirDialogoSaca(api, rota.rota); });
-      var addLote = document.createElement('button'); addLote.type = 'button'; addLote.className = 'botao botao--primario'; addLote.textContent = '+ Adicionar em lote';
-      addLote.addEventListener('click', function () { abrirDialogoSacasLote(api, rota.rota); });
-      sacaActions.appendChild(addSaca); sacaActions.appendChild(addLote); conteudo.appendChild(sacaActions);
+      conteudo.appendChild(removerRota);
+      var acoesSacas = criarElemento('div', 'nex-acoes-sacas');
+      var addSaca = document.createElement('button'); addSaca.type = 'button'; addSaca.className = 'botao botao--secundario nex-adicionar-saca'; addSaca.textContent = '+ Adicionar saca';
+      addSaca.addEventListener('click', function () { abrirDialogoSacasLote(api, rota.rota); });
+      acoesSacas.appendChild(addSaca);
+
+      conteudo.appendChild(acoesSacas);
       if (!listaSacas.length) conteudo.appendChild(criarElemento('p', 'texto-apoio', 'Ainda não há sacas individuais vinculadas a esta rota. O total importado da planilha é apenas uma estimativa e não cria cadastros individuais.'));
       var lista = criarElemento('div', 'nex-lista-sacas');
       listaSacas.slice().sort(function (a,b) { return Number(a.numero)-Number(b.numero); }).forEach(function (saca) {
@@ -545,7 +554,28 @@
         var situacaoSaca = situacaoVisualSaca(saca, sessao);
         var classeSaca = situacaoSaca === 'ocorrencia-pendente' ? ' tem-ocorrencia-pendente' : situacaoSaca === 'divergencia' ? ' tem-divergencia' : situacaoSaca === 'concluida' ? ' auditada' : ' pendente';
         var rotuloSaca = situacaoSaca === 'ocorrencia-pendente' ? 'Ocorrência · auditar' : situacaoSaca === 'divergencia' ? 'Auditada com ocorrência' : situacaoSaca === 'concluida' ? 'Concluída sem ocorrência' : 'Pendente de auditoria';
+        var numero = document.createElement('button');
+        numero.type = 'button'; numero.className = 'nex-saca-numero' + classeSaca; numero.textContent = String(saca.numero);
+        numero.setAttribute('aria-pressed', 'false'); numero.setAttribute('aria-label', 'Saca ' + saca.numero + ', ' + rotuloSaca);
+        var dialogoSaca = document.createElement('dialog');
+        dialogoSaca.className = 'nex-saca-dialog';
         var item = criarElemento('article', 'nex-saca-item' + classeSaca);
+        var coresSaca = situacaoSaca === 'ocorrencia-pendente' ? { fundo: '#fde8e7', borda: '#efb6b2', texto: '#812b2b' } : situacaoSaca === 'divergencia' ? { fundo: '#f0e6fa', borda: '#d5b9ef', texto: '#5d347e' } : situacaoSaca === 'concluida' ? { fundo: '#e5f4e8', borda: '#b5dabb', texto: '#245b35' } : { fundo: '#ffffff', borda: '#d8d5cc', texto: '#292929' };
+        [numero, item].forEach(function (elemento) {
+          elemento.style.setProperty('background-color', coresSaca.fundo, 'important');
+          elemento.style.setProperty('border-color', coresSaca.borda, 'important');
+          elemento.style.setProperty('color', coresSaca.texto, 'important');
+        });
+        var fecharSaca = document.createElement('button');
+        fecharSaca.type = 'button'; fecharSaca.className = 'botao botao--secundario nex-saca-dialog__fechar'; fecharSaca.textContent = 'Fechar';
+        fecharSaca.addEventListener('click', function () { dialogoSaca.close(); });
+        dialogoSaca.addEventListener('click', function (event) { if (event.target === dialogoSaca) dialogoSaca.close(); });
+        dialogoSaca.addEventListener('close', function () { numero.classList.remove('is-selecionada'); numero.setAttribute('aria-pressed', 'false'); });
+        numero.addEventListener('click', function () {
+          numero.classList.add('is-selecionada'); numero.setAttribute('aria-pressed', 'true');
+          if (!dialogoSaca.open) dialogoSaca.showModal();
+        });
+        item.appendChild(fecharSaca);
         var topo = criarElemento('div', 'nex-saca-item__topo'); topo.appendChild(criarElemento('strong', '', 'Saca ' + saca.numero)); topo.appendChild(criarElemento('span', 'nex-rota-status' + (situacaoSaca === 'ocorrencia-pendente' ? ' is-ocorrencia-pendente' : situacaoSaca === 'divergencia' ? ' is-divergencia' : situacaoSaca === 'concluida' ? ' is-concluida' : ''), rotuloSaca)); item.appendChild(topo);
         if (ultima) { item.appendChild(criarElemento('p', 'texto-apoio', 'Auditor: ' + ultima.auditor + ' · ' + new Date(ultima.data).toLocaleString('pt-BR'))); if (ultima.observacao) item.appendChild(criarElemento('p', 'nex-saca-observacao', ultima.observacao)); }
         var auditar = document.createElement('button'); auditar.type = 'button'; auditar.className = 'botao botao--primario'; auditar.textContent = ultima ? 'Realizar nova auditoria' : 'Auditar saca';
@@ -560,7 +590,9 @@
           else { rotasAbertas[rota.rota] = true; renderRotas(); }
         }); item.appendChild(removerSaca);
         if (historico.length > 1) { var details = document.createElement('details'); details.className = 'nex-saca-historico'; details.appendChild(criarElemento('summary', '', 'Histórico de auditorias (' + historico.length + ')')); historico.forEach(function (a, i) { details.appendChild(criarElemento('p', 'texto-apoio', (i + 1) + '. ' + (a.status === 'divergencia' ? 'Com divergência' : 'Concluída') + ' · ' + a.auditor + ' · ' + new Date(a.data).toLocaleString('pt-BR') + (a.observacao ? ' · ' + a.observacao : ''))); }); item.appendChild(details); }
-        lista.appendChild(item);
+        dialogoSaca.appendChild(item);
+        card.appendChild(dialogoSaca);
+        lista.appendChild(numero);
       });
       conteudo.appendChild(lista); card.appendChild(conteudo); routeList.appendChild(card);
     });

@@ -949,7 +949,13 @@ dialog.modal[id^="dlg-xpt-"] {
 }
 
 /* NEX — Ocorrências: formulário alinhado ao padrão visual do XPT, mantendo os dados e ações próprios do NEX. */
-#nex-tab-ocorrencias .nex-form-ocorrencia { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.85rem; margin-top:1rem; }
+#nex-tab-ocorrencias .nex-form-ocorrencia { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:1rem; padding:1rem; border:1px solid #e5e0d5; border-radius:12px; background:#fcfbf8; }
+#nex-tab-ocorrencias .nex-form-ocorrencia > .campo:focus-within { background:#fff; }
+#nex-tab-ocorrencias .nex-form-ocorrencia input:focus-visible,
+#nex-tab-ocorrencias .nex-form-ocorrencia select:focus-visible,
+#nex-tab-ocorrencias .nex-form-ocorrencia textarea:focus-visible { outline:2px solid #9a7800; outline-offset:1px; }
+#nex-tab-ocorrencias .nex-scanner-controles { padding:.75rem; border:1px dashed #d9c77b; border-radius:10px; background:#fff9df; }
+#nex-tab-ocorrencias .nex-scanner-controles #btn-abrir-camera { min-height:46px; font-weight:700; }
 #nex-tab-ocorrencias .nex-form-ocorrencia > .campo { min-width:0; margin:0; }
 #nex-tab-ocorrencias .nex-form-ocorrencia input,
 #nex-tab-ocorrencias .nex-form-ocorrencia select,
@@ -1118,3 +1124,83 @@ dialog.modal[id^="dlg-xpt-"] {
 #nex-rotas-auditoria .nex-saca-dialog .nex-saca-item.auditada { background:#e5f4e8 !important; border-color:#b5dabb !important; color:#245b35 !important; }
 #nex-rotas-auditoria .nex-saca-dialog .nex-saca-item { border-radius:12px; padding:1rem !important; }
 #nex-rotas-auditoria .nex-saca-numero.is-selecionada { outline-color:rgba(36,107,206,.22); }
+
+
+/* Formulário de ocorrências XPT: grupos de leitura rápida, câmera em destaque e ações acessíveis. */
+#modulo-xpt #xoc-form { display:grid; gap:1rem; margin-top:.75rem; }
+#modulo-xpt .xpt-form-grupo { min-width:0; padding:.9rem; border:1px solid #e5e0d5; border-radius:12px; background:#fcfbf8; }
+#modulo-xpt .xpt-form-grupo h4 { margin:0 0 .75rem; font-size:1rem; }
+#modulo-xpt .xpt-form-grupo .xpt-grid { gap:.85rem; }
+#modulo-xpt .xpt-form-grupo .campo { margin:0; min-width:0; }
+#modulo-xpt .xpt-form-grupo input,
+#modulo-xpt .xpt-form-grupo select,
+#modulo-xpt .xpt-form-grupo textarea { width:100%; min-width:0; min-height:44px; }
+#modulo-xpt .xpt-scanner-controls { padding:.7rem; border:1px dashed #d9c77b; border-radius:10px; background:#fff9df; }
+#modulo-xpt .xpt-scanner-controls .botao { min-height:44px; }
+#modulo-xpt .xpt-registrar-ocorrencia { width:100%; min-height:48px; }
+#modulo-xpt .xpt-ocorrencia { overflow-wrap:anywhere; }
+#modulo-xpt .xpt-ocorrencia .cartao__cabecalho { align-items:flex-start; gap:.75rem; }
+#modulo-xpt .xpt-ocorrencia .cartao__cabecalho > div:first-child { min-width:0; }
+#modulo-xpt .xpt-ocorrencia .acoes-form { flex-wrap:wrap; }
+#modulo-xpt .xpt-ocorrencia .acoes-form .botao { min-height:42px; }
+@media (max-width:600px) {
+  #modulo-xpt .xpt-form-grupo { padding:.75rem; }
+  #modulo-xpt .xpt-ocorrencia .cartao__cabecalho { flex-direction:column; }
+  #modulo-xpt .xpt-ocorrencia .acoes-form { display:grid; grid-template-columns:minmax(0,1fr); width:100%; }
+  #modulo-xpt .xpt-ocorrencia .acoes-form .botao { width:100%; white-space:normal; }
+  #nex-tab-ocorrencias .nex-form-ocorrencia { padding:.75rem; }
+}
+
+/* NEX — formulário de ocorrências organizado por finalidade, sem alterar os campos de dados. */
+#nex-tab-ocorrencias #form-registrar-ocorrencia.nex-form-ocorrencia {
+  display:grid; grid-template-columns:minmax(0,1fr); gap:.85rem;
+  margin-top:1rem; padding:0; border:0; background:transparent;
+}
+#nex-tab-ocorrencias .nex-form-grupo {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start;
+  gap:.8rem; min-width:0; margin:0; padding:1rem;
+  border:1px solid #e5e0d5; border-radius:12px; background:#fcfbf8;
+}
+#nex-tab-ocorrencias .nex-form-grupo h3 {
+  grid-column:1/-1; margin:0; padding-bottom:.55rem;
+  border-bottom:1px solid #e5e0d5; font-size:1rem; font-weight:750;
+}
+#nex-tab-ocorrencias .nex-form-grupo > .campo { min-width:0; margin:0; }
+#nex-tab-ocorrencias .nex-form-grupo input,
+#nex-tab-ocorrencias .nex-form-grupo select,
+#nex-tab-ocorrencias .nex-form-grupo textarea { width:100%; min-width:0; min-height:44px; }
+#nex-tab-ocorrencias .nex-form-grupo textarea { min-height:76px; }
+#nex-tab-ocorrencias .nex-form-grupo > .nex-scanner-controles,
+#nex-tab-ocorrencias .nex-form-grupo > .nex-ocorrencia-video,
+#nex-tab-ocorrencias .nex-form-grupo > .nex-ocorrencia-aviso { grid-column:1/-1; }
+#nex-tab-ocorrencias .nex-scanner-controles {
+  display:flex; flex-wrap:wrap; align-items:center; gap:.55rem;
+  padding:.7rem; border:1px dashed #d9c77b; border-radius:10px; background:#fff9df;
+}
+#nex-tab-ocorrencias .nex-scanner-controles #btn-abrir-camera { min-height:46px; font-weight:700; }
+#nex-tab-ocorrencias .nex-ocorrencia-video { width:min(100%,520px); max-height:320px; border-radius:12px; background:#171717; }
+#nex-tab-ocorrencias .nex-form-ocorrencia [hidden] { display:none !important; }
+#nex-tab-ocorrencias .nex-form-ocorrencia input:focus-visible,
+#nex-tab-ocorrencias .nex-form-ocorrencia select:focus-visible,
+#nex-tab-ocorrencias .nex-form-ocorrencia textarea:focus-visible { outline:2px solid #9a7800; outline-offset:1px; }
+#nex-tab-ocorrencias .nex-registrar-ocorrencia { width:100%; min-height:50px; font-weight:750; }
+#nex-tab-ocorrencias .nex-status-ocorrencia-interno { display:none; }
+#nex-tab-ocorrencias .item-ocorrencia__codigo { font-size:1.08rem; font-weight:800; overflow-wrap:anywhere; }
+#nex-tab-ocorrencias .item-ocorrencia__categoria { color:#57534b; font-size:.92rem; }
+#nex-tab-ocorrencias .item-ocorrencia__meta { font-size:.88rem; color:#57534b; overflow-wrap:anywhere; }
+#nex-tab-ocorrencias .item-ocorrencia__cabecalho { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; }
+#modulo-xpt .xpt-ocorrencia__codigo { overflow-wrap:anywhere; font-size:1.08rem; font-weight:800; }
+#modulo-xpt .xpt-ocorrencia__categoria { margin:.25rem 0 0; font-size:.9rem; color:#57534b; }
+#modulo-xpt .xpt-ocorrencia__status { display:inline-flex; align-items:center; width:max-content; max-width:100%; padding:.25rem .55rem; border-radius:999px; font-size:.78rem; font-weight:750; white-space:normal; }
+#modulo-xpt .xpt-ocorrencia__status--pendente { color:#854d0e; background:#fef3c7; }
+#modulo-xpt .xpt-ocorrencia__status--resolvido { color:#166534; background:#dcfce7; }
+#modulo-xpt .xpt-ocorrencia .texto-apoio { overflow-wrap:anywhere; }
+@media (min-width:900px) {
+  #nex-tab-ocorrencias .nex-form-grupo { padding:1.1rem; gap:.9rem 1rem; }
+}
+@media (max-width:719px) {
+  #nex-tab-ocorrencias .nex-form-grupo { grid-template-columns:minmax(0,1fr); gap:.7rem; padding:.8rem; }
+  #nex-tab-ocorrencias .nex-form-grupo h3 { grid-column:1; }
+  #nex-tab-ocorrencias .nex-registrar-ocorrencia { width:100%; }
+  #nex-tab-ocorrencias .filtros { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}

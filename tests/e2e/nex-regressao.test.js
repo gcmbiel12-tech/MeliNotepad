@@ -30,8 +30,10 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   const browser = await chromium.launch({
     args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
   });
-  const context = await browser.newContext({ permissions: ['camera', 'clipboard-read', 'clipboard-write'] });
+  const context = await browser.newContext({ permissions: ['camera', 'clipboard-read', 'clipboard-write'], serviceWorkers: 'block' });
   const page = await context.newPage();
+  page.setDefaultTimeout(5000);
+  await page.addInitScript(() => { window.MeliNotepadConfig = { supabaseUrl: '', supabaseAnonKey: '' }; });
 
   const consoleErrors = [];
   page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
@@ -46,15 +48,19 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   });
 
   await etapa('Iniciar sessão (96/7007) e identificação sem "Início"', async () => {
+    assert.ok(await page.inputValue('#input-data-operacao'), 'data/hora deve ser preenchida automaticamente ao abrir o formulário');
     await page.fill('#input-sacas', '96');
     await page.fill('#input-pacotes', '7007');
     await page.click('#form-iniciar-sessao button[type=submit]');
+    await page.click('#nex-tab-btn-ocorrencias');
     await page.waitForSelector('#painel-sessao-ativa:not([hidden])', { timeout: 3000 });
     assert.strictEqual(await page.textContent('#info-sacas'), '96');
     assert.strictEqual(await page.textContent('#info-pacotes'), '7.007');
-    const rotulos = await page.$$eval('#painel-sessao-ativa .lista-definicao dt', els => els.map(e => e.textContent));
-    assert.deepStrictEqual(rotulos, ['Data', 'Sacas', 'Pacotes'], 'não deveria mais existir o campo "Início"');
+    await page.click('#nex-tab-btn-quantidades');
+    const rotulos = await page.$$eval('#nex-tab-quantidades .lista-definicao dt', els => els.filter(e => !e.parentElement.hidden).map(e => e.textContent));
+    assert.deepStrictEqual(rotulos, ['Data', 'Sacas', 'Pacotes'], 'identificação da operação deve manter apenas Data, Sacas e Pacotes');
     assert.strictEqual(await page.textContent('#status-chip'), 'Em andamento');
+    await page.click('#nex-tab-btn-ocorrencias');
   });
 
   await etapa('Nenhum status vem pré-marcado no formulário de registro', async () => {
@@ -140,11 +146,13 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
 
   await etapa('Atualizar a página mantém a sessão e as ocorrências salvas', async () => {
     await page.reload();
+    await page.click('#nex-tab-btn-ocorrencias');
     await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
     assert.strictEqual(await page.textContent('#contagem-total'), '4');
   });
 
   await etapa('Pré-visualização: estilo WhatsApp, categoria zerada (despachar) não aparece', async () => {
+    await page.click('#nex-tab-btn-relatorios');
     await page.click('#btn-pre-visualizar');
     await page.waitForSelector('#painel-relatorio:not([hidden])');
     const texto = await page.textContent('#texto-relatorio');
@@ -161,6 +169,8 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
 
   let horarioFinalizacaoEscolhido;
   await etapa('Finalizar: horário vem por padrão com "agora", mas é sempre editável manualmente', async () => {
+    // O controle de finalização pertence à aba Relatórios; não fica visível em Ocorrências.
+    await page.click('#nex-tab-btn-relatorios');
     await page.click('#btn-finalizar-sessao');
     await page.waitForSelector('#modal-finalizar[open]');
     const avisoVisivel = await page.evaluate(() => !document.getElementById('modal-finalizar-aviso-pendentes').hidden);
@@ -176,7 +186,8 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     await page.fill('#finalizar-horario', horarioFinalizacaoEscolhido);
     await page.click('#form-finalizar button[type=submit]');
     await page.waitForSelector('#detalhe-historico:not([hidden])', { timeout: 3000 });
-    await page.waitForFunction(() => document.getElementById('painel-inicio').hidden === false);
+    // Após finalizar, o fluxo abre o detalhe do histórico; o formulário de início fica oculto até voltar à lista.
+    assert.strictEqual(await page.locator('#painel-sessao-ativa').evaluate(el => el.hidden), true, 'a sessão finalizada não deve continuar ativa');
   });
 
   await etapa('Histórico: detalhe sem "Início", relatório é textarea editável com horário manual exato', async () => {
@@ -234,11 +245,13 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     await page.fill('#input-sacas', '10');
     await page.fill('#input-pacotes', '500');
     await page.click('#form-iniciar-sessao button[type=submit]');
+    await page.click('#nex-tab-btn-ocorrencias');
     await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
     assert.strictEqual(await page.textContent('#contagem-total'), '0', 'nova sessão deveria começar sem ocorrências');
   });
 
   await etapa('Bloqueio: não é possível iniciar outra sessão sem finalizar/descartar a atual', async () => {
+    await page.click('#nex-tab-btn-quantidades');
     await page.click('#btn-nova-sessao-bloqueio');
     await page.waitForSelector('#modal-sessao-bloqueio[open]');
     await page.click('#btn-bloqueio-cancelar');
@@ -346,6 +359,7 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     await page.fill('#input-sacas', '1');
     await page.fill('#input-pacotes', '1');
     await page.click('#form-iniciar-sessao button[type=submit]');
+    await page.click('#nex-tab-btn-ocorrencias');
     await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
 
     const suportada = await page.evaluate(() => typeof window.BarcodeDetector === 'function');
@@ -369,8 +383,14 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   });
 
   await etapa('Service worker é registrado em contexto seguro (http://localhost)', async () => {
-    const registrado = await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => !!r));
+    // O contexto principal bloqueia SW para isolar os E2E de cache antigo. Valide o registro em contexto separado.
+    const swContext = await browser.newContext();
+    const swPage = await swContext.newPage();
+    await swPage.goto(BASE.replace('127.0.0.1', 'localhost'));
+    await swPage.waitForFunction(() => navigator.serviceWorker.getRegistration().then(r => !!r), { timeout: 5000 });
+    const registrado = await swPage.evaluate(() => navigator.serviceWorker.getRegistration().then(r => !!r));
     assert.ok(registrado, 'service worker deveria estar registrado');
+    await swContext.close();
   });
 
   await etapa('Nenhum erro inesperado no console durante o fluxo testado', async () => {

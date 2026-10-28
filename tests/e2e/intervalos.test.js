@@ -10,8 +10,9 @@ const MIN = 60000;
 
 (async () => {
   const browser = await chromium.launch();
-  const context = await browser.newContext({ timezoneId: 'America/Sao_Paulo', locale: 'pt-BR', viewport: { width: 390, height: 844 } });
+  const context = await browser.newContext({ timezoneId: 'America/Sao_Paulo', locale: 'pt-BR', viewport: { width: 390, height: 844 }, serviceWorkers: 'block' });
   const page = await context.newPage();
+  await page.addInitScript(() => { window.MeliNotepadConfig = { supabaseUrl: '', supabaseAnonKey: '' }; });
   const erros = [];
   page.on('console', m => { if (m.type() === 'error') erros.push(m.text()); });
   page.on('pageerror', e => erros.push('pageerror: ' + e.message));
@@ -35,6 +36,8 @@ const MIN = 60000;
   async function cadastrar(nome, setor) {
     await page.fill('#fn-nome', nome); await page.fill('#fn-setor', setor || '');
     await page.click('#fn-cadastrar');
+    // O toast de sucesso pode cobrir ações da tabela no viewport móvel; o teste valida cadastro, não a sobreposição do toast.
+    await page.evaluate(() => { const toast = document.getElementById('toast-container'); if (toast) toast.replaceChildren(); });
   }
   async function liberar(busca, opcoes = {}) {
     await page.click('#iv-novo');
@@ -49,6 +52,7 @@ const MIN = 60000;
     assert.deepStrictEqual(await page.$$eval('.tab-modulo', b => b.map(x => x.textContent)), ['NEX', 'XPT', 'Intervalos']);
     await page.fill('#input-sacas', '10'); await page.fill('#input-pacotes', '100');
     await page.click('#form-iniciar-sessao button[type=submit]');
+    await page.click('#nex-tab-btn-ocorrencias');
     await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
     await page.fill('#input-codigo', 'RASCUNHO-123');
     await page.click('.tab-modulo[data-modulo=intervalos]');
