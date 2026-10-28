@@ -146,7 +146,7 @@
             return {
               code: o.code,
               status: C.STATUS_LABEL[o.status],
-              nota: o.note || ''
+              nota: [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.gaiolaEncontrada ? 'Gaiola encontrada: ' + o.gaiolaEncontrada : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note || ''].filter(Boolean).join(' · ')
             };
           })
         };

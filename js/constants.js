@@ -26,7 +26,8 @@
     { key: 'nao_localizados', label: 'Pacotes não localizados em auditoria', emoji: '🔎' },
     { key: 'despachar_nao_agregados', label: 'Pacotes com status "despachar" não agregados', emoji: '🚚' },
     { key: 'bingo', label: 'Bingo', emoji: '🎯' },
-    { key: 'faltando', label: 'Faltando', emoji: '❗' }
+    { key: 'faltando', label: 'Faltando', emoji: '❗' },
+    { key: 'outra', label: 'Outra', emoji: '📝' }
   ];
 
   var STATUS = {

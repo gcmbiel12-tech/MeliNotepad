@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/styles.css">
-<link rel="stylesheet" href="css/modulos.css">
+<link rel="stylesheet" href="css/modulos.css?v=20">
 <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
@@ -216,46 +216,61 @@
       <section class="cartao" aria-labelledby="titulo-registrar">
         <h2 id="titulo-registrar">Registrar ocorrência</h2>
 
-        <div class="camera-bloco">
-          <div class="camera-bloco__acoes">
-            <button type="button" id="btn-abrir-camera" class="botao botao--secundario">Ler pela câmera</button>
-            <button type="button" id="btn-fechar-camera" class="botao botao--secundario" hidden>Fechar câmera</button>
-            <label for="select-camera" class="campo-inline-label" id="label-select-camera" hidden>Câmera</label>
-            <select id="select-camera" hidden></select>
-          </div>
-          <video id="video-camera" playsinline muted hidden></video>
-          <p id="aviso-camera" class="texto-aviso" aria-live="polite"></p>
-        </div>
-
-        <form id="form-registrar-ocorrencia" novalidate>
+        <form id="form-registrar-ocorrencia" class="nex-form-ocorrencia" novalidate>
           <div class="campo">
-            <label for="input-codigo">Código do pacote</label>
-            <input type="text" id="input-codigo" name="codigo" autocomplete="off" required placeholder="Digite, cole ou leia pela câmera">
-          </div>
-          <div class="campo">
-            <label for="select-categoria">Categoria da ocorrência</label>
+            <label for="select-categoria">Categoria</label>
             <select id="select-categoria" name="categoria" required>
               <option value="" selected disabled>Selecione uma categoria</option>
             </select>
-            <p id="ajuda-categoria" class="campo__ajuda" aria-live="polite">Selecione a categoria que melhor descreve a divergência.</p>
+            <p id="ajuda-categoria" class="campo__ajuda" aria-live="polite">Selecione a categoria que melhor descreve a ocorrência.</p>
           </div>
-          <fieldset class="campo campo-fieldset">
-            <legend>Status da ocorrência</legend>
-            <div class="segmentado" id="grupo-status-ocorrencia">
-              <label class="segmentado__opcao segmentado__opcao--pendente">
-                <input type="radio" name="status-ocorrencia" value="pendente" required>
-                <span>🔴 Pendente</span>
-              </label>
-              <label class="segmentado__opcao segmentado__opcao--resolvido">
-                <input type="radio" name="status-ocorrencia" value="resolvido">
-                <span>✅ Resolvido</span>
-              </label>
-            </div>
-          </fieldset>
           <div class="campo">
-            <label for="input-observacao">Observação (opcional)</label>
-            <textarea id="input-observacao" name="observacao" rows="2"></textarea>
+            <label for="input-codigo">Identificador do produto</label>
+            <input type="text" id="input-codigo" name="codigo" autocomplete="off" required placeholder="Escaneie ou digite o código do produto">
           </div>
+          <div class="nex-scanner-controles">
+            <button type="button" id="btn-abrir-camera" class="botao botao--secundario">Escanear pela câmera</button>
+            <button type="button" id="btn-fechar-camera" class="botao botao--texto" hidden>Fechar câmera</button>
+            <label for="select-camera" class="campo-inline-label" id="label-select-camera" hidden>Câmera</label>
+            <select id="select-camera" hidden></select>
+          </div>
+          <video id="video-camera" class="nex-ocorrencia-video" playsinline muted hidden></video>
+          <p id="aviso-camera" class="texto-aviso nex-ocorrencia-aviso" aria-live="polite"></p>
+          <div class="campo">
+            <label for="input-tipo-produto">Tipo do produto</label>
+            <input type="text" id="input-tipo-produto" name="tipoProduto" placeholder="Tipo do produto (se conhecido)">
+          </div>
+          <div class="campo">
+            <label for="select-gaiola-encontrada">Gaiola encontrada</label>
+            <select id="select-gaiola-encontrada" name="gaiolaEncontrada">
+              <option value="">Selecione a gaiola onde foi encontrado</option>
+              <option value="A1">A1</option><option value="A2">A2</option><option value="A3">A3</option><option value="A4">A4</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="input-gaiola-correta">Gaiola correta</label>
+            <input type="text" id="input-gaiola-correta" name="gaiolaCorreta" placeholder="Código da gaiola correta, se conhecido">
+          </div>
+          <div class="campo">
+            <label for="input-encontrado-por">Encontrado por</label>
+            <input type="text" id="input-encontrado-por" name="encontradoPor" placeholder="Nome de quem encontrou">
+          </div>
+          <div class="campo">
+            <label for="input-data-hora-ocorrencia">Data e hora</label>
+            <input type="datetime-local" id="input-data-hora-ocorrencia" name="dataHoraOcorrencia" required>
+          </div>
+          <div class="campo nex-categoria-outra" id="campo-categoria-outra" hidden>
+            <label for="input-descricao-outra">Descrição (categoria Outra)</label>
+            <input type="text" id="input-descricao-outra" name="descricaoOutra" placeholder="Descreva a categoria, se selecionou Outra">
+          </div>
+          <div class="campo">
+            <label for="input-observacao">Observações</label>
+            <textarea id="input-observacao" name="observacao" rows="2" placeholder="Observações (opcional)"></textarea>
+          </div>
+          <fieldset class="nex-status-ocorrencia-interno" hidden>
+            <label><input type="radio" name="status-ocorrencia" value="pendente" checked> Pendente</label>
+            <label><input type="radio" name="status-ocorrencia" value="resolvido"> Resolvido</label>
+          </fieldset>
           <button type="submit" class="botao botao--primario">Registrar ocorrência</button>
         </form>
       </section>
@@ -481,8 +496,8 @@
 <script src="js/shell.js"></script>
 <script src="js/intervalos-regras.js"></script>
 <script src="js/relatorios-historico.js"></script>
-<script src="js/app.js"></script>
-<script src="js/nex-tabs.js"></script>
+<script src="js/app.js?v=20"></script>
+<script src="js/nex-tabs.js?v=18"></script>
 <script src="js/intervalos.js"></script>
 <script src="js/xpt-regras.js"></script>
 <script src="js/fotos.js"></script>

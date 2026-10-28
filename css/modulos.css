@@ -948,7 +948,21 @@ dialog.modal[id^="dlg-xpt-"] {
   #nex-rotas-auditoria .nex-rota-conteudo .nex-saca-item { padding: .4rem .25rem; }
 }
 
-/* NEX — Ocorrências: cartões e filtros no padrão visual do XPT, mantendo os dados e ações próprios do NEX. */
+/* NEX — Ocorrências: formulário alinhado ao padrão visual do XPT, mantendo os dados e ações próprios do NEX. */
+#nex-tab-ocorrencias .nex-form-ocorrencia { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.85rem; margin-top:1rem; }
+#nex-tab-ocorrencias .nex-form-ocorrencia > .campo { min-width:0; margin:0; }
+#nex-tab-ocorrencias .nex-form-ocorrencia input,
+#nex-tab-ocorrencias .nex-form-ocorrencia select,
+#nex-tab-ocorrencias .nex-form-ocorrencia textarea { width:100%; min-width:0; min-height:42px; }
+#nex-tab-ocorrencias .nex-form-ocorrencia textarea { min-height:76px; }
+#nex-tab-ocorrencias .nex-form-ocorrencia > .nex-scanner-controles,
+#nex-tab-ocorrencias .nex-form-ocorrencia > .nex-ocorrencia-video,
+#nex-tab-ocorrencias .nex-form-ocorrencia > .nex-ocorrencia-aviso,
+#nex-tab-ocorrencias .nex-form-ocorrencia > button[type=\"submit\"] { grid-column:1 / -1; }
+#nex-tab-ocorrencias .nex-scanner-controles { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem; }
+#nex-tab-ocorrencias .nex-ocorrencia-video { width:min(100%,520px); max-height:320px; border-radius:12px; background:#171717; }
+#nex-tab-ocorrencias .nex-status-ocorrencia-interno { display:none; }
+#nex-tab-ocorrencias .nex-form-ocorrencia [hidden] { display:none !important; }
 #nex-tab-ocorrencias .cartao { min-width: 0; }
 #nex-tab-ocorrencias #form-registrar-ocorrencia {
   display: grid;
@@ -1024,3 +1038,83 @@ dialog.modal[id^="dlg-xpt-"] {
   #modulo-intervalos .acoes-tabela .botao { flex: 1 1 auto; }
   #modulo-xpt .interv-filtros { padding: .65rem; }
 }
+
+/* NEX: rotas em barras compactas e sacas selecionaveis com acoes sob demanda. */
+#nex-rotas-auditoria .nex-rota-card { padding: .35rem .75rem; }
+#nex-rotas-auditoria .nex-rota-barra { display:flex; align-items:center; gap:.65rem; min-width:0; }
+#nex-rotas-auditoria .nex-rota-toggle { flex:1 1 auto; min-width:0; min-height:64px; padding:.7rem .4rem; }
+#nex-rotas-auditoria .nex-rota-toggle__info { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem .85rem; min-width:0; }
+#nex-rotas-auditoria .nex-rota-nome { font-size:1.15rem; font-weight:800; }
+#nex-rotas-auditoria .nex-rota-resumo { color:var(--cor-tinta-suave,#666); font-size:.88rem; }
+#nex-rotas-auditoria .nex-remover-rota { flex:0 0 auto; min-height:38px; padding:.4rem .65rem; font-size:.8rem; }
+#nex-rotas-auditoria .nex-rota-conteudo { gap:.75rem; }
+#nex-rotas-auditoria .nex-adicionar-sacas-lote { justify-self:start; min-height:42px; }
+#nex-rotas-auditoria .nex-lista-sacas { display:flex; flex-wrap:wrap; align-items:flex-start; gap:.5rem; }
+#nex-rotas-auditoria .nex-saca-numero { display:inline-flex; align-items:center; justify-content:center; min-width:46px; min-height:44px; padding:.45rem .7rem; border:1px solid #d8d5cc; border-radius:.65rem; background:#fff; color:var(--cor-tinta,#292929); font:inherit; font-weight:800; cursor:pointer; }
+#nex-rotas-auditoria .nex-saca-numero:hover { border-color:var(--cor-azul,#246bce); background:#f4f8ff; }
+#nex-rotas-auditoria .nex-saca-numero.is-selecionada { outline:3px solid rgba(36,107,206,.22); border-color:#246bce; box-shadow:0 0 0 1px #246bce; }
+#nex-rotas-auditoria .nex-saca-item[hidden] { display:none !important; }
+#nex-rotas-auditoria .nex-saca-item { flex:1 1 100%; margin-top:.25rem; padding:1rem; border-radius:.85rem; }
+#nex-rotas-auditoria .nex-saca-item .botao { width:auto; min-height:42px; }
+@media (max-width:600px) {
+  #nex-rotas-auditoria .nex-rota-card { padding:.3rem .55rem; }
+  #nex-rotas-auditoria .nex-rota-barra { gap:.25rem; }
+  #nex-rotas-auditoria .nex-rota-toggle { min-height:62px; padding:.6rem .2rem; }
+  #nex-rotas-auditoria .nex-rota-toggle__info { display:grid; gap:.2rem; }
+  #nex-rotas-auditoria .nex-rota-resumo { font-size:.76rem; }
+  #nex-rotas-auditoria .nex-remover-rota { max-width:88px; white-space:normal; font-size:.72rem; padding:.35rem; }
+  #nex-rotas-auditoria .nex-saca-numero { min-width:44px; min-height:44px; }
+  #nex-rotas-auditoria .nex-adicionar-sacas-lote { width:100%; }
+  #nex-rotas-auditoria .nex-saca-item .botao { width:100%; }
+}
+
+/* NEX: detalhes de cada saca em janela modal, sem expandir a grade. */
+#nex-rotas-auditoria .nex-saca-dialog { width:min( min(92vw, 540px), calc(100% - 2rem)); max-width:540px; max-height:min(85dvh, 720px); overflow:auto; padding:1.1rem; border:1px solid var(--cor-borda,#dedbd2); border-radius:16px; background:var(--cor-fundo-cartao,#fff); color:var(--cor-tinta,#292929); box-shadow:0 18px 60px rgba(0,0,0,.24); }
+#nex-rotas-auditoria .nex-saca-dialog::backdrop { background:rgba(20,22,28,.42); backdrop-filter:blur(2px); }
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item { display:grid; gap:.85rem; margin:0; padding:0; border:0; box-shadow:none; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-dialog__fechar { justify-self:end; min-height:40px; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item__topo { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:.6rem; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item__topo strong { font-size:1.3rem; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item.pendente { background:var(--cor-fundo-cartao,#fff); border:1px solid var(--cor-borda,#dedbd2); }
+@media (max-width:600px) { #nex-rotas-auditoria .nex-saca-dialog { width:calc(100% - 1.25rem); max-width:none; max-height:88dvh; padding:.9rem; } #nex-rotas-auditoria .nex-saca-dialog .nex-saca-item .botao { width:100%; } }
+/* NEX: tela focada nas rotas; detalhes aparecem apenas sob demanda. */
+#nex-rotas-auditoria > #nex-rotas-auditoria-resumo,
+#nex-rotas-auditoria > .nex-rotas-contadores,
+#nex-rotas-auditoria > .nex-filtros-rotas { display:none !important; }
+#nex-rotas-auditoria .nex-lista-rotas { display:grid; grid-template-columns:minmax(0,1fr); gap:.55rem; }
+#nex-rotas-auditoria .nex-rota-acoes { display:flex; justify-content:flex-start; margin-bottom:.25rem; }
+#nex-rotas-auditoria .nex-adicionar-rota { min-height:42px; }
+#nex-rotas-auditoria .nex-rota-card { padding:.25rem .75rem; margin:0; border-radius:.8rem; box-shadow:none; }
+#nex-rotas-auditoria .nex-rota-barra { display:flex; align-items:center; min-width:0; }
+#nex-rotas-auditoria .nex-rota-toggle { display:flex; align-items:center; justify-content:space-between; gap:.75rem; width:100%; min-width:0; min-height:58px; padding:.65rem .4rem; border:0; background:transparent; text-align:left; }
+#nex-rotas-auditoria .nex-rota-toggle__info { display:flex; flex-wrap:wrap; align-items:center; gap:.35rem .85rem; min-width:0; }
+#nex-rotas-auditoria .nex-rota-nome { font-size:1.08rem; font-weight:800; }
+#nex-rotas-auditoria .nex-rota-resumo { color:var(--cor-tinta-suave,#666); font-size:.86rem; }
+#nex-rotas-auditoria .nex-rota-chevron { flex:0 0 auto; display:grid; place-items:center; width:1.8rem; height:1.8rem; border-radius:50%; background:#f2f0e9; font-size:1.2rem; font-weight:700; }
+#nex-rotas-auditoria .nex-rota-conteudo { display:grid; gap:.75rem; padding:.6rem .35rem .75rem; border-top:1px solid var(--cor-borda,#e5e1d8); }
+#nex-rotas-auditoria .nex-rota-conteudo[hidden] { display:none !important; }
+#nex-rotas-auditoria .nex-rota-detalhes { margin:0; font-size:.82rem; }
+#nex-rotas-auditoria .nex-adicionar-sacas-lote { justify-self:start; min-height:42px; }
+@media (max-width:600px) {
+  #nex-rotas-auditoria .nex-rota-card { padding:.2rem .5rem; }
+  #nex-rotas-auditoria .nex-rota-toggle { min-height:58px; padding:.55rem .15rem; }
+  #nex-rotas-auditoria .nex-rota-toggle__info { display:grid; gap:.2rem; }
+  #nex-rotas-auditoria .nex-rota-resumo { font-size:.76rem; }
+  #nex-rotas-auditoria .nex-rota-conteudo > .nex-remover-rota { justify-self:start; max-width:none; }
+  #nex-rotas-auditoria .nex-adicionar-sacas-lote { width:100%; }
+  #nex-rotas-auditoria .nex-saca-numero { min-width:44px; min-height:44px; }
+  #nex-rotas-auditoria .nex-saca-item .botao { width:100%; }
+}
+#nex-rotas-auditoria .nex-acoes-sacas { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }
+#nex-rotas-auditoria .nex-adicionar-saca, #nex-rotas-auditoria .nex-adicionar-sacas-lote { min-height:42px; }
+@media (max-width:600px) { #nex-rotas-auditoria .nex-acoes-sacas { display:grid; grid-template-columns:minmax(0,1fr); } #nex-rotas-auditoria .nex-acoes-sacas .botao { width:100%; } }
+/* NEX — paleta de status pastel aplicada aos números e ao cartão modal. */
+#nex-rotas-auditoria .nex-saca-numero.pendente { background:#fff !important; border-color:#d8d5cc !important; color:#292929 !important; }
+#nex-rotas-auditoria .nex-saca-numero.tem-ocorrencia-pendente,
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item.tem-ocorrencia-pendente { background:#fde8e7 !important; border-color:#efb6b2 !important; color:#812b2b !important; }
+#nex-rotas-auditoria .nex-saca-numero.tem-divergencia,
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item.tem-divergencia { background:#f0e6fa !important; border-color:#d5b9ef !important; color:#5d347e !important; }
+#nex-rotas-auditoria .nex-saca-numero.auditada,
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item.auditada { background:#e5f4e8 !important; border-color:#b5dabb !important; color:#245b35 !important; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-item { border-radius:12px; padding:1rem !important; }
+#nex-rotas-auditoria .nex-saca-numero.is-selecionada { outline-color:rgba(36,107,206,.22); }

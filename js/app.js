@@ -54,6 +54,8 @@
       'form-editar-totais', 'input-sacas-edit', 'input-pacotes-edit', 'btn-cancelar-editar-totais',
       'btn-abrir-camera', 'btn-fechar-camera', 'label-select-camera', 'select-camera', 'video-camera', 'aviso-camera',
       'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'ajuda-categoria', 'input-observacao',
+      'input-tipo-produto', 'select-gaiola-encontrada', 'input-gaiola-correta', 'input-encontrado-por',
+      'input-data-hora-ocorrencia', 'input-descricao-outra', 'campo-categoria-outra',
       'contagem-total', 'contagem-pendente', 'contagem-resolvida',
       'filtro-categoria', 'filtro-status', 'filtro-codigo', 'btn-ver-pendentes', 'btn-limpar-filtros',
       'lista-ocorrencias-vazia', 'lista-ocorrencias',
@@ -182,7 +184,8 @@
       bingo: 'Bingo: produto que não foi encontrado fisicamente durante a auditoria.',
       faltando: 'Faltando: pacote a mais, que não deveria estar naquele local.'
     };
-    $.ajudaCategoria.textContent = descricoes[$.selectCategoria.value] || 'Selecione a categoria que melhor descreve a divergência.';
+    $.ajudaCategoria.textContent = descricoes[$.selectCategoria.value] || 'Selecione a categoria que melhor descreve a ocorrência.';
+    if ($.campoCategoriaOutra) $.campoCategoriaOutra.hidden = $.selectCategoria.value !== 'outra';
   }
 
   // -----------------------------------------------------------------------
@@ -279,10 +282,17 @@
     }
     li.appendChild(meta);
 
-    if (o.note) {
+    var detalhesOcorrencia = [];
+    if (o.tipoProduto) detalhesOcorrencia.push('Tipo do produto: ' + o.tipoProduto);
+    if (o.gaiolaEncontrada) detalhesOcorrencia.push('Gaiola encontrada: ' + o.gaiolaEncontrada);
+    if (o.gaiolaCorreta) detalhesOcorrencia.push('Gaiola correta: ' + o.gaiolaCorreta);
+    if (o.encontradoPor) detalhesOcorrencia.push('Encontrado por: ' + o.encontradoPor);
+    if (o.descricaoOutra) detalhesOcorrencia.push('Descrição: ' + o.descricaoOutra);
+    if (o.note) detalhesOcorrencia.push('Observações: ' + o.note);
+    if (detalhesOcorrencia.length) {
       var nota = document.createElement('p');
       nota.className = 'item-ocorrencia__nota';
-      nota.textContent = o.note;
+      nota.textContent = detalhesOcorrencia.join(' · ');
       li.appendChild(nota);
     }
 
@@ -837,7 +847,7 @@
     });
   }
 
-  function salvarNovaOcorrencia(codigo, categoria, status, nota) {
+  function salvarNovaOcorrencia(codigo, categoria, status, nota, detalhes) {
     var sessao = sessaoAtiva();
     var agora = U.agora().toISOString();
     sessao.occurrences.push({
@@ -845,9 +855,14 @@
       code: codigo,
       category: categoria,
       status: status,
-      createdAt: agora,
+      createdAt: detalhes.quando || agora,
       updatedAt: agora,
-      note: nota || undefined
+      note: nota || undefined,
+      tipoProduto: detalhes.tipoProduto || undefined,
+      gaiolaEncontrada: detalhes.gaiolaEncontrada || undefined,
+      gaiolaCorreta: detalhes.gaiolaCorreta || undefined,
+      encontradoPor: detalhes.encontradoPor || undefined,
+      descricaoOutra: detalhes.descricaoOutra || undefined
     });
     if (!persistir()) { sessao.occurrences.pop(); return false; }
     renderListaOcorrencias();
@@ -882,6 +897,14 @@
     var categoria = $.selectCategoria.value;
     var status = statusEscolhidoNoFormulario();
     var nota = U.normalizarTexto($.inputObservacao.value);
+    var detalhes = {
+      tipoProduto: U.normalizarTexto($.inputTipoProduto.value),
+      gaiolaEncontrada: $.selectGaiolaEncontrada.value,
+      gaiolaCorreta: U.normalizarTexto($.inputGaiolaCorreta.value),
+      encontradoPor: U.normalizarTexto($.inputEncontradoPor.value),
+      quando: $.inputDataHoraOcorrencia.value ? new Date($.inputDataHoraOcorrencia.value).toISOString() : U.agora().toISOString(),
+      descricaoOutra: U.normalizarTexto($.inputDescricaoOutra.value)
+    };
 
     if (!codigo) {
       toast('Informe o código do pacote.', 'erro');
@@ -889,6 +912,15 @@
     }
     if (!categoria) {
       toast('Selecione a categoria da ocorrência.', 'erro');
+      return;
+    }
+    if (categoria === 'outra' && !detalhes.descricaoOutra) {
+      toast('Descreva a ocorrência quando selecionar a categoria Outra.', 'erro');
+      $.inputDescricaoOutra.focus();
+      return;
+    }
+    if (!$.inputDataHoraOcorrencia.value || isNaN(new Date($.inputDataHoraOcorrencia.value).getTime())) {
+      toast('Informe uma data e hora válidas.', 'erro');
       return;
     }
     if (!status) {
@@ -922,12 +954,19 @@
 
     prosseguir.then(function (ok) {
       if (!ok) { registrandoOcorrencia = false; return; }
-      var sucesso = salvarNovaOcorrencia(codigo, categoria, status, nota);
+      var sucesso = salvarNovaOcorrencia(codigo, categoria, status, nota, detalhes);
       registrandoOcorrencia = false;
       if (!sucesso) return;
       $.inputCodigo.value = '';
       $.inputObservacao.value = '';
-      limparSelecaoDeStatus();
+      $.inputTipoProduto.value = '';
+      $.selectGaiolaEncontrada.value = '';
+      $.inputGaiolaCorreta.value = '';
+      $.inputEncontradoPor.value = '';
+      $.inputDescricaoOutra.value = '';
+      $.inputDataHoraOcorrencia.value = U.paraDatetimeLocal(U.agora());
+      $.campoCategoriaOutra.hidden = true;
+      $.formRegistrarOcorrencia.querySelector('input[name="status-ocorrencia"][value="pendente"]').checked = true;
       $.inputCodigo.focus();
       toast('Ocorrência registrada.', 'sucesso');
     });
@@ -1284,6 +1323,7 @@
 
     $.formRegistrarOcorrencia.addEventListener('submit', aoEnviarRegistrarOcorrencia);
     $.selectCategoria.addEventListener('change', atualizarAjudaCategoria);
+    $.inputDataHoraOcorrencia.value = U.paraDatetimeLocal(U.agora());
     $.listaOcorrencias.addEventListener('click', aoClicarListaOcorrencias);
 
     $.formEditarOcorrencia.addEventListener('submit', aoEnviarEditarOcorrencia);
@@ -1450,6 +1490,7 @@
 
   function init() {
     mapearElementos();
+    if (!$.inputDataOperacao.value) $.inputDataOperacao.value = valorDataHoraLocal(new Date());
     if (SaveStatus) { SaveStatus.modulo('NEX'); SaveStatus.aoTentarNovamente(function () { if (persistir()) { if (sessaoAtiva()) { $.formIniciarSessao.reset(); $.pacotesFormatado.textContent = ''; } renderTudo(); toast('Dados salvos com sucesso.', 'sucesso'); } }, 'NEX'); }
     carregarEstadoInicial();
     var selector = function () {
