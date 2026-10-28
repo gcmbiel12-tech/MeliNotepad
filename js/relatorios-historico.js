@@ -46,11 +46,19 @@
   function construirNex(registros, o) {
     var selecionados = selecionar(registros, 'startTime', o);
     if (!selecionados.ok) return selecionados;
-    var sessoes = selecionados.registros, dias = {}, totais = { sessoes: sessoes.length, sacas: 0, pacotes: 0, ocorrencias: 0, pendentes: 0, resolvidas: 0, categorias: {} };
+    var sessoes = selecionados.registros, dias = {}, totais = { sessoes: sessoes.length, sacas: 0, pacotes: 0, rotas: 0, sacasIndividuais: 0, auditadas: 0, ocorrencias: 0, pendentes: 0, resolvidas: 0, categorias: {} };
     sessoes.forEach(function (s) {
       var d = diaInfo(dias, s.startTime);
+      var rotas = Array.isArray(s.rotasHybrid) ? s.rotasHybrid : [];
       d.quantidade++; d.sacas += Number(s.sacas) || 0; d.pacotes += Number(s.pacotes) || 0;
       totais.sacas += Number(s.sacas) || 0; totais.pacotes += Number(s.pacotes) || 0;
+      totais.rotas += rotas.length;
+      rotas.forEach(function (rota) {
+        (Array.isArray(rota.sacasIndividuais) ? rota.sacasIndividuais : []).forEach(function (saca) {
+          totais.sacasIndividuais++;
+          if (Array.isArray(saca.auditorias) && saca.auditorias.length) totais.auditadas++;
+        });
+      });
       (s.occurrences || []).forEach(function (oc) {
         var cat = rotuloCategoriaNex(oc.category), resolvida = oc.status === C.STATUS.RESOLVIDO;
         d.ocorrencias++; totais.ocorrencias++;
@@ -60,7 +68,34 @@
         totais.categorias[cat] = (totais.categorias[cat] || 0) + 1;
       });
     });
-    return { ok: true, modulo: 'NEX', tipo: o.tipo, periodo: periodoTexto(o, sessoes, 'startTime'), quantidade: sessoes.length, geradoEm: U.formatarDataHoraOperacional(o.agora || new Date()), totais: totais, dias: Object.keys(dias).sort().map(function (k) { return dias[k]; }), registros: o.tipo === 'detalhado' ? sessoes.map(function (s) { return { id: s.id, startTime: s.startTime, endTime: s.endTime || '', sacas: Number(s.sacas) || 0, pacotes: Number(s.pacotes) || 0, occurrences: (s.occurrences || []).map(function (oc) { return { code: oc.code || '', category: rotuloCategoriaNex(oc.category), status: C.STATUS_LABEL[oc.status] || 'Não informado', note: oc.note || '', createdAt: oc.createdAt || '' }; }) }; }) : [] };
+    return {
+      ok: true, modulo: 'NEX', tipo: o.tipo, periodo: periodoTexto(o, sessoes, 'startTime'),
+      quantidade: sessoes.length, geradoEm: U.formatarDataHoraOperacional(o.agora || new Date()),
+      totais: totais, dias: Object.keys(dias).sort().map(function (k) { return dias[k]; }),
+      registros: o.tipo === 'detalhado' ? sessoes.map(function (s) {
+        return {
+          id: s.id, startTime: s.startTime, endTime: s.endTime || '', sacas: Number(s.sacas) || 0,
+          pacotes: Number(s.pacotes) || 0,
+          rotas: (Array.isArray(s.rotasHybrid) ? s.rotasHybrid : []).map(function (rota) {
+            return {
+              rota: rota.rota || '', sacasEstimadas: rota.sacas == null ? null : Number(rota.sacas),
+              pacotesEstimados: rota.pacotes == null ? null : Number(rota.pacotes),
+              sacasIndividuais: (Array.isArray(rota.sacasIndividuais) ? rota.sacasIndividuais : []).map(function (saca) {
+                return {
+                  numero: String(saca.numero == null ? '' : saca.numero),
+                  auditorias: (Array.isArray(saca.auditorias) ? saca.auditorias : []).map(function (a) {
+                    return { status: a.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída', auditor: a.auditor || '', data: a.data || '', observacao: a.observacao || '' };
+                  })
+                };
+              })
+            };
+          }),
+          occurrences: (s.occurrences || []).map(function (oc) {
+            return { code: oc.code || '', category: rotuloCategoriaNex(oc.category), status: C.STATUS_LABEL[oc.status] || 'Não informado', note: oc.note || '', createdAt: oc.createdAt || '', rota: oc.rota || '', saca: oc.saca || '' };
+          })
+        };
+      }) : []
+    };
   }
 
   function construirIntervalos(registros, o) {
@@ -114,7 +149,7 @@
   function renderNex(area, r) {
     if (!r.quantidade) { area.appendChild(el('p', 'print-vazio', 'Nenhuma operação encontrada no período selecionado.')); return; }
     area.appendChild(el('h2', 'print-subtitulo', 'Resumo operacional'));
-    area.appendChild(el('p', 'print-totais', 'Sessões: ' + r.totais.sessoes + ' · Sacas: ' + U.formatarNumeroBR(r.totais.sacas) + ' · Pacotes: ' + U.formatarNumeroBR(r.totais.pacotes) + ' · Ocorrências: ' + r.totais.ocorrencias + ' (' + r.totais.pendentes + ' pendentes, ' + r.totais.resolvidas + ' resolvidas)'));
+    area.appendChild(el('p', 'print-totais', 'Sessões: ' + r.totais.sessoes + ' · Sacas estimadas/informadas: ' + U.formatarNumeroBR(r.totais.sacas) + ' · Pacotes estimados/informados: ' + U.formatarNumeroBR(r.totais.pacotes) + ' · Rotas: ' + r.totais.rotas + ' · Sacas individuais: ' + r.totais.sacasIndividuais + ' · Sacas auditadas: ' + r.totais.auditadas + ' · Ocorrências: ' + r.totais.ocorrencias + ' (' + r.totais.pendentes + ' pendentes, ' + r.totais.resolvidas + ' resolvidas)'));
     area.appendChild(tabela(['Dia operacional', 'Sessões', 'Sacas', 'Pacotes', 'Ocorrências', 'Pendentes', 'Resolvidas'], r.dias.map(function (d) { return [U.formatarDataOperacional(d.data + 'T12:00:00Z'), d.quantidade, U.formatarNumeroBR(d.sacas), U.formatarNumeroBR(d.pacotes), d.ocorrencias, d.pendentes, d.resolvidas]; })));
     var subtotais = [];
     r.dias.forEach(function (d) { Object.keys(d.categorias).sort().forEach(function (nome) { subtotais.push([U.formatarDataOperacional(d.data + 'T12:00:00Z'), nome, d.categorias[nome]]); }); });
@@ -125,7 +160,22 @@
       sec.appendChild(el('h2', 'print-dia', U.formatarDataOperacional(s.startTime) + ' · Conferência iniciada às ' + U.formatarHoraOperacional(s.startTime)));
       sec.appendChild(el('p', 'print-info', 'Identificador da sessão: ' + s.id + ' · Finalização: ' + (s.endTime ? U.formatarDataHoraOperacional(s.endTime) : 'não registrada')));
       sec.appendChild(el('p', 'print-info', 'Sacas: ' + U.formatarNumeroBR(s.sacas) + ' · Pacotes: ' + U.formatarNumeroBR(s.pacotes) + ' · Ocorrências: ' + s.occurrences.length));
-      if (s.occurrences.length) sec.appendChild(tabela(['Data/hora', 'Código', 'Categoria', 'Situação', 'Observação'], s.occurrences.map(function (o) { return [o.createdAt ? U.formatarDataHoraOperacional(o.createdAt) : '—', o.code, o.category, o.status, o.note || '—']; })));
+      if (s.rotas.length) {
+        sec.appendChild(el('h3', 'print-subtitulo', 'Rotas, sacas e auditorias'));
+        s.rotas.forEach(function (rota) {
+          sec.appendChild(el('h4', 'print-dia', 'Rota ' + rota.rota));
+          sec.appendChild(el('p', 'print-info', 'Sacas estimadas: ' + (rota.sacasEstimadas == null ? 'não informado' : U.formatarNumeroBR(rota.sacasEstimadas)) + ' · Pacotes estimados: ' + (rota.pacotesEstimados == null ? 'não informado' : U.formatarNumeroBR(rota.pacotesEstimados)) + ' · Sacas individuais: ' + rota.sacasIndividuais.length));
+          if (rota.sacasIndividuais.length) {
+            var linhasSacas = [];
+            rota.sacasIndividuais.forEach(function (saca) {
+              if (!saca.auditorias.length) linhasSacas.push([saca.numero, 'Pendente de auditoria', '—', '—', '—']);
+              saca.auditorias.forEach(function (a, indice) { linhasSacas.push([saca.numero, (indice + 1) + '. ' + a.status, a.auditor || 'não informado', a.data ? U.formatarDataHoraOperacional(a.data) : '—', a.observacao || '—']); });
+            });
+            sec.appendChild(tabela(['Saca', 'Resultado/histórico', 'Auditor', 'Data/hora', 'Observação'], linhasSacas));
+          } else sec.appendChild(el('p', 'print-vazio', 'Nenhuma saca individual cadastrada nesta rota.'));
+        });
+      } else sec.appendChild(el('p', 'print-vazio', 'Nenhuma rota cadastrada nesta sessão.'));
+      if (s.occurrences.length) sec.appendChild(tabela(['Data/hora', 'Código', 'Categoria', 'Situação', 'Rota', 'Saca', 'Observação'], s.occurrences.map(function (o) { return [o.createdAt ? U.formatarDataHoraOperacional(o.createdAt) : '—', o.code, o.category, o.status, o.rota || '—', o.saca || '—', o.note || '—']; })));
       else sec.appendChild(el('p', 'print-vazio', 'Nenhuma ocorrência registrada.'));
       area.appendChild(sec);
     });

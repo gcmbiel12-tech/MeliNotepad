@@ -12,7 +12,8 @@ alter table public.nex_occurrences
     'nao_localizados',
     'despachar_nao_agregados',
     'bingo',
-    'faltando'
+    'faltando',
+    'outra'
   )) not valid;
 
 alter table public.nex_occurrences

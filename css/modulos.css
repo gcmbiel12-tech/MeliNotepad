@@ -967,7 +967,10 @@ dialog.modal[id^="dlg-xpt-"] {
 #nex-tab-ocorrencias .nex-form-ocorrencia > button[type=\"submit\"] { grid-column:1 / -1; }
 #nex-tab-ocorrencias .nex-scanner-controles { display:flex; flex-wrap:wrap; align-items:center; gap:.55rem; }
 #nex-tab-ocorrencias .nex-ocorrencia-video { width:min(100%,520px); max-height:320px; border-radius:12px; background:#171717; }
-#nex-tab-ocorrencias .nex-status-ocorrencia-interno { display:none; }
+#nex-tab-ocorrencias .nex-status-ocorrencia { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; min-width:0; padding:.8rem 1rem; border:1px solid var(--borda, #d6d3d1); border-radius:10px; }
+#nex-tab-ocorrencias .nex-status-ocorrencia legend { padding:0 .25rem; font-weight:700; }
+#nex-tab-ocorrencias .nex-status-ocorrencia label { display:inline-flex; align-items:center; gap:.45rem; min-height:40px; cursor:pointer; }
+#nex-tab-ocorrencias .nex-status-ocorrencia input { width:1.1rem; height:1.1rem; }
 #nex-tab-ocorrencias .nex-form-ocorrencia [hidden] { display:none !important; }
 #nex-tab-ocorrencias .cartao { min-width: 0; }
 #nex-tab-ocorrencias #form-registrar-ocorrencia {

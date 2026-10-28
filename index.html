@@ -280,8 +280,9 @@
             <label for="input-observacao">Observações</label>
             <textarea id="input-observacao" name="observacao" rows="2" placeholder="Observações (opcional)"></textarea>
           </div>
-          <fieldset class="nex-status-ocorrencia-interno" hidden>
-            <label><input type="radio" name="status-ocorrencia" value="pendente" checked> Pendente</label>
+          <fieldset id="grupo-status-ocorrencia" class="nex-status-ocorrencia">
+            <legend>Status da ocorrência <span aria-hidden="true">*</span></legend>
+            <label><input type="radio" name="status-ocorrencia" value="pendente"> Pendente</label>
             <label><input type="radio" name="status-ocorrencia" value="resolvido"> Resolvido</label>
           </fieldset>
           </section>

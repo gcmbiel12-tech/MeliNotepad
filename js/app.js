@@ -974,7 +974,7 @@
       $.inputDescricaoOutra.value = '';
       $.inputDataHoraOcorrencia.value = U.paraDatetimeLocal(U.agora());
       $.campoCategoriaOutra.hidden = true;
-      $.formRegistrarOcorrencia.querySelector('input[name="status-ocorrencia"][value="pendente"]').checked = true;
+      limparSelecaoDeStatus();
       $.inputCodigo.focus();
       toast('Ocorrência registrada.', 'sucesso');
     });

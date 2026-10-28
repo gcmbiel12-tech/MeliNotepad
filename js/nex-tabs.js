@@ -204,6 +204,53 @@
     finalizeWrap.id = 'nex-relatorios-sessao';
     panels.relatorios.appendChild(finalizeWrap);
     move(finalizeSection, finalizeWrap);
+
+    // A prévia, o texto copiado e o PDF usam exatamente o mesmo relatório NEX.
+    var painelRelatorio = document.getElementById('painel-relatorio');
+    var textoRelatorio = document.getElementById('texto-relatorio');
+    if (painelRelatorio && textoRelatorio) {
+      var acoesRelatorio = criarElemento('div', 'acoes-form nex-acoes-relatorio');
+      var avisoRelatorio = criarElemento('p', 'texto-aviso');
+      avisoRelatorio.setAttribute('aria-live', 'polite');
+      var copiarRelatorio = document.createElement('button');
+      copiarRelatorio.type = 'button'; copiarRelatorio.className = 'botao botao--secundario';
+      copiarRelatorio.textContent = 'Copiar relatório';
+      copiarRelatorio.addEventListener('click', function () {
+        var texto = textoRelatorio.textContent || '';
+        function fallback() {
+          var campo = document.createElement('textarea');
+          campo.value = texto; campo.setAttribute('aria-label', 'Texto do relatório para copiar');
+          acoesRelatorio.insertBefore(campo, avisoRelatorio);
+          campo.focus(); campo.select();
+          var ok = false;
+          try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+          avisoRelatorio.textContent = ok ? 'Relatório copiado.' : 'Selecione o texto exibido e copie manualmente.';
+          if (ok) campo.remove();
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
+          navigator.clipboard.writeText(texto).then(function () { avisoRelatorio.textContent = 'Relatório copiado.'; }).catch(fallback);
+        } else fallback();
+      });
+      var imprimirRelatorio = document.createElement('button');
+      imprimirRelatorio.type = 'button'; imprimirRelatorio.className = 'botao botao--primario';
+      imprimirRelatorio.textContent = 'Gerar PDF / imprimir relatório detalhado';
+      imprimirRelatorio.addEventListener('click', function () {
+        var impressao = window.MeliNotepad && window.MeliNotepad.Impressao;
+        var texto = textoRelatorio.textContent || '';
+        if (!impressao || typeof impressao.imprimir !== 'function') {
+          avisoRelatorio.textContent = 'A impressão não está disponível neste momento.';
+          return;
+        }
+        impressao.imprimir('MeliNotepad_Expedicao_NEX', function (raiz, h) {
+          raiz.appendChild(h('h1', { text: 'MeliNotepad — Expedição NEX' }));
+          raiz.appendChild(h('pre', { class: 'relatorio-texto-impressao', text: texto }));
+        }).catch(function () { avisoRelatorio.textContent = 'Não foi possível preparar o relatório para impressão.'; });
+      });
+      acoesRelatorio.appendChild(copiarRelatorio);
+      acoesRelatorio.appendChild(imprimirRelatorio);
+      acoesRelatorio.appendChild(avisoRelatorio);
+      painelRelatorio.appendChild(acoesRelatorio);
+    }
   }
 
   var landingHistory = document.createElement('div');
