@@ -96,7 +96,7 @@ test('redes por veículo: soma G+V das rotas associadas uma única vez e exclui 
   assert.deepStrictEqual([redes.valor, redes.rotasInformadas, redes.rotasAssociadas], [10, 2, 2]);
   assert.strictEqual(X.totais(op).redesVeiculos, 10);
   assert.ok(!X.relatorioBasico(op).includes('Redes: 4'));
-  assert.ok(X.relatorioBasico(op).includes('redes calculadas: 10'));
+  assert.ok(X.relatorioBasico(op).includes('Redes calculadas: 10'));
 });
 test('quantidades vazias valem zero na soma, sem virar NaN', () => {
   assert.strictEqual(X.totais(X.novaOperacao(T)).totalProdutos, 0);
@@ -141,7 +141,7 @@ test('ocorrências: divergência da auditoria é derivada das ocorrências na ga
   assert.strictEqual(X.rotuloAuditoria(op, g), 'Concluído com divergência');
   assert.strictEqual(X.rotuloAuditoria(op, op.gaiolas[0]), 'Não auditado');
   const relatorio = X.relatorioBasico(op);
-  assert.ok(relatorio.includes('Gaiola A4: Concluído com divergência'));
+  assert.ok(relatorio.includes('Rota A4: Concluído com divergência'));
   assert.ok(relatorio.includes('produto PKG-9'));
   assert.ok(relatorio.includes('encontrado por: Carlos'));
 });
@@ -181,7 +181,63 @@ test('validação dos dados: aceita o padrão; recusa gaiola em dois veículos e
   assert.ok(X.validarDados(d).some(e => e.includes('auditoria inválida')));
 });
 
+test('auditoria: G, V e P são obrigatórios, inteiros e não negativos', () => {
+  assert.strictEqual(X.validarQuantidadesAuditoria({ g: 3, v: 2, p: 4 }), true);
+  assert.strictEqual(X.validarQuantidadesAuditoria({ g: 3, p: 4 }), false);
+  assert.strictEqual(X.validarQuantidadesAuditoria({ g: 3, v: '', p: 4 }), false);
+  assert.strictEqual(X.validarQuantidadesAuditoria({ g: -1, v: 2, p: 4 }), false);
+  const g = opComGaiolas(['1']).gaiolas[0];
+  assert.strictEqual(X.definirAuditoria(g, 'concluida', 'Ana', T, { g: 3, p: 4 }).ok, false);
+  assert.strictEqual(X.definirAuditoria(g, 'concluida', 'Ana', T, { g: 3, v: 2, p: 4 }).ok, true);
+});
+
 test('códigos: vários JSONs de QR colados juntos (com vírgula interna) são lidos cada um como um id', () => {
   const r = X.interpretarCodigos('{"id":"11","t":"lm"}, {"id":"0012","t":"lm"}\n{"id":"13"}, 14');
   assert.deepStrictEqual(arr(r.novos), ['11', '0012', '13', '14']); assert.strictEqual(r.erros.length, 0);
+});
+
+
+test('veículos: resumo separa rotas carregadas, gaiolas G+V e paletes P sem duplicar rota', () => {
+  const op = opComGaiolas(['R1', 'R2']);
+  const a = op.gaiolas[0], b = op.gaiolas[1];
+  a.auditoria.quantidades = { g: 4, v: 1, p: 2 };
+  b.auditoria.quantidades = { g: 3, v: 2, p: 3 };
+  const v = X.novoVeiculo({ placa: 'CCC3333' }, T).veiculo;
+  v.gaiolaIds.push(a.id, b.id, a.id); op.veiculos.push(v);
+  const resumo = X.resumoVeiculo(op, v);
+  assert.deepStrictEqual([resumo.rotas, resumo.gaiolas, resumo.paletes], [2, 10, 5]);
+  const relatorio = X.relatorioBasico(op);
+  assert.ok(relatorio.includes('Rotas carregadas: 2'));
+  assert.ok(relatorio.includes('Gaiolas informadas: 10'));
+  assert.ok(relatorio.includes('Paletes informados: 5'));
+  assert.ok(relatorio.includes('Rotas cadastradas: 2'));
+  assert.ok(relatorio.includes('Gaiolas informadas (G+V): 10'));
+  assert.ok(relatorio.includes('Paletes informados (P): 5'));
+  assert.ok(!relatorio.includes('Início:'));
+});
+
+test('relatório: lista rotas associadas e calcula corretamente concluídas sem divergência', () => {
+  const op = opComGaiolas(['R10', 'R20']);
+  const v = X.novoVeiculo({ placa: 'DDD4444' }, T).veiculo; op.veiculos.push(v);
+  v.gaiolaIds.push(op.gaiolas[0].id, op.gaiolas[1].id);
+  X.definirAuditoria(op.gaiolas[0], 'concluida', 'Ana', T, { g: 1, v: 0, p: 0 });
+  X.definirAuditoria(op.gaiolas[1], 'concluida', 'Bia', T, { g: 2, v: 0, p: 1 });
+  const relatorio = X.relatorioBasico(op);
+  assert.ok(relatorio.includes('R10, R20'));
+  assert.ok(relatorio.includes('Rotas cadastradas: 2'));
+  assert.ok(relatorio.includes('Gaiolas informadas (G+V): 3'));
+  assert.ok(relatorio.includes('Paletes informados (P): 1'));
+  assert.ok(relatorio.includes('sem divergência 2'));
+});
+
+
+test('totais: rotas sem G/V/P completos não inventam gaiolas ou paletes', () => {
+  const op = opComGaiolas(['R1', 'R2']);
+  op.gaiolas[0].auditoria.quantidades = { g: 2, v: 1, p: 1 };
+  const v = X.novoVeiculo({ placa: 'EEE5555' }, T).veiculo;
+  v.gaiolaIds.push(op.gaiolas[0].id, op.gaiolas[1].id); op.veiculos.push(v);
+  const resumo = X.resumoVeiculo(op, v), totais = X.totais(op), relatorio = X.relatorioBasico(op);
+  assert.deepStrictEqual([resumo.rotas, resumo.gaiolas, resumo.paletes, resumo.rotasSemQuantidades], [2, 3, 1, 1]);
+  assert.deepStrictEqual([totais.gaiolasAuditadas, totais.paletesAuditados, totais.rotasSemQuantidades], [3, 1, 1]);
+  assert.ok(relatorio.includes('Rotas sem quantidades G/V/P completas: 1'));
 });

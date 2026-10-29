@@ -2,6 +2,17 @@
 
 > Documento consolidado de arquitetura, persistência, auditorias e validações. Os registros abaixo são históricos e podem descrever estados anteriores; para estado atual, consulte a seção “Situação da consolidação” no início e execute os testes indicados. Os conteúdos originais foram preservados integralmente.
 
+## Atualização de implementação e regressão — 28/10/2026
+
+- Corrigida a auditoria individual do XPT: agora exige e grava as três quantidades **G, V e P**. Antes, o formulário solicitava somente G/P e preenchia V automaticamente, o que podia registrar uma quantidade incorreta sem o usuário informar.
+- Corrigida a validação central de quantidades de auditoria: G, V e P precisam ser inteiros não negativos e estar preenchidos. Auditoria individual e em lote usam a mesma regra.
+- A tabela desktop de Gaiolas e Auditoria agora mostra as quantidades no formato compacto **G/V/P**, consistente com os cartões móveis e com a regra de quantidades por rota.
+- Atualizado o E2E XPT para verificar G/V/P na auditoria individual, em lote e após recarregar a página; adicionados testes unitários para rejeitar V ausente e valores inválidos.
+- Corrigido um seletor obsoleto no E2E de abas NEX: o teste tentava encontrar a ação de inclusão em lote dentro do cartão da rota, embora a interface atual disponibilize essa ação globalmente e a inclusão da rota seja feita por “Adicionar saca”.
+- Cache estático da PWA atualizado de v23 para v24 para evitar servir os scripts antigos após a atualização.
+- **Testes pós-alteração:** 80 testes unitários aprovados; 10/10 scripts E2E aprovados; responsividade validada em 8 larguras × 3 módulos, sem overflow horizontal nem erros JavaScript; sintaxe JavaScript validada; `git diff --check` aprovado.
+- Nenhuma migração remota, sincronização operacional, publicação, push ou commit foi executado. As alterações permanecem locais para revisão.
+
 ## Situação da consolidação — 27/10/2026
 
 - Pasta organizada em dois documentos por assunto.
@@ -493,3 +504,34 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - A sincronização segue como última etapa e não foi ativada. Nenhuma configuração remota foi vinculada, consultada ou alterada; nenhuma migração remota foi executada.
 - O container `supabase_vector_MeliNotepad` continua em reinicialização por falha de conectividade IPv6 com o endpoint Docker. Não foi reiniciado nem teve sua configuração alterada, pois banco, Auth e Storage estão saudáveis e a necessidade desse serviço ainda não foi estabelecida.
 - Ainda faltam validação de reset local em ambiente descartável, testes em dispositivo físico e integração real do Supabase autorizada.
+
+
+## Ajustes XPT — finalização por veículo, totais e auditoria — 28/10/2026
+
+### Estado inicial e preservação
+
+- Repositório oficial verificado em `C:\Users\gcmbi\Documents\Projetos\MeliNotepad`, branch `main`, HEAD `2a44c28`.
+- Antes das alterações, já havia mudanças locais em `Planejamento/DIAGNOSTICO_E_HISTORICO_MELINOTEPAD.md`, `js/xpt-regras.js`, `js/xpt.js`, `service-worker.js`, `tests/e2e/nex-abas.test.js`, `tests/e2e/xpt-auditoria.test.js` e `tests/unit/xpt-regras.test.js`. Essas mudanças foram preservadas; não foi criado commit, push ou deploy.
+
+### Alterações realizadas
+
+- `js/xpt-regras.js`: adicionada consolidação de rotas, gaiolas (G + V) e paletes (P) por veículo, com deduplicação de IDs; totais do relatório separam quantidade de rotas de quantidades auditadas; rotas sem G/V/P completos ficam fora dos totais de gaiolas/paletes e são identificadas; a relação de rotas considera os códigos vinculados aos veículos; corrigida contagem de auditorias concluídas sem divergência; novo veículo inicia com `fimCarregamentoAt: null`.
+- `js/xpt.js`: retirada a finalização global única da interface; cada veículo passa a registrar seu próprio horário de finalização, com opção de editar posteriormente; a finalização global da operação só é preenchida quando todos os veículos foram finalizados; rotas de veículo finalizado ficam protegidas contra associação/remoção/exclusão acidental; telas e relatórios separam rotas, gaiolas G+V e paletes P; relatórios básico e detalhado deixam de mostrar o horário de início; corrigida referência inexistente a `convencionais` no resumo de auditoria.
+- `css/modulos.css`: status da auditoria ganhou cores e etiquetas visuais para pendente, auditando, concluída e concluída com divergência.
+- `tests/unit/xpt-regras.test.js`: adicionados testes para contagens por veículo, deduplicação de rotas, totais G/V/P e relatório sem horário de início.
+- `tests/e2e/xpt-auditoria.test.js`: adicionada validação de dois veículos, resumo individual, finalização independente, edição de horário e relatório.
+- `Planejamento/PLANO_MESTRE_MELINOTEPAD.md`: registrada a decisão funcional mais recente para prevalecer sobre trechos históricos conflitantes.
+
+### Validações executadas
+
+- `node --check` em todos os arquivos JavaScript de `js/`: aprovado.
+- `npm run unit` em `tests/`: **83 aprovados, 0 falhas**.
+- `tests/e2e/xpt-auditoria.test.js`: aprovado, incluindo resumo G/V/P, finalização independente, edição de horário e relatório.
+- `tests/e2e/responsive-layout.test.js`: aprovado — 8 larguras × 3 módulos, sem overflow horizontal ou erros JavaScript.
+- `git diff --check`: aprovado; somente avisos de conversão LF/CRLF.
+
+### Limites
+
+- Não foi realizado commit, push, deploy nem alteração no Supabase remoto.
+- Os testes E2E foram executados contra o servidor local já disponível em `127.0.0.1:4173`; não foi feito teste em dispositivo físico Android.
+- Os registros legados que só possuem `op.fimCarregamentoAt` continuam sendo exibidos como finalizados para compatibilidade. Ao editar um horário legado, os veículos sem horário individual recebem o horário global anterior como base, preservando o estado existente.

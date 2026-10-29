@@ -131,12 +131,13 @@
     if (concluida && !auditor) return { ok: false, erro: 'Informe o nome de quem realizou a auditoria.' };
     var q = quantidades || g.auditoria.quantidades || { g: null, v: null, p: null };
     if (concluida && quantidades) {
-      var valores = quantidades.v === undefined ? ['g', 'v', 'p'] : ['g', 'p'];
-      for (var i = 0; i < valores.length; i++) {
-        var valor = inteiroOuNulo(q[valores[i]]);
-        if (!valor.ok || valor.valor === null) return { ok: false, erro: 'Informe G, V e P como inteiros não negativos.' };
-        q[valores[i]] = valor.valor;
-      }
+      var invalida = ['g', 'v', 'p'].some(function (k) {
+        var valor = inteiroOuNulo(q[k]);
+        if (!valor.ok || valor.valor === null) return true;
+        q[k] = valor.valor;
+        return false;
+      });
+      if (invalida) return { ok: false, erro: 'Informe G, V e P como inteiros não negativos.' };
     }
     g.auditoria.historico = g.auditoria.historico || [];
     g.auditoria.historico.push({ em: iso(agoraMs), de: g.auditoria.estado, para: estado, auditor: concluida ? auditor : null });
@@ -164,7 +165,10 @@
   }
   function validarQuantidadesAuditoria(q) {
     q = q || {};
-    return ['g', 'p'].every(function (k) { var r = inteiroOuNulo(q[k]); return r.ok && r.valor !== null; });
+    return ['g', 'v', 'p'].every(function (k) {
+      var r = inteiroOuNulo(q[k]);
+      return r.ok && r.valor !== null;
+    });
   }
   /** VUC permanece pendente e é excluído de todos os totais e percentuais da auditoria. */
   function resumoAuditoria(gaiolas) {
@@ -207,13 +211,31 @@
     });
     return { valor: total, rotasInformadas: informadas, rotasAssociadas: Object.keys(ids).length };
   }
+  function resumoVeiculo(op, veiculo) {
+    var ids = {}, rotas = 0, gaiolas = 0, paletes = 0, rotasSemQuantidades = 0;
+    (veiculo.gaiolaIds || []).forEach(function (id) {
+      if (ids[id]) return;
+      ids[id] = true; rotas++;
+      var g = op.gaiolas.filter(function (x) { return x.id === id; })[0];
+      var q = g && g.auditoria && g.auditoria.quantidades;
+      if (!q || q.g == null || q.v == null || q.p == null) { rotasSemQuantidades++; return; }
+      gaiolas += n(q.g) + n(q.v);
+      paletes += n(q.p);
+    });
+    return { rotas: rotas, gaiolas: gaiolas, paletes: paletes, rotasSemQuantidades: rotasSemQuantidades };
+  }
   function totais(op) {
     var q = op.quantidades, vs = op.veiculos;
     var somaPaletes = vs.reduce(function (s, v) { return s + n(v.paletes); }, 0);
     var somaRedes = vs.reduce(function (s, v) { return s + redesDoVeiculo(op, v).valor; }, 0);
+    var quantidadesRotas = op.gaiolas.reduce(function (s, g) {
+      var z = g.auditoria && g.auditoria.quantidades;
+      if (!z || z.g == null || z.v == null || z.p == null) { s.rotasSemQuantidades++; return s; }
+      s.gaiolas += n(z.g) + n(z.v); s.paletes += n(z.p); return s;
+    }, { gaiolas: 0, paletes: 0, rotasSemQuantidades: 0 });
     var r = {
       totalProdutos: n(q.pacotes) + n(q.volumosos) + n(q.extraVolumosos),    // BK não entra na soma (significado não confirmado)
-      gaiolas: op.gaiolas.length,
+      gaiolas: op.gaiolas.length, gaiolasAuditadas: quantidadesRotas.gaiolas, paletesAuditados: quantidadesRotas.paletes, rotasSemQuantidades: quantidadesRotas.rotasSemQuantidades,
       paletesVeiculos: somaPaletes, redesVeiculos: somaRedes, avisos: []
     };
     if (q.paletes != null && vs.length && q.paletes !== somaPaletes) r.avisos.push('Paletes legados: total informado (' + q.paletes + ') difere da soma dos veículos (' + somaPaletes + ').');
@@ -235,7 +257,7 @@
     var pal = inteiroOuNulo(o.paletes), red = inteiroOuNulo(o.redes);
     if (!pal.ok || !red.ok) return { ok: false, erro: 'Paletes e redes devem ser números inteiros não negativos.' };
     return { ok: true, veiculo: { id: novoId('xvc'), placa: placa, motorista: limpar(o.motorista), rotas: listaTexto(o.rotas), gaiolaIds: [],
-      paletes: pal.valor, redes: red.valor, saidaAt: o.saidaMs ? iso(o.saidaMs) : null, fotoId: null, fotosAnteriores: [], criadoEm: iso(agoraMs), historico: [] } };
+      fimCarregamentoAt: null, paletes: pal.valor, redes: red.valor, saidaAt: o.saidaMs ? iso(o.saidaMs) : null, fotoId: null, fotosAnteriores: [], criadoEm: iso(agoraMs), historico: [] } };
   }
   function veiculoDaGaiola(op, gaiolaId) {
     for (var i = 0; i < op.veiculos.length; i++) if (op.veiculos[i].gaiolaIds.indexOf(gaiolaId) >= 0) return op.veiculos[i];
@@ -316,7 +338,13 @@
   // ---------------------------------------------------------------- relatórios (dados e texto)
   function rotasDaOperacao(op) {
     var vistos = {}, out = [];
-    op.veiculos.forEach(function (v) { (v.rotas || []).forEach(function (r) { if (!vistos[chave(r)]) { vistos[chave(r)] = 1; out.push(r); } }); });
+    op.veiculos.forEach(function (v) {
+      (v.gaiolaIds || []).forEach(function (id) {
+        var g = op.gaiolas.filter(function (x) { return x.id === id; })[0];
+        if (g && !vistos[chave(g.codigo)]) { vistos[chave(g.codigo)] = 1; out.push(g.codigo); }
+      });
+      (v.rotas || []).forEach(function (r) { if (!vistos[chave(r)]) { vistos[chave(r)] = 1; out.push(r); } });
+    });
     return out;
   }
   function pendentesAbertas(op) { return op.ocorrencias.filter(function (o) { return o.status === 'pendente'; }); }
@@ -328,40 +356,43 @@
     L.push('📦 *MeliNotepad* — Expedição XPT');
     L.push('━━━━━━━━━━━━━━━━'); L.push('');
     L.push('📅 *Operação de ' + U.formatarData(new Date(op.inicioAt)) + '*');
-    var h = ['Início: ' + hm(op.inicioAt)];
-    h.push(op.fimCarregamentoAt ? 'Fim do carregamento: ' + hm(op.fimCarregamentoAt) : 'Carregamento em andamento');
-    h.push(op.encerradaAt ? 'Encerrada: ' + hm(op.encerradaAt) : 'Operação aberta');
-    L.push('🕗 ' + h.join(' · ')); L.push('');
+    if (op.encerradaAt) L.push('🕗 Encerrada: ' + hm(op.encerradaAt));
+    L.push('');
     L.push('📊 *Quantidades*');
     var qs = [['Pacotes', q.pacotes], ['Volumosos', q.volumosos], ['Extra volumosos', q.extraVolumosos]].filter(function (x) { return x[1] != null; });
     if (qs.length) L.push(qs.map(function (x) { return x[0] + ': ' + U.formatarNumeroBR(x[1]); }).join(' · '));
     if (qs.length) L.push('Total de produtos: *' + U.formatarNumeroBR(t.totalProdutos) + '*');
-    var o = ['Gaiolas: ' + t.gaiolas];
-    if (q.paletes != null) o.push('Paletes (legado): ' + q.paletes); if (q.totalBK != null) o.push('Total BK: ' + q.totalBK);
+    var o = ['Rotas cadastradas: ' + t.gaiolas, 'Gaiolas informadas (G+V): ' + t.gaiolasAuditadas, 'Paletes informados (P): ' + t.paletesAuditados];
+    if (t.rotasSemQuantidades) o.push('Rotas sem quantidades G/V/P completas: ' + t.rotasSemQuantidades);
+    if (q.totalBK != null) o.push('Total BK: ' + q.totalBK);
     L.push(o.join(' · '));
     var rotas = rotasDaOperacao(op); if (rotas.length) { L.push(''); L.push('🗺️ *Rotas:* ' + rotas.join(', ')); }
     if (op.veiculos.length) {
       L.push(''); L.push('🚚 *Veículos* — ' + op.veiculos.length);
       op.veiculos.forEach(function (v) {
+        var resumo = resumoVeiculo(op, v), fim = v.fimCarregamentoAt || (op.fimCarregamentoAt ? op.fimCarregamentoAt : null);
         var p = [v.placa]; if (v.motorista) p.push(v.motorista);
-        p.push(v.gaiolaIds.length + ' gaiola(s)'); p.push('redes calculadas: ' + redesDoVeiculo(op, v).valor); if (v.paletes != null) p.push(v.paletes + ' palete(s) (legado)');
-        p.push(v.saidaAt ? 'saída ' + hm(v.saidaAt) : 'sem horário de saída');
+        p.push('Rotas carregadas: ' + resumo.rotas);
+        p.push('Gaiolas informadas: ' + resumo.gaiolas);
+        p.push('Paletes informados: ' + resumo.paletes);
+        p.push(fim ? 'Fim do carregamento: ' + hm(fim) : 'Carregamento não finalizado');
+        p.push('Redes calculadas: ' + redesDoVeiculo(op, v).valor);
         L.push('└ ' + p.join(' · '));
       });
     }
-    L.push(''); L.push('🔎 *Auditoria* (gaiolas convencionais)');
-    if (!a.total) L.push('Sem gaiolas convencionais para auditoria.');
+    L.push(''); L.push('🔎 *Auditoria* (rotas convencionais)');
+    if (!a.total) L.push('Sem rotas convencionais para auditoria.');
     else {
       var comDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída com divergência'; }).length;
-      var semDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluída sem divergência'; }).length;
+      var semDivergencia = op.gaiolas.filter(function (g) { return !g.vuc && rotuloAuditoria(op, g) === 'Concluído'; }).length;
       L.push('Concluídas: ' + a.concluidas + ' de ' + a.total + ' (' + String(a.percentual).replace('.', ',') + '%) · sem divergência ' + semDivergencia + ' · com divergência ' + comDivergencia);
       L.push('Não realizadas: ' + (a.pendentes + a.naoIniciadas));
     }
     if (a.vuc) L.push('VUC fora do cálculo de auditoria: ' + a.vuc);
-    L.push(''); L.push('*Gaiolas, auditoria e ocorrências*');
+    L.push(''); L.push('*Rotas, auditoria e ocorrências*');
     if (!op.gaiolas.length) L.push('Nenhuma gaiola cadastrada.');
     op.gaiolas.forEach(function (g) {
-      L.push('- Gaiola ' + g.codigo + ': ' + rotuloAuditoria(op, g) + ' | Auditor: ' + (g.auditoria.auditor || 'não informado'));
+      L.push('- Rota ' + g.codigo + ': ' + rotuloAuditoria(op, g) + ' | Auditor: ' + (g.auditoria.auditor || 'não informado'));
       ocorrenciasDaGaiola(op, g).forEach(function (oc) {
         L.push('  Ocorrência: produto ' + (oc.produtoId || '-') + ' | categoria: ' + rotuloCategoria(oc) +
           ' | encontrado por: ' + (oc.identificadoPor || '-') + ' | gaiola correta: ' + (oc.gaiolaCorreta || '-') +
@@ -377,7 +408,7 @@
     limpar: limpar, chave: chave, diaRef: diaRef, interpretarCodigos: interpretarCodigos, novaOperacao: novaOperacao, situacaoOperacao: situacaoOperacao,
     diasAberta: diasAberta, adicionarGaiolas: adicionarGaiolas, definirAuditoria: definirAuditoria, iniciarAuditoria: iniciarAuditoria, statusAuditoria: statusAuditoria, validarQuantidadesAuditoria: validarQuantidadesAuditoria, resumoAuditoria: resumoAuditoria,
     ocorrenciasDaGaiola: ocorrenciasDaGaiola, rotuloAuditoria: rotuloAuditoria,
-    totais: totais, redesDoVeiculo: redesDoVeiculo, inteiroOuNulo: inteiroOuNulo, normalizarPlaca: normalizarPlaca, placaPadraoConhecido: placaPadraoConhecido, listaTexto: listaTexto,
+    totais: totais, redesDoVeiculo: redesDoVeiculo, resumoVeiculo: resumoVeiculo, inteiroOuNulo: inteiroOuNulo, normalizarPlaca: normalizarPlaca, placaPadraoConhecido: placaPadraoConhecido, listaTexto: listaTexto,
     novoVeiculo: novoVeiculo, veiculoDaGaiola: veiculoDaGaiola, carregarGaiola: carregarGaiola, descarregarGaiola: descarregarGaiola,
     novaOcorrencia: novaOcorrencia, produtoJaRegistrado: produtoJaRegistrado, mudarStatus: mudarStatus, rotuloCategoria: rotuloCategoria,
     rotasDaOperacao: rotasDaOperacao, pendentesAbertas: pendentesAbertas, relatorioBasico: relatorioBasico,

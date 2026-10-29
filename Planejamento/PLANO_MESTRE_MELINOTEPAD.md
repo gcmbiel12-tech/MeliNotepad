@@ -10,6 +10,16 @@
 - O repositório já tinha alterações locais em css/modulos.css, index.html, js/nex-tabs.js, service-worker.js e 	ests/e2e/nex-abas.test.js; elas foram preservadas e não fazem parte desta consolidação.
 - Nenhum push, deploy, commit ou migração remota foi realizado por esta organização.
 
+## Atualização funcional do XPT — 28/10/2026
+
+Esta atualização é posterior às seções históricas abaixo e prevalece em caso de conflito para os pontos listados:
+
+- Finalização do carregamento independente por veículo, com registro automático de data/hora e possibilidade de editar esse horário depois.
+- A operação só considera o carregamento global encerrado quando todos os veículos estiverem finalizados; a finalização de um veículo não conclui os demais.
+- Na aba Veículos e Carregamento e nos relatórios, separar rotas carregadas, gaiolas informadas (G + V) e paletes informados (P). As rotas são contadas uma vez, sem tratar quantidade de rotas como quantidade de gaiolas.
+- Relatórios não devem exibir o horário de início. Devem exibir o encerramento e os horários de finalização individuais por veículo, quando registrados.
+- Status da auditoria com identificação textual e visual: pendente/não auditada (amarelo), auditando (azul), concluída (verde) e concluída com divergência (vermelho).
+
 
 ---
 

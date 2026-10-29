@@ -36,7 +36,7 @@
   // ================================================================ diálogos genéricos
   function dialogoHorario(cfg) {
     var dlg = UI.dialogo('dlg-xpt-horario');
-    var inp = h('input', { type: 'datetime-local', id: 'xh-quando', value: U.paraDatetimeLocal(new Date(agora())) });
+    var inp = h('input', { type: 'datetime-local', id: 'xh-quando', value: U.paraDatetimeLocal(new Date(cfg.valorInicial || agora())) });
     var erro = aviso(cfg.aviso);
     dlg.appendChild(h('h2', { text: cfg.titulo }));
     if (cfg.texto) dlg.appendChild(h('p', { class: 'texto-apoio', text: cfg.texto }));
@@ -120,7 +120,7 @@
         h('dl', { class: 'lista-definicao' }, [
           h('div', {}, [h('dt', { text: 'Início' }), h('dd', { text: hhmm(o.inicioAt) })]),
           h('div', {}, [h('dt', { text: 'Fim do carregamento' }), h('dd', { text: o.fimCarregamentoAt ? hhmm(o.fimCarregamentoAt) : 'Não registrado' })]),
-          h('div', {}, [h('dt', { text: 'Gaiolas' }), h('dd', { text: String(o.gaiolas.length) })]),
+          h('div', {}, [h('dt', { text: 'Rotas' }), h('dd', { text: String(o.gaiolas.length) })]),
           h('div', {}, [h('dt', { text: 'Pendências' }), h('dd', { text: String(pendencias) })])
         ]),
         dias >= 1 ? h('p', { class: 'texto-apoio', text: 'Aberta há ' + dias + ' dia(s).' }) : null,
@@ -155,12 +155,6 @@
           (dias >= 1 ? ' · aberta há ' + dias + ' dia(s)' : '') })]),
       h('button', { type: 'button', class: 'botao botao--texto', id: 'xo-voltar', text: '← Operações', onclick: voltarLista })]));
     el.cabOp.appendChild(h('div', { class: 'acoes-form' }, [
-      h('button', { type: 'button', class: 'botao botao--secundario', id: 'xo-fimcarga', disabled: !!o.fimCarregamentoAt || !o.veiculos.length, text: o.fimCarregamentoAt ? 'Carregamento já encerrado' : 'Finalizar carregamento', onclick: function () {
-        if (!o.veiculos.length) { UI.avisar('Cadastre pelo menos um veículo antes de finalizar o carregamento.', 'erro'); return; }
-        var semGaiolas = o.veiculos.filter(function (v) { return !v.gaiolaIds.length; }).length;
-        dialogoHorario({ titulo: 'Finalizar carregamento', texto: 'Confirme somente depois de registrar, uma a uma, todas as gaiolas embarcadas. ' + (semGaiolas ? semGaiolas + ' veículo(s) ainda estão sem gaiolas registradas.' : ''), confirmar: 'Confirmar fim do carregamento',
-          aoConfirmar: function (ms) { if (!mutarOp(function (x) { x.fimCarregamentoAt = new Date(ms).toISOString(); })) return false; renderTudo(); return true; } });
-      } }),
       h('button', { type: 'button', class: 'botao botao--primario', id: 'xo-encerrar', disabled: !!o.encerradaAt, text: o.encerradaAt ? 'Operação encerrada' : 'Encerrar operação', onclick: function () {
         var pend = X.pendentesAbertas(o).length, av = [];
         if (!o.fimCarregamentoAt) av.push('O fim do carregamento ainda não foi registrado.');
@@ -223,7 +217,7 @@
         h('dl', { class: 'lista-definicao' }, [
           h('div', {}, [h('dt', { text: 'Início' }), h('dd', { text: hhmm(o.inicioAt) })]),
           h('div', {}, [h('dt', { text: 'Encerrada em' }), h('dd', { text: dataEncerramento })]),
-          h('div', {}, [h('dt', { text: 'Gaiolas' }), h('dd', { text: String(o.gaiolas.length) })]),
+          h('div', {}, [h('dt', { text: 'Rotas' }), h('dd', { text: String(o.gaiolas.length) })]),
           h('div', {}, [h('dt', { text: 'Veículos' }), h('dd', { text: String(o.veiculos.length) })])
         ]),
         botaoDetalhe()
@@ -236,7 +230,7 @@
     if (!o) return;
     ui.histId = id;
     el.histDetalheTitulo.textContent = 'Operação de ' + U.formatarData(new Date(o.inicioAt));
-    el.histDetalheInfo.textContent = 'Início: ' + dataHora(o.inicioAt) + ' | Fim do carregamento: ' + (o.fimCarregamentoAt ? dataHora(o.fimCarregamentoAt) : 'não registrado') + ' | Encerrada: ' + dataHora(o.encerradaAt) + ' | Gaiolas: ' + o.gaiolas.length + ' | Veículos: ' + o.veiculos.length + ' | Ocorrências: ' + o.ocorrencias.length;
+    el.histDetalheInfo.textContent = 'Início: ' + dataHora(o.inicioAt) + ' | Fim do carregamento: ' + (o.fimCarregamentoAt ? dataHora(o.fimCarregamentoAt) : 'não registrado') + ' | Encerrada: ' + dataHora(o.encerradaAt) + ' | Rotas: ' + o.gaiolas.length + ' | Veículos: ' + o.veiculos.length + ' | Ocorrências: ' + o.ocorrencias.length;
     el.histRelatorio.value = X.relatorioBasico(o);
     el.histDetalhe.hidden = false;
     el.histRelatorio.focus();
@@ -354,7 +348,7 @@
     el.pQuant.appendChild(h('div', { class: 'cartao' }, [h('h3', { text: 'Calculado automaticamente' }),
       h('dl', { class: 'lista-definicao' }, [
         h('div', {}, [h('dt', { text: 'Total de produtos' }), h('dd', { id: 'xq-total', text: String(t.totalProdutos) })]),
-        h('div', {}, [h('dt', { text: 'Gaiolas registradas' }), h('dd', { id: 'xq-gaiolas', text: t.gaiolas })]),
+        h('div', {}, [h('dt', { text: 'Rotas cadastradas' }), h('dd', { id: 'xq-gaiolas', text: t.gaiolas })]),
         h('div', {}, [h('dt', { text: 'Auditoria (convencionais)' }), h('dd', { text: a.percentual == null ? '—' : String(a.percentual).replace('.', ',') + '%' })])])]));
   }
 
@@ -367,11 +361,13 @@
       var v = X.veiculoDaGaiola(o, g.id);
       var veiculoSelect = select(prefixo + g.id, [['', o.veiculos.length ? 'Selecionar veículo' : 'Cadastre um veículo primeiro']].concat(o.veiculos.map(function (x) { return [x.id, x.placa]; })), v ? v.id : '');
       veiculoSelect.setAttribute('aria-label', 'Veículo da gaiola ' + g.codigo);
-      veiculoSelect.disabled = !!o.fimCarregamentoAt || !!o.encerradaAt || !o.veiculos.length;
+      var veiculoAtual = X.veiculoDaGaiola(o, g.id);
+      veiculoSelect.disabled = !!o.encerradaAt || !!o.fimCarregamentoAt || !!(veiculoAtual && veiculoAtual.fimCarregamentoAt) || !o.veiculos.length;
       veiculoSelect.addEventListener('change', function () {
         var destino = veiculoSelect.value, atual = X.veiculoDaGaiola(op(), g.id);
         if ((atual ? atual.id : '') === destino) return;
-        if (o.fimCarregamentoAt || o.encerradaAt) { UI.avisar('O carregamento está encerrado; não é possível alterar a associação.', 'erro'); renderGaiolas(); return; }
+        var veiculoDestino = o.veiculos.filter(function (x) { return x.id === destino; })[0];
+        if (o.fimCarregamentoAt || o.encerradaAt || (atual && atual.fimCarregamentoAt) || (veiculoDestino && veiculoDestino.fimCarregamentoAt)) { UI.avisar('Este veículo já teve o carregamento finalizado; não é possível alterar a associação.', 'erro'); renderGaiolas(); return; }
         var posicao = window.scrollY;
         var salvo = mutarOp(function (x) {
           var veiculoAtual = X.veiculoDaGaiola(x, g.id);
@@ -406,11 +402,13 @@
     var corpo = h('tbody', { id: 'xg-corpo' }, itens.map(function (g) {
       var veiculoSelect = criarSelectVeiculo(g, 'xg-veiculo-');
       var q = g.auditoria && g.auditoria.quantidades || {};
-      var qTexto = q.g != null && q.p != null ? 'Gaiolas: ' + q.g + ' | Paletes: ' + q.p : '—';
+      var qTexto = q.g != null && q.v != null && q.p != null ? 'G' + q.g + ' | V' + q.v + ' | P' + q.p : '—';
+      var rotuloStatus = X.rotuloAuditoria(o, g);
+      var classeStatus = rotuloStatus === 'Não auditado' ? 'pendente' : rotuloStatus === 'Auditando' ? 'auditando' : rotuloStatus === 'Concluído com divergência' ? 'divergencia' : 'auditada';
       return h('tr', { dataset: { id: g.id } }, [
         h('td', { text: g.codigo }),
         h('td', { text: qTexto }),
-        h('td', { text: X.rotuloAuditoria(o, g) }), h('td', { text: g.auditoria.auditor || '-' }),
+        h('td', {}, [h('span', { class: 'xpt-status-auditoria xpt-status-auditoria--' + classeStatus, text: rotuloStatus })]), h('td', { text: g.auditoria.auditor || '-' }),
         h('td', {}, [veiculoSelect]),
         h('td', {}, [h('div', { class: 'acoes-form' }, [
           h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'auditar', id: g.id }, text: g.auditoria.estado === 'concluida' || g.auditoria.estado.indexOf('concluida_') === 0 ? 'Abrir auditoria' : 'Concluir auditoria' }),
@@ -421,12 +419,14 @@
     var listaMobile = h('ul', { class: 'xpt-lista-mobile xpt-lista-gaiolas', 'aria-label': 'Gaiolas e auditoria' });
     itens.forEach(function (g) {
       var veiculoSelectMobile = criarSelectVeiculo(g, 'xg-veiculo-mobile-');
+      var statusMobile = X.rotuloAuditoria(o, g);
+      var classeStatusMobile = statusMobile === 'Não auditado' ? 'pendente' : statusMobile === 'Auditando' ? 'auditando' : statusMobile === 'Concluído com divergência' ? 'divergencia' : 'auditada';
       listaMobile.appendChild(h('li', { class: 'cartao xpt-card-gaiola' }, [
         h('div', { class: 'cartao__cabecalho' }, [
           h('h3', { text: 'Rota ' + g.codigo }),
         ]),
         h('p', { class: 'texto-apoio', text: 'Qnts.: ' + (g.auditoria.quantidades && g.auditoria.quantidades.g != null && g.auditoria.quantidades.v != null && g.auditoria.quantidades.p != null ? 'G' + g.auditoria.quantidades.g + ' | V' + g.auditoria.quantidades.v + ' | P' + g.auditoria.quantidades.p : '—') }),
-        h('p', { class: 'texto-apoio', text: 'Auditoria: ' + X.rotuloAuditoria(o, g) }),
+        h('p', { class: 'texto-apoio xpt-status-auditoria xpt-status-auditoria--' + classeStatusMobile, text: 'Auditoria: ' + statusMobile }),
         h('p', { class: 'texto-apoio', text: 'Auditor: ' + (g.auditoria.auditor || 'Não informado') }),
         UI.campo('Veículo associado', veiculoSelectMobile),
         h('div', { class: 'acoes-form' }, [
@@ -453,14 +453,15 @@
         h('button', { type: 'button', class: 'botao botao--primario', id: 'xg-adicionar', text: '+ Adicionar Rota', onclick: dialogoAdicionarGaiolas }),
         h('button', { type: 'button', class: 'botao botao--secundario', id: 'xg-lote', text: 'Auditar em lote', onclick: dialogoAuditoriaLote })])]));
     el.pGaiolas.appendChild(h('div', { class: 'cartao' }, [h('div', { class: 'interv-filtros' }, [UI.campo('Status da auditoria', filtro), UI.campo('Veículo', veiculoFiltro), UI.campo('Buscador', busca)]),
-      h('p', { class: 'texto-apoio', id: 'xg-contagem', text: itens.length + ' de ' + o.gaiolas.length + ' gaiola(s)' }),
+      h('p', { class: 'texto-apoio', id: 'xg-contagem', text: itens.length + ' de ' + o.gaiolas.length + ' rota(s)' }),
       h('div', { class: 'tabela-rolavel xpt-tabela-desktop' }, [h('table', { class: 'tabela-modulo' }, [thead(['Rota', 'Qnts.', 'Auditoria', 'Auditor', 'Veículo', '']), corpo])]),
       listaMobile]));
   }
   function dialogoExcluirGaiola(gaiolaId) {
     var o = op(), gaiola = o && o.gaiolas.filter(function (g) { return g.id === gaiolaId; })[0];
     if (!gaiola) return;
-    if (o.fimCarregamentoAt || o.encerradaAt) { UI.avisar('O carregamento está encerrado; não é possível excluir gaiolas.', 'erro'); return; }
+    var veiculoDaGaiola = X.veiculoDaGaiola(o, gaiolaId);
+    if (o.fimCarregamentoAt || o.encerradaAt || (veiculoDaGaiola && veiculoDaGaiola.fimCarregamentoAt)) { UI.avisar('A rota pertence a um carregamento finalizado; não é possível excluir.', 'erro'); return; }
     var dlg = UI.dialogo('dlg-xpt-excluir-gaiola');
     dlg.appendChild(h('h2', { text: 'Excluir gaiola ' + gaiola.codigo + '?' }));
     dlg.appendChild(h('p', { class: 'texto-apoio', text: 'Esta ação remove a gaiola cadastrada e sua associação com veículo. O histórico de ocorrências já registrado será preservado.' }));
@@ -505,18 +506,18 @@
     var o = op(), g = o.gaiolas.filter(function (x) { return x.id === ids[0]; })[0]; if (!g) return;
     var dlg = UI.dialogo('dlg-xpt-aud'), erro = aviso(), q = g.auditoria.quantidades || {};
     var auditor = h('input', { type: 'text', id: 'xa-auditor', autocomplete: 'name', maxlength: '100', placeholder: 'Nome do auditor', value: g.auditoria.auditor || '', required: true });
-    var campos = {}; [['g','Quantidade de gaiolas'],['p','Quantidade de paletes']].forEach(function (x) { campos[x[0]] = h('input', { type:'number', min:'0', step:'1', inputmode:'numeric', id:'xa-q-'+x[0], value:q[x[0]] == null ? '' : String(q[x[0]]), required:true }); });
+    var campos = {}; [['g','Gaiolas convencionais (G)'],['v','Gaiolas de Volumoso (V)'],['p','Paletes (P)']].forEach(function (x) { campos[x[0]] = h('input', { type:'number', min:'0', step:'1', inputmode:'numeric', id:'xa-q-'+x[0], value:q[x[0]] == null ? '' : String(q[x[0]]), required:true }); });
     var concluida = g.auditoria.estado === 'concluida' || g.auditoria.estado.indexOf('concluida_') === 0;
     dlg.appendChild(h('h2', { text: (concluida ? 'Abrir auditoria — rota ' : 'Concluir auditoria — rota ') + g.codigo }));
     dlg.appendChild(h('p', { class: 'texto-apoio', text: 'Informe o nome do auditor e as quantidades. Ao confirmar, a auditoria será concluída em uma única etapa.' }));
-    var camposQtd = h('div', { class:'interv-duas' }, [['g','Quantidade de gaiolas'],['p','Quantidade de paletes']].map(function (x) { return UI.campo(x[1], campos[x[0]], ''); }));
+    var camposQtd = h('div', { class:'xpt-grid' }, [['g','Gaiolas convencionais (G)'],['v','Gaiolas de Volumoso (V)'],['p','Paletes (P)']].map(function (x) { return UI.campo(x[1], campos[x[0]], 'Inteiro não negativo.'); }));
     dlg.appendChild(h('form', { novalidate:true, onsubmit:function(e) {
       e.preventDefault();
       var nome = auditor.value.trim();
       if (!nome) { erro.textContent = 'Informe o nome do auditor.'; auditor.focus(); return; }
       var quantidades = {};
-      ['g','p'].forEach(function(k){ var bruto=campos[k].value.trim(); var n=bruto === '' ? {ok:true,valor:0} : X.inteiroOuNulo(bruto); quantidades[k]=n.ok?n.valor:null; }); quantidades.v = q.v == null ? 0 : q.v;
-      if (!X.validarQuantidadesAuditoria(quantidades)) { erro.textContent='Informe quantidades de gaiolas e paletes como inteiros não negativos.'; return; }
+      ['g','v','p'].forEach(function(k){ var n=X.inteiroOuNulo(campos[k].value.trim()); quantidades[k]=n.ok?n.valor:null; });
+      if (!X.validarQuantidadesAuditoria(quantidades)) { erro.textContent='Informe G, V e P como inteiros não negativos.'; return; }
       var salvo=mutarOp(function(x){ var alvo=x.gaiolas.filter(function(y){return y.id===g.id;})[0]; var z=X.definirAuditoria(alvo,'concluida',nome,agora(),quantidades); if(!z.ok) throw new Error(z.erro); });
       if(salvo){dlg.close();renderTudo();UI.avisar('Auditoria da rota '+g.codigo+' concluída.','sucesso');}
     } }, [UI.campo('Auditor',auditor), camposQtd, erro,
@@ -553,7 +554,7 @@
         if (c.est.value.indexOf('concluida') === 0 && !c.auditor.value.trim()) { UI.avisar('Informe o nome do auditor.', 'erro'); return false; }
         var quantidades = {};
         ['g','v','p'].forEach(function(k){ var n=X.inteiroOuNulo(c.quantidades[k].value); quantidades[k]=n.ok?n.valor:null; });
-        if (c.est.value === 'concluida' && !X.validarQuantidadesAuditoria(quantidades)) { UI.avisar('Informe quantidades de gaiolas e paletes como inteiros não negativos.', 'erro'); return false; }
+        if (c.est.value === 'concluida' && !X.validarQuantidadesAuditoria(quantidades)) { UI.avisar('Informe G, V e P como inteiros não negativos.', 'erro'); return false; }
         return aplicarAuditoria(ids, c.est.value, c.auditor.value, quantidades);
       } });
   }
@@ -763,16 +764,23 @@
       return;
     }
     o.veiculos.forEach(function (v) {
+      var fimVeiculo = v.fimCarregamentoAt || (o.fimCarregamentoAt ? o.fimCarregamentoAt : null);
+      var resumoVeiculo = X.resumoVeiculo(o, v);
       var listaGaiolas = (v.gaiolaIds || []).map(function (gid) {
         var g = o.gaiolas.filter(function (x) { return x.id === gid; })[0];
-        return g ? h('li', {}, [g.codigo + (g.vuc ? ' — VUC' : ''), ' ', o.fimCarregamentoAt ? null : h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'descarregar', veiculo: v.id, gaiola: gid }, text: 'Remover do veículo' })]) : null;
+        return g ? h('li', {}, [g.codigo + (g.vuc ? ' — VUC' : ''), ' ', fimVeiculo || o.encerradaAt ? null : h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'descarregar', veiculo: v.id, gaiola: gid }, text: 'Remover do veículo' })]) : null;
       }).filter(Boolean);
+      var acaoFim = h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'fim-veiculo', veiculo: v.id }, text: fimVeiculo ? 'Editar horário de finalização' : 'Finalizar carregamento deste veículo', disabled: !!o.encerradaAt });
       el.pVeiculos.appendChild(h('section', { class: 'cartao xpt-veiculo' }, [
         h('div', { class: 'cartao__cabecalho' }, [
           h('div', {}, [h('h3', { text: v.placa }), h('p', { class: 'texto-apoio', text: v.motorista || 'Motorista não informado' })]),
-          h('span', { class: 'chip chip--neutro', text: listaGaiolas.length + ' gaiola(s)' })
+          h('span', { class: 'chip chip--neutro', text: resumoVeiculo.rotas + ' rota(s)' })
         ]),
-        h('div', {}, [h('h4', { text: 'Gaiolas carregadas (' + listaGaiolas.length + ')' }), listaGaiolas.length ? h('ul', {}, listaGaiolas) : h('p', { class: 'texto-apoio', text: 'Nenhuma gaiola carregada.' })])
+        h('p', { class: 'texto-apoio', text: 'Rotas carregadas: ' + resumoVeiculo.rotas + ' · Gaiolas informadas: ' + resumoVeiculo.gaiolas + ' · Paletes informados: ' + resumoVeiculo.paletes }),
+        resumoVeiculo.rotasSemQuantidades ? h('p', { class: 'texto-apoio', text: resumoVeiculo.rotasSemQuantidades + ' rota(s) sem quantidades G/V/P completas; os totais consideram apenas rotas com quantidades completas.' }) : null,
+        h('p', { class: 'texto-apoio', text: fimVeiculo ? 'Carregamento finalizado: ' + dataHora(fimVeiculo) : 'Carregamento ainda não finalizado' }),
+        h('div', { class: 'acoes-form' }, [acaoFim]),
+        h('div', {}, [h('h4', { text: 'Rotas carregadas (' + listaGaiolas.length + ')' }), listaGaiolas.length ? h('ul', {}, listaGaiolas) : h('p', { class: 'texto-apoio', text: 'Nenhuma rota carregada.' })])
       ]));
     });
   }
@@ -811,7 +819,7 @@
     ]));
     el.pRelatorios.appendChild(h('section', { class: 'cartao' }, [
       h('h3', { text: 'Resumo de auditoria' }),
-      h('p', { class: 'texto-apoio', text: 'Concluídas: ' + auditoria.concluidas + ' de ' + auditoria.convencionais + ' gaiolas convencionais (' + (auditoria.percentual == null ? '—' : String(auditoria.percentual).replace('.', ',') + '%') + '). VUC: ' + auditoria.vuc + '. Pendências de ocorrência: ' + pend.length + '.' }),
+      h('p', { class: 'texto-apoio', text: 'Concluídas: ' + auditoria.concluidas + ' de ' + auditoria.total + ' gaiolas convencionais (' + (auditoria.percentual == null ? '—' : String(auditoria.percentual).replace('.', ',') + '%') + '). VUC: ' + auditoria.vuc + '. Pendências de ocorrência: ' + pend.length + '.' }),
       h('h3', { text: 'Histórico de auditorias e reauditorias' }),
       o.gaiolas.length ? h('ul', {}, o.gaiolas.map(function (g) {
         var linhas = [];
@@ -838,15 +846,16 @@
     NS.Impressao.imprimir(titulo, function (raiz, criar) {
       raiz.appendChild(criar('h1', { text: 'MeliNotepad — Relatório operacional XPT' }));
       raiz.appendChild(criar('p', { text: 'Data de referência: ' + U.formatarData(new Date(o.inicioAt)) }));
-      raiz.appendChild(criar('p', { text: 'Início: ' + dataHora(o.inicioAt) + ' · Fim do carregamento: ' + (o.fimCarregamentoAt ? dataHora(o.fimCarregamentoAt) : 'não registrado') + ' · Encerramento: ' + (o.encerradaAt ? dataHora(o.encerradaAt) : 'operação aberta') }));
+      raiz.appendChild(criar('p', { text: 'Encerramento: ' + (o.encerradaAt ? dataHora(o.encerradaAt) : 'operação aberta') }));
       raiz.appendChild(criar('h2', { text: 'Quantidades' }));
       raiz.appendChild(criar('p', { text: 'Pacotes: ' + (o.quantidades.pacotes == null ? '—' : o.quantidades.pacotes) + ' · Volumosos: ' + (o.quantidades.volumosos == null ? '—' : o.quantidades.volumosos) + ' · Extra volumosos: ' + (o.quantidades.extraVolumosos == null ? '—' : o.quantidades.extraVolumosos) + ' · Total de produtos: ' + X.totais(o).totalProdutos }));
-      raiz.appendChild(criar('p', { text: 'Paletes: ' + (o.quantidades.paletes == null ? '—' : o.quantidades.paletes) + ' · Redes: ' + (o.quantidades.redes == null ? '—' : o.quantidades.redes) + ' · Total BK: ' + (o.quantidades.totalBK == null ? '—' : o.quantidades.totalBK) }));
-      raiz.appendChild(criar('h2', { text: 'Gaiolas e auditoria' }));
+      var totaisOperacao = X.totais(o);
+      raiz.appendChild(criar('p', { text: 'Rotas cadastradas: ' + totaisOperacao.gaiolas + ' · Gaiolas informadas (G+V): ' + totaisOperacao.gaiolasAuditadas + ' · Paletes informados (P): ' + totaisOperacao.paletesAuditados + (totaisOperacao.rotasSemQuantidades ? ' · Rotas sem quantidades completas: ' + totaisOperacao.rotasSemQuantidades : '') + ' · Redes calculadas: ' + totaisOperacao.redesVeiculos + ' · Total BK: ' + (o.quantidades.totalBK == null ? '—' : o.quantidades.totalBK) }));
+      raiz.appendChild(criar('h2', { text: 'Rotas e auditoria' }));
       var a = X.resumoAuditoria(o.gaiolas);
-      raiz.appendChild(criar('p', { text: 'Gaiolas: ' + a.total + ' · VUC: ' + a.vuc + ' · Convencionais: ' + a.convencionais + ' · Concluídas: ' + a.concluidas + ' · Não realizadas: ' + (a.pendentes + a.naoIniciadas) + ' · Percentual: ' + (a.percentual == null ? '—' : a.percentual + '%') }));
+      raiz.appendChild(criar('p', { text: 'Rotas convencionais: ' + a.total + ' · VUC fora da auditoria: ' + a.vuc + ' · Concluídas: ' + a.concluidas + ' · Não realizadas: ' + (a.pendentes + a.naoIniciadas) + ' · Percentual: ' + (a.percentual == null ? '—' : a.percentual + '%') }));
       raiz.appendChild(criar('table', { class: 'tabela-modulo' }, [
-        criar('thead', {}, [criar('tr', {}, ['Código', 'Tipo', 'Estado', 'Auditor', 'Data da auditoria'].map(function (x) { return criar('th', { text: x }); }))]),
+        criar('thead', {}, [criar('tr', {}, ['Rota', 'Auditoria', 'Auditor', 'Data da auditoria'].map(function (x) { return criar('th', { text: x }); }))]),
         criar('tbody', {}, o.gaiolas.map(function (g) { return criar('tr', {}, [
           criar('td', { text: g.codigo }), criar('td', { text: X.rotuloAuditoria(o, g) }), criar('td', { text: g.auditoria.auditor || '-' }),
           criar('td', { text: g.auditoria.em ? dataHora(g.auditoria.em) : '—' })
@@ -864,9 +873,10 @@
       return Promise.all(o.veiculos.map(function (v) { return v.fotoId && F ? F.urlDe(v.fotoId) : Promise.resolve(null); })).then(function (urlsFotos) {
         o.veiculos.forEach(function (v, i) {
           raiz.appendChild(criar('h3', { text: v.placa + (v.motorista ? ' · ' + v.motorista : '') }));
-          raiz.appendChild(criar('p', { text: 'Rotas: ' + (v.rotas || []).join(', ') + ' · Saída: ' + (v.saidaAt ? dataHora(v.saidaAt) : 'não registrada') + ' · Paletes: ' + (v.paletes == null ? '—' : v.paletes) + ' · Redes: ' + (v.redes == null ? '—' : v.redes) }));
+          var resumoV = X.resumoVeiculo(o, v), fimV = v.fimCarregamentoAt || (o.fimCarregamentoAt ? o.fimCarregamentoAt : null);
+          raiz.appendChild(criar('p', { text: 'Rotas carregadas: ' + resumoV.rotas + ' · Gaiolas informadas: ' + resumoV.gaiolas + ' · Paletes informados: ' + resumoV.paletes + (resumoV.rotasSemQuantidades ? ' · Rotas sem quantidades completas: ' + resumoV.rotasSemQuantidades : '') + ' · Redes: ' + X.redesDoVeiculo(o, v).valor + ' · Finalização: ' + (fimV ? dataHora(fimV) : 'não finalizado') }));
           var codigos = (v.gaiolaIds || []).map(function (gid) { var g = o.gaiolas.filter(function (x) { return x.id === gid; })[0]; return g ? g.codigo : null; }).filter(Boolean);
-          raiz.appendChild(criar('p', { text: 'Gaiolas carregadas: ' + (codigos.join(', ') || 'nenhuma') }));
+          raiz.appendChild(criar('p', { text: 'Rotas: ' + (codigos.join(', ') || 'nenhuma') }));
           if (urlsFotos[i]) {
             var imagem = criar('img', { src: urlsFotos[i], alt: 'HAND e lacre juntos — veículo ' + v.placa, class: 'xpt-foto-relatorio' });
             raiz.appendChild(imagem);
@@ -886,7 +896,7 @@
   function criarEstrutura() {
     UI.limpar(el.raiz);
     var tabela = h('table', { class: 'tabela-modulo' }, [
-      thead(['Data', 'Início', 'Fim do carregamento', 'Situação', 'Gaiolas', 'Pendências', '']),
+      thead(['Data', 'Início', 'Fim do carregamento', 'Situação', 'Rotas', 'Pendências', '']),
       h('tbody', { id: 'xo-corpo-ops' })
     ]);
     el.corpoOps = tabela.querySelector('tbody');
@@ -949,11 +959,33 @@
       var b = e.target.closest('button[data-acao="abrir"]'); if (b) abrirOperacao(b.dataset.id);
     });
     el.pVeiculos.addEventListener('click', function (e) {
+      var fim = e.target.closest('button[data-acao="fim-veiculo"]');
+      if (fim) {
+        var atual = op(); if (!atual) return;
+        var v = atual.veiculos.filter(function (x) { return x.id === fim.dataset.veiculo; })[0]; if (!v) return;
+        var existente = v.fimCarregamentoAt || (atual.fimCarregamentoAt ? atual.fimCarregamentoAt : null);
+        dialogoHorario({ titulo: existente ? 'Editar finalização — veículo ' + v.placa : 'Finalizar carregamento — veículo ' + v.placa,
+          texto: existente ? 'Ajuste a data e o horário registrados para este veículo.' : 'A finalização será registrada somente para este veículo.',
+          valorInicial: existente ? Date.parse(existente) : agora(), confirmar: existente ? 'Salvar horário' : 'Confirmar finalização',
+          aoConfirmar: function (ms) {
+            if (!mutarOp(function (x) {
+              if (x.fimCarregamentoAt) x.veiculos.forEach(function (item) { if (!item.fimCarregamentoAt) item.fimCarregamentoAt = x.fimCarregamentoAt; });
+              var alvo = x.veiculos.filter(function (item) { return item.id === v.id; })[0];
+              alvo.fimCarregamentoAt = new Date(ms).toISOString();
+              var todosFinalizados = x.veiculos.length > 0 && x.veiculos.every(function (item) { return !!item.fimCarregamentoAt; });
+              x.fimCarregamentoAt = todosFinalizados ? x.veiculos.reduce(function (maisRecente, item) { return Date.parse(item.fimCarregamentoAt) > Date.parse(maisRecente) ? item.fimCarregamentoAt : maisRecente; }, x.veiculos[0].fimCarregamentoAt) : null;
+            })) return false;
+            renderTudo(); UI.avisar('Horário do veículo ' + v.placa + ' atualizado.', 'sucesso'); return true;
+          }
+        });
+        return;
+      }
       var b = e.target.closest('button[data-acao="descarregar"]'); if (!b) return;
-      var atual = op(); if (atual && (atual.fimCarregamentoAt || atual.encerradaAt)) { UI.avisar('O carregamento foi finalizado; não é possível alterar as gaiolas embarcadas.', 'erro'); return; }
-      if (!global.confirm('Remover esta gaiola do veículo? O histórico da associação será preservado.')) return;
+      var atualOp = op(), veiculo = atualOp && atualOp.veiculos.filter(function (x) { return x.id === b.dataset.veiculo; })[0];
+      if (atualOp && (atualOp.fimCarregamentoAt || atualOp.encerradaAt || (veiculo && veiculo.fimCarregamentoAt))) { UI.avisar('Este veículo já teve o carregamento finalizado; não é possível alterar as rotas embarcadas.', 'erro'); return; }
+      if (!global.confirm('Remover esta rota do veículo? O histórico da associação será preservado.')) return;
       var r = mutarOp(function (x) { var z = X.descarregarGaiola(x, b.dataset.veiculo, b.dataset.gaiola, agora()); if (!z.ok) throw new Error(z.erro); });
-      if (r) { renderTudo(); UI.avisar('Gaiola removida do veículo.', 'sucesso'); }
+      if (r) { renderTudo(); UI.avisar('Rota removida do veículo.', 'sucesso'); }
     });
   }
 
