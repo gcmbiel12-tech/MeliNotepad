@@ -31,7 +31,7 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     assert.strictEqual(await page.locator('#nex-rotas-auditoria .nex-rotas-contadores').evaluate(el => getComputedStyle(el).display), 'none', 'a tela inicial da auditoria deve priorizar as rotas sem contadores grandes');
     assert.strictEqual(await page.locator('#nex-rotas-auditoria .nex-filtros-rotas').evaluate(el => getComputedStyle(el).display), 'none', 'os filtros avançados não devem ocupar a tela principal de rotas');
     await page.locator('#nex-lista-rotas .nex-rota-card').first().locator('.nex-rota-toggle').click();
-    await page.locator('#nex-lista-rotas .nex-rota-card').first().getByRole('button', { name: '+ Adicionar sacas em lote' }).click();
+    await page.locator('#nex-lista-rotas .nex-rota-card').first().getByRole('button', { name: '+ Adicionar saca' }).click();
     await page.locator('#nex-dialogo-operacao textarea').fill('060-062');
     assert.match(await page.locator('.nex-lote-sacas__resumo').innerText(), /3 saca/);
     await page.locator('#nex-dialogo-operacao button[type=submit]').click();
