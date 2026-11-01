@@ -1,12 +1,12 @@
 /**
  * fotos.js
- * Foto única do HAND e do lacre (juntos) por veículo do XPT.
+ * Fotos opcionais separadas do HAND e da carreta por veículo do XPT.
  *
  * ARMAZENAMENTO ATUAL: IndexedDB deste aparelho (persiste ao fechar e reabrir o app).
- * LIMITAÇÃO: a foto NÃO fica acessível em outros aparelhos — isso exige um serviço de
- * armazenamento central (ainda não configurado/autorizado). O registro guarda
- * `sincronizada: false` para que um envio futuro seja idempotente (mesmo id = mesma foto).
- * Nenhuma foto é apagada por esta camada.
+ * LIMITAÇÃO: as fotos não ficam acessíveis em outros aparelhos; isso exige um serviço de
+ * armazenamento central ainda não habilitado para uso operacional. O registro guarda
+ * sincronizada=false para que um envio futuro seja idempotente (mesmo id = mesma foto).
+ * Fotos antigas são mantidas; esta camada não exclui registros.
  */
 (function (global) {
   'use strict';

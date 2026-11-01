@@ -19,6 +19,8 @@ const MIN = 60000;
   // Folga de dez minutos para que a navegação inicial não ultrapasse o instante simulado em máquinas lentas.
   await page.clock.install({ time: new Date(T0.getTime() - 10 * MIN) });
   await page.goto(BASE);
+  await page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('melinotepad_')).forEach(k => localStorage.removeItem(k)));
+  await page.reload();
   await page.clock.pauseAt(T0);
 
   const dlgNovo = () => page.locator('#dlg-interv-novo');
@@ -48,21 +50,24 @@ const MIN = 60000;
     await page.click('#iv-confirmar');
   }
 
-  await etapa('Navegação: abas NEX / XPT / Intervalos; alternar não apaga o formulário do NEX', async () => {
-    assert.deepStrictEqual(await page.$$eval('.tab-modulo', b => b.map(x => x.textContent)), ['NEX', 'XPT', 'Intervalos']);
+  await etapa('Navegação: cartões de módulos; alternar não apaga o formulário do NEX', async () => {
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-operacao').click();
     await page.fill('#input-sacas', '10'); await page.fill('#input-pacotes', '100');
-    await page.click('#form-iniciar-sessao button[type=submit]');
-    await page.click('#nex-tab-btn-ocorrencias');
-    await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
-    await page.fill('#input-codigo', 'RASCUNHO-123');
-    await page.click('.tab-modulo[data-modulo=intervalos]');
+    await page.locator('#nav-voltar-app').click();
+    await page.locator('[data-abrir-modulo="intervalos"]').click();
     assert.strictEqual(await page.isVisible('#modulo-intervalos'), true);
     assert.strictEqual(await page.isVisible('#modulo-nex'), false);
     assert.strictEqual(await page.isVisible('#status-chip'), false, 'o chip de sessão é do NEX');
-    await page.click('.tab-modulo[data-modulo=nex]');
-    assert.strictEqual(await page.inputValue('#input-codigo'), 'RASCUNHO-123');
+    await page.locator('#nav-voltar-app').click();
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-operacao').click();
+    assert.strictEqual(await page.inputValue('#input-sacas'), '10');
+    assert.strictEqual(await page.inputValue('#input-pacotes'), '100');
     assert.strictEqual(await page.isVisible('#status-chip'), true);
-    await page.click('.tab-modulo[data-modulo=intervalos]');
+    await page.locator('#nav-voltar-app').click();
+    await page.locator('[data-abrir-modulo="intervalos"]').click();
+    await page.locator('#summary-intervalos-cadastros').click();
   });
 
   await etapa('Cadastro: cadastra funcionários; impede duplicidade; permite homônimos de primeiro nome; setor opcional', async () => {
@@ -286,7 +291,8 @@ const MIN = 60000;
     const antesHist = (await historico()).length;
     await page.reload();
     await page.clock.pauseAt(new Date(T0.getTime() + 600 * MIN));
-    await page.click('.tab-modulo[data-modulo=intervalos]');
+    if (await page.locator('#tela-app').isVisible()) await page.locator('[data-abrir-modulo="intervalos"]').click();
+    await page.locator('#summary-intervalos-cadastros').click();
     assert.strictEqual((await linhas()).length, antesAtivos);
     await page.click('#iv-aba-historico');
     assert.strictEqual((await historico()).length, antesHist);
@@ -315,9 +321,10 @@ const MIN = 60000;
 
   await etapa('Dados do NEX e do módulo ficam em chaves separadas', async () => {
     const k = await page.evaluate(() => Object.keys(localStorage).filter(x => !x.includes('corrompido')).sort());
-    assert.ok(k.includes('melinotepad_data_v1') && k.includes('melinotepad_intervalos_v1'), k.join(','));
-    const nex = await page.evaluate(() => JSON.parse(localStorage.getItem('melinotepad_data_v1')));
-    assert.ok(!JSON.stringify(nex).includes('funcionarioNome'), 'NEX não recebe registros de intervalos');
+    assert.ok(k.includes('melinotepad_intervalos_v1'), k.join(','));
+    const nexRaw = await page.evaluate(() => localStorage.getItem('melinotepad_data_v1'));
+    if (nexRaw) assert.ok(!JSON.stringify(JSON.parse(nexRaw)).includes('funcionarioNome'), 'NEX não recebe registros de intervalos');
+    assert.ok(!k.includes('melinotepad_xpt_v1'), 'Intervalos não grava os dados do XPT');
   });
 
   await etapa('Nenhum erro de console durante todo o fluxo', async () => {

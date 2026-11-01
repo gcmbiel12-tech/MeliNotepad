@@ -2,6 +2,16 @@
 
 > Documento consolidado de arquitetura, persistência, auditorias e validações. Os registros abaixo são históricos e podem descrever estados anteriores; para estado atual, consulte a seção “Situação da consolidação” no início e execute os testes indicados. Os conteúdos originais foram preservados integralmente.
 
+## Atualização de navegação e validação — 29/10/2026
+
+- Corrigido o resumo do cartão NEX para atualizar o status quando o painel de sessão muda de visibilidade e ao retornar à navegação entre módulos. O estado mostrado agora reflete a operação em andamento em vez de ficar preso ao valor calculado na inicialização.
+- Corrigido o fluxo interno do NEX: ao abrir “Operação atual”, a navegação por abas aparece somente se houver sessão ativa; sem sessão, permanece a tela de início da operação.
+- Adaptados os testes E2E afetados pela nova navegação por cartões, incluindo NEX, XPT e Intervalos. Os testes continuam verificando as regras de negócio, não apenas a presença dos seletores.
+- Atualizada a versão do cache estático do service worker de `v28` para `v29`; `js/telas-iniciais.js` permanece incluído na lista de arquivos essenciais.
+- **Testes confirmados nesta rodada:** 84 testes unitários aprovados; **11/11 scripts E2E aprovados** na execução sequencial; Intervalos 20/20 etapas; NEX regressão 31/31; NEX abas aprovado; NEX melhorias aprovado; scanner QR 7/7; XPT auditoria/carregamento/fotos/relatórios aprovado; XPT importação de planilha aprovado; tela inicial/status NEX aprovado; layout responsivo 8 larguras × 3 módulos sem overflow horizontal nem erros JavaScript; autenticação em 7 larguras aprovada. `node --check` nos scripts alterados e `git diff --check` aprovados.
+- Os E2E são scripts independentes executados em sequência, sem um runner central do Playwright. A responsividade dos três módulos foi repetida nesta rodada e aprovada.
+- Nenhum commit, push, deploy, publicação ou migração remota foi realizado. Todas as mudanças continuam locais.
+
 ## Atualização de implementação e regressão — 28/10/2026
 
 - Corrigida a auditoria individual do XPT: agora exige e grava as três quantidades **G, V e P**. Antes, o formulário solicitava somente G/P e preenchia V automaticamente, o que podia registrar uma quantidade incorreta sem o usuário informar.
@@ -535,3 +545,53 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - Não foi realizado commit, push, deploy nem alteração no Supabase remoto.
 - Os testes E2E foram executados contra o servidor local já disponível em `127.0.0.1:4173`; não foi feito teste em dispositivo físico Android.
 - Os registros legados que só possuem `op.fimCarregamentoAt` continuam sendo exibidos como finalizados para compatibilidade. Ao editar um horário legado, os veículos sem horário individual recebem o horário global anterior como base, preservando o estado existente.
+
+
+## XPT — fotos separadas e relatórios com imagens — 29/10/2026
+
+- O formulário de cada veículo agora aceita duas fotos opcionais e independentes: HAND e carreta. Cada foto é armazenada no IndexedDB local; substituições mantêm a referência anterior, sem apagar o arquivo.
+- PDF básico e PDF completo incluem as fotos existentes com rótulos por tipo e placa. Os dois PDFs também estão disponíveis no histórico de operações encerradas.
+- Registros antigos com foto combinada continuam sendo exibidos como foto legada. A foto antiga continua acessível mesmo quando fotos novas são adicionadas.
+- O status de carregamento por veículo fica explícito na interface: pendente em amarelo e concluído em verde. A finalização continua individual por veículo, e a operação só registra fim global quando todos os veículos têm horário.
+- Validação local: testes unitários 84/84; dez suítes E2E aprovadas, incluindo upload de duas imagens, presença nos PDFs básico/completo e acesso a ambos pelo histórico; sintaxe JavaScript aprovada; servidor local respondeu HTTP 200 em http://127.0.0.1:4173.
+- Limite: a automação valida a geração do conteúdo de impressão, mas não verifica diálogo físico de impressão nem dispositivo móvel real. As fotos permanecem locais; sincronização real do Supabase/Storage segue pendente de validação autorizada.
+
+
+## Reorganização da navegação inicial do NEX — 29/10/2026
+
+### Alterações implementadas
+
+- `index.html`: resumo NEX reorganizado com os cartões **Gaiolas e auditoria**, **Operação atual**, **Iniciar Nova Operação** e **Histórico e relatórios**. O cartão de operação atual e o de gaiolas só aparecem quando existe uma sessão ativa; sem sessão, aparece a ação de iniciar uma nova operação.
+- `js/telas-iniciais.js`: separação entre a tela de resumo e as telas operacionais. A operação atual exibe os totais da sessão (sacas, pacotes e quantidade de rotas); os atalhos abrem as áreas corretas de gaiolas, quantidades e histórico.
+- `css/modulos.css`: regras explícitas para respeitar o atributo `hidden` nos cartões e painéis, evitando que regras de layout façam conteúdo operacional aparecer junto do resumo.
+- `service-worker.js`: cache estático atualizado para `v30`. `index.html` referencia `modulos.css?v=26`, `nex-tabs.js?v=19` e `telas-iniciais.js?v=2`.
+- `tests/e2e/tela-inicial.test.js`: ampliado para validar ausência de operação, início de nova operação, métricas reais, acesso a gaiolas e histórico com e sem sessão ativa.
+
+### Validações executadas
+
+- Testes unitários: **84 aprovados, 0 falhas**.
+- E2E: `tela-inicial` aprovado, incluindo navegação para histórico sem operação, navegação para gaiolas e histórico com operação ativa e conferência dos totais exibidos.
+- E2E de regressão aprovados: `nex-abas`, `nex-melhorias`, `nex-regressao` (**31 passos**), `intervalos` (**20 passos**), `qr-scanner` (**7 passos**) e `responsive-layout` (**8 larguras × 3 módulos**, sem overflow horizontal ou erros JavaScript).
+- Servidor local em `http://127.0.0.1:8000` respondeu HTTP 200 durante os testes.
+- Não houve alteração em dados operacionais, armazenamento, regras de negócio, Supabase remoto, nem commit, push ou publicação.
+
+
+## Correção da separação entre operação ativa e histórico NEX — 29/10/2026
+
+- O histórico foi movido para uma tela independente, fora da aba Relatórios da operação em andamento.
+- O atalho Histórico abre apenas a lista de conferências finalizadas; a operação atual nunca é apresentada como item de histórico.
+- A consulta do histórico filtra explicitamente sessões com `status = finalizada` e `endTime` preenchido.
+- A tela de histórico possui retorno ao resumo NEX. A navegação secundária duplicada de sessão/histórico foi ocultada, mantendo um único acesso ao histórico no resumo.
+- A finalização continua registrando a sessão no histórico; ao finalizar, a sessão deixa de ser atual e passa a constar na lista histórica.
+- Teste E2E atualizado para validar histórico vazio durante operação em aberto, inclusão após finalização e retorno ao resumo.
+- Cache atualizado para `v32`; versões dos recursos: `app.js?v=21`, `nex-tabs.js?v=20`, `telas-iniciais.js?v=3` e `modulos.css?v=27`.
+
+### Validações desta correção
+
+- Testes unitários: **84/84 aprovados**.
+- `tela-inicial.test.js`: aprovado, incluindo operação aberta fora do histórico e sessão finalizada incluída.
+- `nex-abas.test.js`: aprovado.
+- `nex-regressao.test.js`: **31 passos aprovados, 0 falhas**.
+- `responsive-layout.test.js`: **8 larguras × 3 módulos**, sem overflow horizontal ou erros JavaScript.
+- `node --check` nos arquivos JavaScript alterados e `git diff --check`: aprovados.
+- Localhost `http://127.0.0.1:8000/index.html`: HTTP 200.

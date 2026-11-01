@@ -257,7 +257,7 @@
     var pal = inteiroOuNulo(o.paletes), red = inteiroOuNulo(o.redes);
     if (!pal.ok || !red.ok) return { ok: false, erro: 'Paletes e redes devem ser números inteiros não negativos.' };
     return { ok: true, veiculo: { id: novoId('xvc'), placa: placa, motorista: limpar(o.motorista), rotas: listaTexto(o.rotas), gaiolaIds: [],
-      fimCarregamentoAt: null, paletes: pal.valor, redes: red.valor, saidaAt: o.saidaMs ? iso(o.saidaMs) : null, fotoId: null, fotosAnteriores: [], criadoEm: iso(agoraMs), historico: [] } };
+      fimCarregamentoAt: null, paletes: pal.valor, redes: red.valor, saidaAt: o.saidaMs ? iso(o.saidaMs) : null, fotoId: null, fotoHandId: null, fotoCarretaId: null, fotosAnteriores: [], criadoEm: iso(agoraMs), historico: [] } };
   }
   function veiculoDaGaiola(op, gaiolaId) {
     for (var i = 0; i < op.veiculos.length; i++) if (op.veiculos[i].gaiolaIds.indexOf(gaiolaId) >= 0) return op.veiculos[i];

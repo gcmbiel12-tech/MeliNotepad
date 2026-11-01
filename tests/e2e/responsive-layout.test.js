@@ -27,9 +27,8 @@ const MODULES = [
       await page.goto(BASE, { waitUntil: 'domcontentloaded' });
 
       for (const module of MODULES) {
-        if (module.id !== 'nex') {
-          await page.locator(`button[data-modulo="${module.id}"]`).click();
-        }
+        if (!(await page.locator('#tela-app').isVisible())) await page.locator('#nav-voltar-app').click();
+        await page.locator(`[data-abrir-modulo="${module.id}"]`).click();
 
         const layout = await page.evaluate(() => ({
           viewport: document.documentElement.clientWidth,

@@ -40,6 +40,8 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   page.on('pageerror', err => consoleErrors.push('pageerror: ' + err.message));
 
   await page.goto(BASE);
+  await page.locator('[data-abrir-modulo="nex"]').click();
+  await page.locator('#summary-nex-operacao').click();
 
   await etapa('Página carrega e mostra o painel de início de sessão', async () => {
     await page.waitForSelector('#painel-inicio:not([hidden])', { timeout: 3000 });
@@ -146,6 +148,8 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
 
   await etapa('Atualizar a página mantém a sessão e as ocorrências salvas', async () => {
     await page.reload();
+    if (await page.locator('#tela-app').isVisible()) await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-abrir-operacao').click();
     await page.click('#nex-tab-btn-ocorrencias');
     await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
     assert.strictEqual(await page.textContent('#contagem-total'), '4');
@@ -241,7 +245,8 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   });
 
   await etapa('Nova sessão não mistura ocorrências da sessão anterior', async () => {
-    await page.click('#btn-ver-sessao');
+    await page.click('#nex-history-back');
+    await page.click('#summary-nex-operacao');
     await page.fill('#input-sacas', '10');
     await page.fill('#input-pacotes', '500');
     await page.click('#form-iniciar-sessao button[type=submit]');
@@ -268,7 +273,9 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   });
 
   await etapa('Exportar backup dispara o download de um JSON válido (1 sessão no histórico)', async () => {
-    await page.click('#btn-ver-historico');
+    await page.click('#nav-voltar-app');
+    await page.click('[data-abrir-modulo="nex"]');
+    await page.click('#summary-nex-historico');
     const [download] = await Promise.all([
       page.waitForEvent('download'),
       page.click('#btn-exportar-backup')
@@ -348,6 +355,8 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   await etapa('Dados corrompidos no LocalStorage não travam o carregamento', async () => {
     await page.evaluate(() => localStorage.setItem('melinotepad_data_v1', '{ json quebrado'));
     await page.reload();
+    if (await page.locator('#tela-app').isVisible()) await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-operacao').click();
     await page.waitForSelector('#painel-inicio:not([hidden])', { timeout: 3000 });
     const aviso = await page.textContent('#avisos-sistema');
     assert.ok(aviso.includes('corrompid'), 'deveria avisar sobre dados corrompidos');
@@ -356,6 +365,8 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   await etapa('Câmera: abre quando suportada, ou mostra alternativa manual sem travar/gerar erro', async () => {
     await page.evaluate(() => localStorage.removeItem('melinotepad_data_v1'));
     await page.reload();
+    if (await page.locator('#tela-app').isVisible()) await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-operacao').click();
     await page.fill('#input-sacas', '1');
     await page.fill('#input-pacotes', '1');
     await page.click('#form-iniciar-sessao button[type=submit]');

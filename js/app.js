@@ -359,7 +359,9 @@
 
   function renderHistoricoLista() {
     var f = estado.filtroHistorico;
-    var todos = estado.dados.history.slice();
+    var todos = estado.dados.history.filter(function (sessao) {
+      return sessao && sessao.status === C.SESSION_STATUS.FINALIZADA && !!sessao.endTime;
+    });
     var termoHistorico = U.normalizarTexto(f.busca || '').toLocaleLowerCase('pt-BR');
     var historico = U.consultarHistorico(todos, {
       periodo: f.periodo, data: f.data, inicio: f.inicio, fim: f.fim, busca: '',

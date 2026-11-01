@@ -408,7 +408,7 @@
 
   // ------------------------------------------------------------------ montagem
   function montar() {
-    var raiz = UI.limpar(document.getElementById('modulo-intervalos'));
+    var raiz = UI.limpar(document.getElementById('intervalos-app'));
     el.aviso = h('div', { class: 'aviso-sistema', hidden: true });
     el.nav = h('nav', { class: 'app-header__nav nav-sub', 'aria-label': 'Navegação de Intervalos' }, ABAS.map(function (a) {
       return h('button', { type: 'button', class: 'btn-nav', id: 'iv-aba-' + a[0], dataset: { aba: a[0] }, 'aria-pressed': 'false', text: a[1], onclick: function () { ui.aba = a[0]; recarregar(); renderTudo(true); } });

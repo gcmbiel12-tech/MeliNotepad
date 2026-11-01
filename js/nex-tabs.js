@@ -10,6 +10,22 @@
     relatorios: document.getElementById('nex-tab-relatorios')
   };
   var historyView = document.getElementById('view-historico');
+  var historyScreen = document.createElement('section');
+  historyScreen.id = 'nex-historico-independente';
+  historyScreen.className = 'nex-historico-independente';
+  historyScreen.hidden = true;
+  var historyHeader = document.createElement('div');
+  historyHeader.className = 'cartao__cabecalho nex-historico-independente__cabecalho';
+  historyHeader.appendChild(criarElemento('h2', '', 'Histórico de conferências'));
+  var historyBack = document.createElement('button');
+  historyBack.type = 'button';
+  historyBack.id = 'nex-history-back';
+  historyBack.className = 'botao botao--texto';
+  historyBack.textContent = 'Voltar ao NEX';
+  historyHeader.appendChild(historyBack);
+  historyScreen.appendChild(historyHeader);
+  nav.parentNode.insertBefore(historyScreen, nav);
+  move(historyView, historyScreen);
   var activeSession = document.getElementById('painel-sessao-ativa');
   var sessionStart = document.getElementById('painel-inicio');
   var secondaryNav = document.querySelector('#nex-tab-gaiolas > nav[aria-label="Navegação do NEX"]');
@@ -253,24 +269,11 @@
     }
   }
 
-  var landingHistory = document.createElement('div');
-  landingHistory.id = 'nex-historico-inicial';
-  landingHistory.hidden = true;
-  landing.appendChild(landingHistory);
-
   function atualizarNavegacaoInicial(mostrarHistorico) {
+    if (historyScreen) historyScreen.hidden = !mostrarHistorico;
+    if (historyView) historyView.hidden = !mostrarHistorico;
+    if (secondaryNav) secondaryNav.hidden = true;
     if (sessionStart) sessionStart.hidden = !!mostrarHistorico;
-    if (historyView && !activeSession || historyView && activeSession.hidden) {
-      move(historyView, landingHistory);
-      landingHistory.hidden = !mostrarHistorico;
-      historyView.hidden = !mostrarHistorico;
-    }
-    if (secondaryNav) {
-      var current = document.getElementById('btn-ver-sessao');
-      var history = document.getElementById('btn-ver-historico');
-      if (current) { current.classList.toggle('is-ativo', !mostrarHistorico); current.setAttribute('aria-pressed', String(!mostrarHistorico)); }
-      if (history) { history.classList.toggle('is-ativo', !!mostrarHistorico); history.setAttribute('aria-pressed', String(!!mostrarHistorico)); }
-    }
   }
 
   function criarElemento(tag, className, texto) {
@@ -668,25 +671,14 @@
     landing.hidden = emAndamento;
     nav.hidden = !emAndamento;
     if (finalizeWrap) finalizeWrap.hidden = !emAndamento;
-    if (secondaryNav) secondaryNav.hidden = emAndamento;
-    if (!emAndamento) {
-      Object.keys(panels).forEach(function (key) { if (panels[key]) panels[key].hidden = true; });
-      if (historyView) {
-        move(historyView, landingHistory);
-        landingHistory.hidden = historyView.hidden;
-      }
-      if (sessionStart) sessionStart.hidden = !!(historyView && !historyView.hidden);
-      if (secondaryNav) {
-        var current = document.getElementById('btn-ver-sessao');
-        var history = document.getElementById('btn-ver-historico');
-        var mostrandoHistorico = !!(historyView && !historyView.hidden);
-        if (current) { current.classList.toggle('is-ativo', !mostrandoHistorico); current.setAttribute('aria-pressed', String(!mostrandoHistorico)); }
-        if (history) { history.classList.toggle('is-ativo', mostrandoHistorico); history.setAttribute('aria-pressed', String(mostrandoHistorico)); }
-      }
-    } else {
-      move(historyView, panels.relatorios);
+    if (secondaryNav) secondaryNav.hidden = true;
+    if (emAndamento) {
+      historyScreen.hidden = true;
       if (historyView) historyView.hidden = true;
       selecionar('gaiolas', false);
+    } else {
+      nav.hidden = true;
+      Object.keys(panels).forEach(function (key) { if (panels[key]) panels[key].hidden = true; });
     }
     renderRotas();
   }
@@ -718,10 +710,11 @@
     }
     if (activeSession) new MutationObserver(atualizarTelaOperacao).observe(activeSession, { attributes: true, attributeFilter: ['hidden'] });
     if (historyView) new MutationObserver(function () {
-      if (!activeSession || activeSession.hidden) {
-        landingHistory.hidden = historyView.hidden;
-        if (sessionStart) sessionStart.hidden = !historyView.hidden;
-      }
+      if (historyView.hidden) return;
+      historyScreen.hidden = false;
+      landing.hidden = true;
+      nav.hidden = true;
+      Object.keys(panels).forEach(function (key) { if (panels[key]) panels[key].hidden = true; });
     }).observe(historyView, { attributes: true, attributeFilter: ['hidden'] });
   }
   atualizarTelaOperacao();

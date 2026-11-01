@@ -104,6 +104,13 @@ test('quantidades vazias valem zero na soma, sem virar NaN', () => {
   assert.strictEqual(X.inteiroOuNulo('-1').ok, false); assert.strictEqual(X.inteiroOuNulo('1.5').ok, false);
 });
 
+test('veículos: fotos opcionais HAND e carreta começam vazias e separadas', () => {
+  const v = X.novoVeiculo({ placa: 'ABC1234' }, T).veiculo;
+  assert.strictEqual(v.fotoHandId, null);
+  assert.strictEqual(v.fotoCarretaId, null);
+  assert.strictEqual(v.fotoId, null, 'mantém compatibilidade com a foto legada combinada');
+});
+
 test('veículos: placa normalizada e obrigatória; paletes/redes inteiros', () => {
   assert.strictEqual(X.normalizarPlaca(' abc-1d23 '), 'ABC1D23');
   assert.ok(X.placaPadraoConhecido('ABC1234') && X.placaPadraoConhecido('ABC1D23') && !X.placaPadraoConhecido('12'));

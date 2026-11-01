@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
   var NS = global.MeliNotepad = global.MeliNotepad || {};
-  var MODULOS = ['nex', 'xpt', 'intervalos'];
+  var MODULOS = ['app', 'nex', 'xpt', 'intervalos'];
   var CHAVE_UI = 'melinotepad_ui_v1';
   var atual = null;
 
@@ -23,7 +23,7 @@
   }
 
   function ativar(nome) {
-    if (MODULOS.indexOf(nome) < 0) nome = 'nex';
+    if (MODULOS.indexOf(nome) < 0) nome = 'app';
     var mudou = nome !== atual;
     atual = nome;
     MODULOS.forEach(function (m) {
@@ -37,6 +37,12 @@
     });
     var main = document.getElementById('conteudo-principal');
     if (main) main.dataset.modulo = nome;
+    var telaApp = document.getElementById('tela-app');
+    if (telaApp) telaApp.hidden = nome !== 'app';
+    var voltar = document.getElementById('nav-voltar-app');
+    if (voltar) voltar.hidden = nome === 'app';
+    var nav = document.getElementById('nav-modulos');
+    if (nav) nav.hidden = nome === 'app';
     var chip = document.getElementById('status-chip'); // o estado da sessão é do NEX
     if (chip) chip.hidden = nome !== 'nex';
     salvarModulo(nome);
@@ -58,6 +64,10 @@
     Array.prototype.forEach.call(document.querySelectorAll('.tab-modulo'), function (t) {
       t.addEventListener('click', function () { ativar(t.dataset.modulo); atualizarOffsetsFixos(); });
     });
+    var voltar = document.getElementById('nav-voltar-app');
+    if (voltar) voltar.addEventListener('click', function () { ativar('app'); atualizarOffsetsFixos(); });
+    var telaApp = document.getElementById('tela-app');
+    if (telaApp) telaApp.addEventListener('click', function (e) { var b = e.target.closest('[data-abrir-modulo]'); if (b) ativar(b.dataset.abrirModulo); });
     global.addEventListener('hashchange', function () { var m = moduloDoHash(); if (m) ativar(m); });
     global.addEventListener('resize', atualizarOffsetsFixos, { passive: true });
     if (global.ResizeObserver) {
@@ -67,7 +77,7 @@
       if (header) observador.observe(header);
       if (abasNex) observador.observe(abasNex);
     }
-    ativar(moduloDoHash() || moduloSalvo() || 'nex');
+    ativar(moduloDoHash() || 'app');
     atualizarOffsetsFixos();
     global.requestAnimationFrame(atualizarOffsetsFixos);
   }

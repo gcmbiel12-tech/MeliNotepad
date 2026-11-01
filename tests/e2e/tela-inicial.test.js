@@ -1,0 +1,77 @@
+const { chromium } = require('playwright');
+const assert = require('assert');
+const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
+
+(async () => {
+  const browser = await chromium.launch();
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  try {
+    await page.goto(BASE);
+    await page.evaluate(() => {
+      Object.keys(localStorage).filter(k => k.startsWith('melinotepad_')).forEach(k => localStorage.removeItem(k));
+    });
+    await page.reload();
+    assert.equal(await page.locator('#tela-app').isVisible(), true, 'a tela inicial deve abrir primeiro');
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    assert.equal(await page.locator('#tela-summary-nex').isVisible(), true, 'o cartão NEX abre o resumo');
+    assert.match(await page.locator('#summary-nex-operacao-status').innerText(), /Não existe operação ativa/);
+    assert.equal(await page.locator('#summary-nex-card-operacao').isVisible(), false, 'operação atual não aparece sem sessão ativa');
+    assert.equal(await page.locator('#summary-nex-card-auditoria').isVisible(), false, 'gaiolas e auditoria exige operação ativa');
+    assert.equal(await page.locator('#summary-nex-card-iniciar').isVisible(), true, 'iniciar nova operação aparece sem sessão ativa');
+    assert.equal(await page.locator('#nex-rotas-auditoria').isVisible(), false, 'rotas não aparecem no resumo');
+    await page.locator('#summary-nex-historico').click();
+    assert.equal(await page.locator('#view-historico').isVisible(), true, 'histórico fica acessível mesmo sem operação ativa');
+    await page.locator('#nav-voltar-app').click();
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-operacao').click();
+    await page.fill('#input-sacas', '12');
+    await page.fill('#input-pacotes', '34');
+    await page.locator('#form-iniciar-sessao button[type=submit]').click();
+    await page.locator('#nex-tab-btn-ocorrencias').click();
+    await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
+    await page.locator('#nav-voltar-app').click();
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.waitForFunction(() => document.getElementById('summary-nex-operacao-status').textContent.includes('Operação em andamento.'));
+    assert.equal(await page.locator('#summary-nex-card-operacao').isVisible(), true, 'operação atual aparece quando existe sessão ativa');
+    assert.equal(await page.locator('#summary-nex-card-auditoria').isVisible(), true, 'gaiolas e auditoria aparece quando existe sessão ativa');
+    assert.equal(await page.locator('#summary-nex-card-iniciar').isVisible(), false, 'não oferece iniciar outra operação enquanto há uma ativa');
+    assert.equal(await page.locator('#summary-nex-sacas').innerText(), '12');
+    assert.equal(await page.locator('#summary-nex-pacotes').innerText(), '34');
+    assert.equal(await page.locator('#summary-nex-rotas').innerText(), '0');
+    assert.equal(await page.locator('#nex-rotas-auditoria').isVisible(), false, 'rotas continuam fora do resumo');
+    await page.locator('#summary-nex-abrir-operacao').click();
+    assert.equal(await page.locator('#nex-tab-quantidades').isVisible(), true, 'abrir operação leva aos dados da sessão atual');
+    await page.locator('#nav-voltar-app').click();
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-auditoria').click();
+    assert.equal(await page.locator('#nex-tab-gaiolas').isVisible(), true, 'gaiolas e auditoria abre a área de rotas');
+    assert.equal(await page.locator('#nex-rotas-auditoria').isVisible(), true, 'rotas aparecem dentro da área operacional');
+    await page.locator('#nav-voltar-app').click();
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-historico').click();
+    assert.equal(await page.locator('#nex-historico-independente').isVisible(), true, 'histórico abre em tela independente');
+    assert.equal(await page.locator('#nex-tab-relatorios').isVisible(), false, 'histórico não abre os relatórios da operação ativa');
+    assert.equal(await page.locator('#view-historico').isVisible(), true, 'lista de conferências finalizadas fica acessível');
+    assert.equal(await page.locator('#lista-historico .item-historico').count(), 0, 'operação em aberto não aparece no histórico');
+    await page.locator('#nex-history-back').click();
+    assert.equal(await page.locator('#tela-summary-nex').isVisible(), true, 'volta ao resumo do NEX');
+    await page.locator('#summary-nex-abrir-operacao').click();
+    await page.locator('#nex-tab-btn-relatorios').click();
+    await page.locator('#btn-finalizar-sessao').click();
+    await page.locator('#finalizar-horario').fill('2026-10-29T10:00');
+    await page.locator('#form-finalizar').evaluate(form => form.requestSubmit());
+    await page.waitForFunction(() => document.getElementById('view-historico').hidden === false);
+    assert.equal(await page.locator('#lista-historico .item-historico').count(), 1, 'operação finalizada passa a aparecer no histórico');
+    await page.locator('#nex-history-back').click();
+    assert.equal(await page.locator('#summary-nex-card-operacao').isVisible(), false, 'operação finalizada deixa de aparecer como atual');
+    assert.equal(await page.locator('#summary-nex-card-iniciar').isVisible(), true, 'nova operação pode ser iniciada após finalizar');
+    assert.deepEqual(errors, [], 'não deve haver erros JavaScript');
+    console.log('PASS tela inicial: navegação e atualização dinâmica do status NEX.');
+  } finally {
+    await context.close();
+    await browser.close();
+  }
+})().catch(e => { console.error(e); process.exit(1); });

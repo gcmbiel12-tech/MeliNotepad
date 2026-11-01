@@ -246,11 +246,7 @@
   }
   function imprimirRelatorioHistorico() {
     var o = operacaoHistoricoAberta(); if (!o) return;
-    var texto = X.relatorioBasico(o);
-    NS.Impressao.imprimir('MeliNotepad_XPT_' + (o.inicioAt || '').slice(0, 10), function (area) {
-      area.appendChild(h('h1', { text: 'MeliNotepad — XPT: histórico da operação' }));
-      area.appendChild(h('pre', { class: 'relatorio-texto-impressao', text: texto }));
-    }).catch(function (e) { UI.avisar('Não foi possível preparar o PDF: ' + (e.message || e), 'erro'); });
+    imprimirRelatorioBasico(o.id);
   }
   function excluirOperacaoHistorico() {
     var o = operacaoHistoricoAberta(); if (!o) return;
@@ -715,7 +711,7 @@
   }
 
   // ================================================================ veículos e fotos
-  function anexarFoto(veiculoId, file) {
+  function anexarFoto(veiculoId, tipoFoto, file) {
     if (!file) return Promise.resolve(false);
     if (!F || !F.processarArquivo || !F.salvar) return Promise.reject(new Error('O armazenamento de fotos não está disponível.'));
     var fotoId = U.gerarId('foto');
@@ -728,9 +724,11 @@
       var r = mutarOp(function (x) {
         var v = x.veiculos.filter(function (y) { return y.id === veiculoId; })[0];
         if (!v) throw new Error('Veículo não encontrado ao associar a foto.');
-        if (v.fotoId) { v.fotosAnteriores = v.fotosAnteriores || []; v.fotosAnteriores.push({ fotoId: v.fotoId, em: new Date(agora()).toISOString() }); }
-        v.fotoId = fotoId;
-        v.historico.push({ em: new Date(agora()).toISOString(), acao: 'foto_hand_lacre_associada' });
+        var campoFoto = tipoFoto === 'carreta' ? 'fotoCarretaId' : 'fotoHandId';
+        var fotoAnterior = v[campoFoto] || null;
+        if (fotoAnterior) { v.fotosAnteriores = v.fotosAnteriores || []; v.fotosAnteriores.push({ fotoId: fotoAnterior, tipo: tipoFoto, em: new Date(agora()).toISOString() }); }
+        v[campoFoto] = fotoId;
+        v.historico.push({ em: new Date(agora()).toISOString(), acao: tipoFoto === 'carreta' ? 'foto_carreta_associada' : 'foto_hand_associada' });
       });
       if (!r) throw new Error('A foto foi armazenada neste aparelho, mas não foi possível associá-la ao veículo.');
       return true;
@@ -771,6 +769,13 @@
         return g ? h('li', {}, [g.codigo + (g.vuc ? ' — VUC' : ''), ' ', fimVeiculo || o.encerradaAt ? null : h('button', { type: 'button', class: 'botao botao--texto', dataset: { acao: 'descarregar', veiculo: v.id, gaiola: gid }, text: 'Remover do veículo' })]) : null;
       }).filter(Boolean);
       var acaoFim = h('button', { type: 'button', class: 'botao botao--secundario', dataset: { acao: 'fim-veiculo', veiculo: v.id }, text: fimVeiculo ? 'Editar horário de finalização' : 'Finalizar carregamento deste veículo', disabled: !!o.encerradaAt });
+      var statusCarregamento = h('span', { class: 'xpt-carregamento-status xpt-carregamento-status--' + (fimVeiculo ? 'concluido' : 'pendente'), text: fimVeiculo ? 'Carregamento concluído' : 'Carregamento pendente' });
+      var inputHand = h('input', { type: 'file', accept: 'image/*', capture: 'environment', dataset: { acao: 'foto-veiculo', tipo: 'hand', veiculo: v.id }, disabled: !!o.encerradaAt });
+      var inputCarreta = h('input', { type: 'file', accept: 'image/*', capture: 'environment', dataset: { acao: 'foto-veiculo', tipo: 'carreta', veiculo: v.id }, disabled: !!o.encerradaAt });
+      var fotosExistentes = h('div', { class: 'xpt-fotos-veiculo' }, [
+        UI.campo('Foto do HAND (opcional)', inputHand, v.fotoHandId ? 'Foto registrada; selecione outra para substituir mantendo o histórico.' : 'Ainda não registrada.'),
+        UI.campo('Foto da carreta (opcional)', inputCarreta, v.fotoCarretaId ? 'Foto registrada; selecione outra para substituir mantendo o histórico.' : 'Ainda não registrada.')
+      ]);
       el.pVeiculos.appendChild(h('section', { class: 'cartao xpt-veiculo' }, [
         h('div', { class: 'cartao__cabecalho' }, [
           h('div', {}, [h('h3', { text: v.placa }), h('p', { class: 'texto-apoio', text: v.motorista || 'Motorista não informado' })]),
@@ -778,8 +783,13 @@
         ]),
         h('p', { class: 'texto-apoio', text: 'Rotas carregadas: ' + resumoVeiculo.rotas + ' · Gaiolas informadas: ' + resumoVeiculo.gaiolas + ' · Paletes informados: ' + resumoVeiculo.paletes }),
         resumoVeiculo.rotasSemQuantidades ? h('p', { class: 'texto-apoio', text: resumoVeiculo.rotasSemQuantidades + ' rota(s) sem quantidades G/V/P completas; os totais consideram apenas rotas com quantidades completas.' }) : null,
+        statusCarregamento,
+
         h('p', { class: 'texto-apoio', text: fimVeiculo ? 'Carregamento finalizado: ' + dataHora(fimVeiculo) : 'Carregamento ainda não finalizado' }),
+
         h('div', { class: 'acoes-form' }, [acaoFim]),
+
+        fotosExistentes,
         h('div', {}, [h('h4', { text: 'Rotas carregadas (' + listaGaiolas.length + ')' }), listaGaiolas.length ? h('ul', {}, listaGaiolas) : h('p', { class: 'texto-apoio', text: 'Nenhuma rota carregada.' })])
       ]));
     });
@@ -814,7 +824,8 @@
             }).catch(copiarComFallback);
           } else copiarComFallback();
         } }),
-        h('button', { type: 'button', class: 'botao botao--primario', text: 'Gerar PDF / imprimir relatório detalhado', onclick: function () { imprimirRelatorioDetalhado(o.id); } })
+        h('button', { type: 'button', class: 'botao botao--secundario', text: 'Gerar PDF do relatório básico (com fotos)', onclick: function () { imprimirRelatorioBasico(o.id); } }),
+      h('button', { type: 'button', class: 'botao botao--primario', text: 'Gerar PDF / imprimir relatório detalhado', onclick: function () { imprimirRelatorioDetalhado(o.id); } })
       ])
     ]));
     el.pRelatorios.appendChild(h('section', { class: 'cartao' }, [
@@ -838,6 +849,43 @@
         return h('li', { text: dataHora(oc.registradaEm) + ' · ' + X.rotuloCategoria(oc) + ' · ' + (oc.produtoId || 'sem identificador') + ' · ' + oc.status + (oc.observacao ? ' · ' + oc.observacao : '') });
       })) : h('p', { class: 'texto-apoio', text: 'Nenhuma ocorrência registrada.' })
     ]));
+  }
+
+  function imprimirRelatorioBasico(opId) {
+    var o = estado.operacoes.filter(function (x) { return x.id === opId; })[0]; if (!o) return;
+    var titulo = 'MeliNotepad_XPT_Basico_' + (o.diaRef || X.diaRef(Date.parse(o.inicioAt)));
+    var fotosPorVeiculo = o.veiculos.map(function (v) {
+      return Promise.all([
+        v.fotoHandId && F ? F.urlDe(v.fotoHandId) : Promise.resolve(null),
+        v.fotoCarretaId && F ? F.urlDe(v.fotoCarretaId) : Promise.resolve(null),
+        v.fotoId && F ? F.urlDe(v.fotoId) : Promise.resolve(null)
+      ]).then(function (urls) { return { hand: urls[0], carreta: urls[1], legado: urls[2] }; });
+    });
+    NS.Impressao.imprimir(titulo, function (raiz, criar) {
+      raiz.appendChild(criar('h1', { text: 'MeliNotepad - Relatório básico XPT' }));
+      raiz.appendChild(criar('p', { text: 'Data de referência: ' + U.formatarData(new Date(o.inicioAt)) }));
+      raiz.appendChild(criar('p', { text: 'Encerramento: ' + (o.encerradaAt ? dataHora(o.encerradaAt) : 'operação aberta') }));
+      var q = o.quantidades || {}, t = X.totais(o), a = X.resumoAuditoria(o.gaiolas);
+      raiz.appendChild(criar('h2', { text: 'Quantidades' }));
+      raiz.appendChild(criar('p', { text: 'Pacotes: ' + (q.pacotes == null ? '-' : q.pacotes) + ' | Volumosos: ' + (q.volumosos == null ? '-' : q.volumosos) + ' | Extra volumosos: ' + (q.extraVolumosos == null ? '-' : q.extraVolumosos) + ' | Total de produtos: ' + t.totalProdutos }));
+      raiz.appendChild(criar('p', { text: 'Rotas cadastradas: ' + t.gaiolas + ' | Gaiolas informadas (G+V): ' + t.gaiolasAuditadas + ' | Paletes informados (P): ' + t.paletesAuditados + ' | Redes calculadas: ' + t.redesVeiculos + ' | Total BK: ' + (q.totalBK == null ? '-' : q.totalBK) }));
+      raiz.appendChild(criar('h2', { text: 'Veículos e fotos' }));
+      return Promise.all(fotosPorVeiculo).then(function (fotos) {
+        o.veiculos.forEach(function (v, i) {
+          var resumo = X.resumoVeiculo(o, v), fim = v.fimCarregamentoAt || (o.fimCarregamentoAt || null);
+          raiz.appendChild(criar('h3', { text: v.placa + (v.motorista ? ' - ' + v.motorista : '') }));
+          raiz.appendChild(criar('p', { text: 'Rotas carregadas: ' + resumo.rotas + ' | Gaiolas informadas: ' + resumo.gaiolas + ' | Paletes informados: ' + resumo.paletes + ' | Redes: ' + X.redesDoVeiculo(o, v).valor + ' | Finalização: ' + (fim ? dataHora(fim) : 'pendente') }));
+          [['Foto do HAND', fotos[i].hand], ['Foto da carreta', fotos[i].carreta], ['Foto legada (HAND + lacre)', fotos[i].legado]].forEach(function (item) {
+            if (!item[1]) return;
+            raiz.appendChild(criar('p', { text: item[0] }));
+            raiz.appendChild(criar('img', { src: item[1], alt: item[0] + ' - veículo ' + v.placa, class: 'xpt-foto-relatorio' }));
+          });
+          if (!fotos[i].hand && !fotos[i].carreta && !fotos[i].legado) raiz.appendChild(criar('p', { text: 'Fotos opcionais não registradas para este veículo.' }));
+        });
+        raiz.appendChild(criar('h2', { text: 'Resumo da auditoria' }));
+        raiz.appendChild(criar('p', { text: 'Rotas convencionais: ' + a.total + ' | VUC fora da auditoria: ' + a.vuc + ' | Concluídas: ' + a.concluidas + ' | Não realizadas: ' + (a.pendentes + a.naoIniciadas) + ' | Percentual: ' + (a.percentual == null ? '-' : a.percentual + '%') }));
+      });
+    }).catch(function (e) { UI.avisar('Não foi possível preparar o relatório básico: ' + (e.message || e), 'erro'); });
   }
 
   function imprimirRelatorioDetalhado(opId) {
@@ -870,18 +918,25 @@
       });
       raiz.appendChild(reauditorias.length ? criar('ul', {}, reauditorias) : criar('p', { text: 'Nenhuma reauditoria registrada.' }));
       raiz.appendChild(criar('h2', { text: 'Veículos, gaiolas e fotos' }));
-      return Promise.all(o.veiculos.map(function (v) { return v.fotoId && F ? F.urlDe(v.fotoId) : Promise.resolve(null); })).then(function (urlsFotos) {
+      return Promise.all(o.veiculos.map(function (v) {
+        return Promise.all([
+          v.fotoHandId && F ? F.urlDe(v.fotoHandId) : Promise.resolve(null),
+          v.fotoCarretaId && F ? F.urlDe(v.fotoCarretaId) : Promise.resolve(null),
+          v.fotoId && F ? F.urlDe(v.fotoId) : Promise.resolve(null)
+        ]).then(function (urls) { return { hand: urls[0], carreta: urls[1], legado: urls[2] }; });
+      })).then(function (fotosVeiculos) {
         o.veiculos.forEach(function (v, i) {
           raiz.appendChild(criar('h3', { text: v.placa + (v.motorista ? ' · ' + v.motorista : '') }));
           var resumoV = X.resumoVeiculo(o, v), fimV = v.fimCarregamentoAt || (o.fimCarregamentoAt ? o.fimCarregamentoAt : null);
           raiz.appendChild(criar('p', { text: 'Rotas carregadas: ' + resumoV.rotas + ' · Gaiolas informadas: ' + resumoV.gaiolas + ' · Paletes informados: ' + resumoV.paletes + (resumoV.rotasSemQuantidades ? ' · Rotas sem quantidades completas: ' + resumoV.rotasSemQuantidades : '') + ' · Redes: ' + X.redesDoVeiculo(o, v).valor + ' · Finalização: ' + (fimV ? dataHora(fimV) : 'não finalizado') }));
           var codigos = (v.gaiolaIds || []).map(function (gid) { var g = o.gaiolas.filter(function (x) { return x.id === gid; })[0]; return g ? g.codigo : null; }).filter(Boolean);
           raiz.appendChild(criar('p', { text: 'Rotas: ' + (codigos.join(', ') || 'nenhuma') }));
-          if (urlsFotos[i]) {
-            var imagem = criar('img', { src: urlsFotos[i], alt: 'HAND e lacre juntos — veículo ' + v.placa, class: 'xpt-foto-relatorio' });
-            raiz.appendChild(imagem);
-            raiz.appendChild(criar('p', { text: 'Fotografia conjunta do HAND e do lacre.' }));
-          } else raiz.appendChild(criar('p', { text: 'Foto HAND + lacre: não registrada ou indisponível neste aparelho.' }));
+          [['Foto do HAND', fotosVeiculos[i].hand], ['Foto da carreta', fotosVeiculos[i].carreta], ['Foto legada (HAND + lacre)', fotosVeiculos[i].legado]].forEach(function (item) {
+            if (!item[1]) return;
+            raiz.appendChild(criar('p', { text: item[0] }));
+            raiz.appendChild(criar('img', { src: item[1], alt: item[0] + ' - veículo ' + v.placa, class: 'xpt-foto-relatorio' }));
+          });
+          if (!fotosVeiculos[i].hand && !fotosVeiculos[i].carreta && !fotosVeiculos[i].legado) raiz.appendChild(criar('p', { text: 'Fotos opcionais não registradas para este veículo.' }));
         });
         raiz.appendChild(criar('h2', { text: 'Ocorrências e histórico de resolução' }));
         raiz.appendChild(criar('ul', {}, o.ocorrencias.map(function (oc) {
@@ -912,8 +967,8 @@
         h('div', { class: 'tabela-rolavel xpt-tabela-desktop' }, [h('table', { class: 'tabela-modulo' }, [thead(['Data da operação', 'Início', 'Encerrada em', 'Gaiolas', 'Veículos', '']), h('tbody', { id: 'xh-corpo' })])]),
         el.histListaMobile = h('ul', { class: 'xpt-lista-mobile', 'aria-label': 'Histórico de operações encerradas' })]),
       el.histDetalhe = h('section', { class: 'cartao', id: 'xh-detalhe', hidden: true }, [h('div', { class: 'cartao__cabecalho' }, [h('h3', { id: 'xh-detalhe-titulo' }), h('button', { type: 'button', class: 'botao botao--texto', text: 'Fechar detalhes', onclick: fecharHistoricoDetalhe })]),
-        h('p', { class: 'texto-apoio', id: 'xh-detalhe-info' }), h('label', { class: 'campo', for: 'xh-relatorio' }, [h('span', { text: 'Relatório completo da operação' }), el.histRelatorio = h('textarea', { id: 'xh-relatorio', rows: '18', readonly: true })]),
-        h('div', { class: 'acoes-form' }, [h('button', { type: 'button', class: 'botao botao--secundario', text: 'Copiar relatório', onclick: copiarRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--secundario', text: 'Imprimir / Salvar como PDF', onclick: imprimirRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--perigo', text: 'Excluir operação', onclick: excluirOperacaoHistorico })])])
+        h('p', { class: 'texto-apoio', id: 'xh-detalhe-info' }), h('label', { class: 'campo', for: 'xh-relatorio' }, [h('span', { text: 'Resumo da operação (texto para copiar)' }), el.histRelatorio = h('textarea', { id: 'xh-relatorio', rows: '18', readonly: true })]),
+        h('div', { class: 'acoes-form' }, [h('button', { type: 'button', class: 'botao botao--secundario', text: 'Copiar relatório', onclick: copiarRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--secundario', text: 'PDF básico (com fotos)', onclick: imprimirRelatorioHistorico }), h('button', { type: 'button', class: 'botao botao--secundario', text: 'PDF completo (com fotos)', onclick: function () { var hist = operacaoHistoricoAberta(); if (hist) imprimirRelatorioDetalhado(hist.id); } }), h('button', { type: 'button', class: 'botao botao--perigo', text: 'Excluir operação', onclick: excluirOperacaoHistorico })])])
     ]);
     el.corpoHistorico = el.pHistorico.querySelector('#xh-corpo');
     el.histContagem = el.pHistorico.querySelector('#xh-contagem');
@@ -957,6 +1012,18 @@
     });
     el.listaOps.addEventListener('click', function (e) {
       var b = e.target.closest('button[data-acao="abrir"]'); if (b) abrirOperacao(b.dataset.id);
+    });
+    el.pVeiculos.addEventListener('change', function (e) {
+      var campoFoto = e.target.closest('input[data-acao="foto-veiculo"]');
+      if (!campoFoto || !campoFoto.files || !campoFoto.files[0]) return;
+      var arquivo = campoFoto.files[0], veiculoId = campoFoto.dataset.veiculo, tipoFoto = campoFoto.dataset.tipo;
+      campoFoto.disabled = true;
+      anexarFoto(veiculoId, tipoFoto, arquivo).then(function () {
+        renderTudo(); UI.avisar('Foto ' + (tipoFoto === 'carreta' ? 'da carreta' : 'do HAND') + ' salva para o veículo.', 'sucesso');
+      }).catch(function (err) {
+        campoFoto.disabled = false; campoFoto.value = '';
+        UI.avisar('Não foi possível salvar a foto: ' + (err.message || err), 'erro');
+      });
     });
     el.pVeiculos.addEventListener('click', function (e) {
       var fim = e.target.closest('button[data-acao="fim-veiculo"]');
@@ -1026,7 +1093,7 @@
   }
 
   function init() {
-    el.raiz = document.getElementById('modulo-xpt');
+    el.raiz = document.getElementById('xpt-app');
     if (!el.raiz || !NS || !X || !UI || !NS.ModStore || !F) return;
     recarregar();
     if (SaveStatus) { SaveStatus.modulo('XPT'); SaveStatus.aoTentarNovamente(function () { var r = store.tentarNovamente(); if (!r.sucesso) { SaveStatus.erro(r.erro); UI.avisar(r.erro, 'erro'); return; } estado = r.dados; SaveStatus.salvo(); renderTudo(); UI.avisar('Dados XPT salvos com sucesso.', 'sucesso'); }, 'XPT'); }

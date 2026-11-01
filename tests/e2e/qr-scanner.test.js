@@ -16,6 +16,8 @@ async function etapa(d, fn) { try { await fn(); passos++; console.log('OK  -', d
     window.BarcodeDetector = class { static async getSupportedFormats() { return ['qr_code', 'code_128', 'ean_13']; } constructor() {} async detect() { return window.__fila.length ? [{ rawValue: window.__fila.shift(), format: 'qr_code' }] : []; } };
   });
   await page.goto(BASE);
+  await page.locator('[data-abrir-modulo="nex"]').click();
+  await page.locator('#summary-nex-operacao').click();
   await page.fill('#input-sacas', '1'); await page.fill('#input-pacotes', '1');
   await page.click('#form-iniciar-sessao button[type=submit]');
   await page.click('#nex-tab-btn-ocorrencias');

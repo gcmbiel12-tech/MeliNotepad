@@ -10,6 +10,23 @@
 - O repositório já tinha alterações locais em css/modulos.css, index.html, js/nex-tabs.js, service-worker.js e 	ests/e2e/nex-abas.test.js; elas foram preservadas e não fazem parte desta consolidação.
 - Nenhum push, deploy, commit ou migração remota foi realizado por esta organização.
 
+## Atualização de navegação do NEX — 29/10/2026
+
+- A tela de entrada do NEX é exclusivamente um painel de navegação; rotas, filtros e comandos de auditoria não aparecem nela.
+- Sem operação ativa, o cartão **Operação atual** e o cartão **Gaiolas e auditoria** não são exibidos. A ação apresentada para começar é **Iniciar Nova Operação**.
+- Com operação ativa, **Operação atual** mostra os totais reais de sacas, pacotes e rotas da sessão; **Gaiolas e auditoria** abre a área operacional de rotas e sacas.
+- **Histórico e relatórios** permanece acessível com ou sem operação ativa, em tela independente, e lista exclusivamente conferências finalizadas com horário de término registrado. Uma operação em andamento nunca aparece no histórico nem é confundida com a prévia de relatório.
+- Após finalizar, a sessão deixa de ser a operação atual e passa a aparecer no histórico.
+- A navegação entre resumo, operação, gaiolas e histórico não altera a persistência nem as regras de negócio existentes.
+
+## Atualização funcional do XPT — 29/10/2026
+
+- Fotos opcionais separadas por veículo: **HAND** e **carreta**. Cada campo tem seu próprio identificador; substituir uma foto mantém a referência anterior no histórico, sem apagar o arquivo antigo.
+- Os relatórios PDF básico e completo incluem as fotos disponíveis de cada veículo, com identificação por tipo e placa. Se não houver foto, o relatório continua sendo gerado e informa a ausência; não cria imagens fictícias.
+- Operações legadas com fotoId combinado continuam compatíveis e são identificadas como foto legada (HAND + lacre). Não é possível separar retroativamente uma imagem combinada em duas fotos.
+- O relatório básico em texto permanece disponível para copiar; para incluir imagens, deve-se usar a nova ação **Gerar PDF do relatório básico (com fotos)**.
+- As fotos permanecem no IndexedDB deste aparelho. Não declarar sincronização entre aparelhos até a validação autorizada do Supabase/Storage.
+
 ## Atualização funcional do XPT — 28/10/2026
 
 Esta atualização é posterior às seções históricas abaixo e prevalece em caso de conflito para os pontos listados:

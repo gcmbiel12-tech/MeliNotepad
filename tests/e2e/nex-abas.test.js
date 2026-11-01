@@ -12,7 +12,10 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     await page.goto(BASE);
     await page.evaluate(() => localStorage.removeItem('melinotepad_data_v1'));
     await page.reload();
+    await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-operacao').click();
     assert.strictEqual(await page.locator('#nex-tela-iniciar-operacao').isVisible(), true, 'NEX deve abrir na tela de iniciar operação');
+    await page.waitForFunction(() => document.getElementById('nex-abas-principais').hidden);
     assert.strictEqual(await page.locator('#nex-abas-principais').isVisible(), false, 'abas de trabalho só aparecem após iniciar a operação');
     assert.strictEqual(await page.locator('#painel-inicio').isVisible(), true, 'formulário de início deve estar visível');
     await page.setInputFiles('#nex-arquivo-planilha', {
@@ -65,6 +68,8 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
       'cartão da saca auditada deve ficar verde pastel'
     );
     await page.reload();
+    if (await page.locator('#tela-app').isVisible()) await page.locator('[data-abrir-modulo="nex"]').click();
+    await page.locator('#summary-nex-abrir-operacao').click();
     await page.waitForSelector('#nex-abas-principais:not([hidden])');
     await page.click('#nex-tab-btn-gaiolas');
     await page.locator('#nex-lista-rotas .nex-rota-card').first().locator('.nex-rota-toggle').click();

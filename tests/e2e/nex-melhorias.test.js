@@ -12,6 +12,8 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
   await page.goto(BASE);
   await page.evaluate(() => localStorage.removeItem('melinotepad_data_v1'));
   await page.reload();
+  await page.locator('[data-abrir-modulo="nex"]').click();
+  await page.locator('#summary-nex-operacao').click();
 
   await page.fill('#input-sacas', '10');
   await page.fill('#input-pacotes', '20');

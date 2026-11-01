@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/styles.css">
-<link rel="stylesheet" href="css/modulos.css?v=22">
+<link rel="stylesheet" href="css/modulos.css?v=27">
 <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
@@ -28,14 +28,8 @@
     <span id="save-status" class="save-status save-status--neutro" role="status" aria-live="polite" data-modulo-salvamento="NEX">Nenhuma alteração pendente</span>
     <button type="button" id="save-retry" class="botao botao--texto" hidden>Tentar salvar novamente</button>
   </div>
-  <nav class="nav-modulos" id="nav-modulos" aria-label="Áreas do MeliNotepad">
-    <div class="nav-modulos__grupo" role="group" aria-label="Operacional">
-      <button type="button" class="tab-modulo is-ativo" data-modulo="nex" aria-current="page">NEX</button>
-      <button type="button" class="tab-modulo" data-modulo="xpt">XPT</button>
-    </div>
-    <div class="nav-modulos__grupo" role="group" aria-label="Intervalos">
-      <button type="button" class="tab-modulo" data-modulo="intervalos">Intervalos</button>
-    </div>
+  <nav class="nav-modulos" id="nav-modulos" aria-label="Navegacao do modulo atual" hidden>
+    <button type="button" id="nav-voltar-app" class="botao botao--texto nav-voltar-app" hidden>&#8592; In&#237;cio</button>
   </nav>
   <div id="auth-header" class="auth-header" hidden>
     <span id="auth-user-label" class="auth-header__usuario"></span>
@@ -112,10 +106,27 @@
   <ul id="auth-sync-list" class="auth-sync-list"></ul>
 </section>
 
-<main id="conteudo-principal" data-modulo="nex">
+<main id="conteudo-principal" data-modulo="app">
+  <section id="tela-app" class="tela-app" aria-labelledby="tela-app-titulo">
+    <header class="tela-inicial-modulo__cabecalho"><p class="tela-inicial-modulo__eyebrow">MELINOTEPAD</p><h1 id="tela-app-titulo">Como deseja começar?</h1><p class="texto-apoio">Escolha uma área para continuar. Cada módulo mantém seus próprios dados e fluxo de trabalho.</p></header>
+    <div class="tela-inicial-modulo__grade">
+      <article class="cartao tela-inicial-modulo__destaque"><h2>NEX</h2><p class="texto-apoio">Rotas, sacas e auditorias.</p><button type="button" class="botao botao--primario" data-abrir-modulo="nex">Abrir NEX</button></article>
+      <article class="cartao"><h2>XPT</h2><p class="texto-apoio">Operações, carregamento e auditorias.</p><button type="button" class="botao botao--secundario" data-abrir-modulo="xpt">Abrir XPT</button></article>
+      <article class="cartao"><h2>Intervalos</h2><p class="texto-apoio">Intervalos ativos, funcionários e histórico.</p><button type="button" class="botao botao--secundario" data-abrir-modulo="intervalos">Abrir Intervalos</button></article>
+    </div>
+  </section>
 
   <!-- ======================= MÓDULO NEX (conteúdo existente, preservado) ======================= -->
   <div id="modulo-nex" class="modulo">
+  <section id="tela-summary-nex" class="tela-inicial-modulo" aria-labelledby="summary-nex-titulo">
+  <header class="tela-inicial-modulo__cabecalho"><p class="tela-inicial-modulo__eyebrow">MELINOTEPAD / NEX</p><h1 id="summary-nex-titulo">Conferência NEX</h1><p class="texto-apoio">Acesse a operação atual, inicie uma nova conferência ou consulte os registros anteriores.</p></header>
+  <div class="tela-inicial-modulo__grade">
+    <article class="cartao tela-inicial-modulo__destaque" id="summary-nex-card-auditoria" hidden><p class="tela-inicial-modulo__eyebrow">PRIORIDADE</p><h2>Gaiolas e auditoria</h2><p class="texto-apoio">Conferir rotas, cadastrar sacas e consultar as auditorias existentes.</p><button type="button" class="botao botao--primario" id="summary-nex-auditoria">Acessar gaiolas e auditoria</button></article>
+    <article class="cartao" id="summary-nex-card-operacao" hidden><h2 id="summary-nex-operacao-titulo">Operação atual</h2><p id="summary-nex-operacao-status" class="texto-apoio" aria-live="polite">Verificando operação…</p><div class="summary-nex__metricas"><div><span>Sacas</span><strong id="summary-nex-sacas">—</strong></div><div><span>Pacotes</span><strong id="summary-nex-pacotes">—</strong></div><div><span>Rotas</span><strong id="summary-nex-rotas">—</strong></div></div><button type="button" class="botao botao--secundario" id="summary-nex-abrir-operacao">Abrir operação</button></article>
+    <article class="cartao tela-inicial-modulo__destaque" id="summary-nex-card-iniciar"><p class="tela-inicial-modulo__eyebrow">PRÓXIMA ETAPA</p><h2>Iniciar Nova Operação</h2><p class="texto-apoio">Prepare uma nova conferência importando uma planilha ou informando os totais manualmente.</p><button type="button" class="botao botao--primario" id="summary-nex-operacao">Iniciar Nova Operação</button></article>
+    <article class="cartao" id="summary-nex-card-historico"><h2>Histórico e relatórios</h2><p class="texto-apoio">Consulte conferências finalizadas, detalhes, auditorias e relatórios anteriores.</p><button type="button" class="botao botao--secundario" id="summary-nex-historico">Abrir histórico</button></article>
+  </div>
+</section>
   <nav id="nex-abas-principais" class="app-header__nav nav-sub nex-abas-principais" aria-label="Seções do NEX" role="tablist">
     <button type="button" id="nex-tab-btn-gaiolas" class="btn-nav is-ativo" role="tab" aria-selected="true" aria-controls="nex-tab-gaiolas" data-nex-tab="gaiolas">Gaiolas e Auditoria</button>
     <button type="button" id="nex-tab-btn-ocorrencias" class="btn-nav" role="tab" aria-selected="false" aria-controls="nex-tab-ocorrencias" data-nex-tab="ocorrencias">Ocorrências</button>
@@ -413,10 +424,10 @@
   </div><!-- /#modulo-nex -->
 
   <!-- ======================= MÓDULO XPT ======================= -->
-  <section id="modulo-xpt" class="modulo" hidden aria-label="XPT"></section>
+  <section id="modulo-xpt" class="modulo" hidden aria-label="XPT"><section id="tela-summary-xpt" class="tela-inicial-modulo" aria-labelledby="summary-xpt-titulo"><header class="tela-inicial-modulo__cabecalho"><p class="tela-inicial-modulo__eyebrow">MELINOTEPAD / XPT</p><h1 id="summary-xpt-titulo">Expedição operacional</h1><p class="texto-apoio">Acesse as operações, auditorias, carregamentos e relatórios do XPT.</p></header><div class="tela-inicial-modulo__grade"><article class="cartao tela-inicial-modulo__destaque"><p class="tela-inicial-modulo__eyebrow">OPERAÇÕES</p><h2>Operações e histórico</h2><p class="texto-apoio" id="summary-xpt-descricao">Inicie uma operação ou retome uma operação em andamento.</p><button type="button" class="botao botao--primario" id="summary-xpt-operacoes">Abrir operações</button></article><article class="cartao"><h2>Auditoria e carregamento</h2><p class="texto-apoio">Continue nas áreas existentes de gaiolas, ocorrências e veículos.</p><button type="button" class="botao botao--secundario" id="summary-xpt-auditoria">Abrir auditoria</button></article><article class="cartao"><h2>Relatórios</h2><p class="texto-apoio">Consulte relatórios da operação selecionada e do histórico.</p><button type="button" class="botao botao--secundario" id="summary-xpt-relatorios">Abrir relatórios</button></article></div></section><div id="xpt-app"></div></section>
 
   <!-- ======================= MÓDULO INTERVALOS ======================= -->
-  <section id="modulo-intervalos" class="modulo" hidden aria-label="Controle de Intervalos"></section>
+  <section id="modulo-intervalos" class="modulo" hidden aria-label="Controle de Intervalos"><section id="tela-summary-intervalos" class="tela-inicial-modulo" aria-labelledby="summary-intervalos-titulo"><header class="tela-inicial-modulo__cabecalho"><p class="tela-inicial-modulo__eyebrow">MELINOTEPAD / INTERVALOS</p><h1 id="summary-intervalos-titulo">Controle de intervalos</h1><p class="texto-apoio">Gerencie funcionários, intervalos ativos e histórico.</p></header><div class="tela-inicial-modulo__grade"><article class="cartao tela-inicial-modulo__destaque"><h2>Intervalos ativos</h2><p class="texto-apoio">Acompanhe os intervalos em andamento e os registros de funcionários.</p><button type="button" class="botao botao--primario" id="summary-intervalos-ativos">Abrir intervalos ativos</button></article><article class="cartao"><h2>Funcionários e histórico</h2><p class="texto-apoio">Acesse os cadastros e os registros anteriores.</p><button type="button" class="botao botao--secundario" id="summary-intervalos-cadastros">Abrir funcionários</button><button type="button" class="botao botao--secundario" id="summary-intervalos-historico">Abrir histórico</button></article></div></section><div id="intervalos-app"></div></section>
 
 </main>
 
@@ -511,8 +522,8 @@
 <script src="js/shell.js"></script>
 <script src="js/intervalos-regras.js"></script>
 <script src="js/relatorios-historico.js"></script>
-<script src="js/app.js?v=20"></script>
-<script src="js/nex-tabs.js?v=18"></script>
+<script src="js/app.js?v=21"></script>
+<script src="js/nex-tabs.js?v=20"></script>
 <script src="js/intervalos.js"></script>
 <script src="js/xpt-regras.js"></script>
 <script src="js/fotos.js"></script>
@@ -521,5 +532,6 @@
 <script src="js/supabase-auth.js"></script>
 <script src="js/supabase-sync.js"></script>
 <script src="js/auth-ui.js"></script>
+<script src="js/telas-iniciais.js?v=3"></script>
 </body>
 </html>
