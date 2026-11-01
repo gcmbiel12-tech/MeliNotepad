@@ -595,3 +595,14 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - `responsive-layout.test.js`: **8 larguras × 3 módulos**, sem overflow horizontal ou erros JavaScript.
 - `node --check` nos arquivos JavaScript alterados e `git diff --check`: aprovados.
 - Localhost `http://127.0.0.1:8000/index.html`: HTTP 200.
+
+
+## Cancelamento de operação NEX com preservação no histórico — 01/11/2026
+
+- A aba **Relatórios** passou a oferecer a ação **Cancelar operação** durante uma sessão ativa, independente da prévia do relatório.
+- A ação exige confirmação explícita e informa que os dados serão preservados e que o cancelamento não pode ser desfeito.
+- Ao confirmar, a sessão recebe `status = cancelada` e `endTime` com o instante do cancelamento; os dados existentes (ocorrências, rotas, sacas e auditorias) são mantidos integralmente no histórico.
+- O histórico lista sessões finalizadas e canceladas, identificando claramente as canceladas. O detalhe exibe situação e horário de cancelamento.
+- A validação do armazenamento aceita o novo estado `cancelada`. O cache estático foi incrementado para `v33`.
+- Testes unitários: **84/84 aprovados**. A execução E2E `tela-inicial.test.js` foi tentada, mas parou em uma asserção anterior ao fluxo de cancelamento (histórico acessível sem operação ativa); portanto, o fluxo E2E de cancelamento ainda não foi validado neste ambiente.
+- Nenhuma migração remota ou deploy foi executado.

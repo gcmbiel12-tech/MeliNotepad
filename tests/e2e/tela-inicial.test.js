@@ -68,6 +68,24 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     await page.locator('#nex-history-back').click();
     assert.equal(await page.locator('#summary-nex-card-operacao').isVisible(), false, 'operação finalizada deixa de aparecer como atual');
     assert.equal(await page.locator('#summary-nex-card-iniciar').isVisible(), true, 'nova operação pode ser iniciada após finalizar');
+
+    await page.locator('#summary-nex-operacao').click();
+    await page.fill('#input-sacas', '7');
+    await page.fill('#input-pacotes', '14');
+    await page.locator('#form-iniciar-sessao button[type=submit]').click();
+    await page.locator('#nex-tab-btn-relatorios').click();
+    await page.locator('#btn-pre-visualizar').click();
+    await page.locator('#btn-cancelar-operacao').click();
+    await page.waitForSelector('#modal-confirmar[open]');
+    assert.match(await page.locator('#modal-confirmar-mensagem').innerText(), /preservada no histórico como CANCELADA/i);
+    await page.locator('#modal-confirmar-ok').click();
+    await page.waitForFunction(() => document.getElementById('view-historico').hidden === false);
+    assert.equal(await page.locator('#lista-historico .item-historico').count(), 2, 'operação cancelada também é preservada no histórico');
+    assert.match(await page.locator('#lista-historico').innerText(), /OPERAÇÃO CANCELADA/);
+    assert.match(await page.locator('#detalhe-historico-info').innerText(), /Cancelada/);
+    const dados = await page.evaluate(() => JSON.parse(localStorage.getItem('melinotepad_data_v1')));
+    assert.equal(dados.currentSession, null, 'cancelamento encerra a sessão ativa');
+    assert.equal(dados.history.find(s => s.status === 'cancelada').sacas, 7, 'dados da operação cancelada são preservados');
     assert.deepEqual(errors, [], 'não deve haver erros JavaScript');
     console.log('PASS tela inicial: navegação e atualização dinâmica do status NEX.');
   } finally {

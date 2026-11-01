@@ -47,7 +47,8 @@
 
   var SESSION_STATUS = {
     EM_ANDAMENTO: 'em_andamento',
-    FINALIZADA: 'finalizada'
+    FINALIZADA: 'finalizada',
+    CANCELADA: 'cancelada'
   };
 
   function categoriaLabel(key) {

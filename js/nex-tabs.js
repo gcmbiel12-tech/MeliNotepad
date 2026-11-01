@@ -228,6 +228,10 @@
       var acoesRelatorio = criarElemento('div', 'acoes-form nex-acoes-relatorio');
       var avisoRelatorio = criarElemento('p', 'texto-aviso');
       avisoRelatorio.setAttribute('aria-live', 'polite');
+      var cancelarOperacao = document.createElement('button');
+      cancelarOperacao.type = 'button'; cancelarOperacao.id = 'btn-cancelar-operacao';
+      cancelarOperacao.className = 'botao botao--perigo';
+      cancelarOperacao.textContent = 'Cancelar operação';
       var copiarRelatorio = document.createElement('button');
       copiarRelatorio.type = 'button'; copiarRelatorio.className = 'botao botao--secundario';
       copiarRelatorio.textContent = 'Copiar relatório';
@@ -262,6 +266,7 @@
           raiz.appendChild(h('pre', { class: 'relatorio-texto-impressao', text: texto }));
         }).catch(function () { avisoRelatorio.textContent = 'Não foi possível preparar o relatório para impressão.'; });
       });
+      finalizeWrap.insertBefore(cancelarOperacao, painelRelatorio);
       acoesRelatorio.appendChild(copiarRelatorio);
       acoesRelatorio.appendChild(imprimirRelatorio);
       acoesRelatorio.appendChild(avisoRelatorio);

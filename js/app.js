@@ -360,7 +360,7 @@
   function renderHistoricoLista() {
     var f = estado.filtroHistorico;
     var todos = estado.dados.history.filter(function (sessao) {
-      return sessao && sessao.status === C.SESSION_STATUS.FINALIZADA && !!sessao.endTime;
+      return sessao && [C.SESSION_STATUS.FINALIZADA, C.SESSION_STATUS.CANCELADA].indexOf(sessao.status) !== -1 && !!sessao.endTime;
     });
     var termoHistorico = U.normalizarTexto(f.busca || '').toLocaleLowerCase('pt-BR');
     var historico = U.consultarHistorico(todos, {
@@ -407,7 +407,8 @@
 
       var linha1 = document.createElement('span');
       linha1.className = 'item-historico__data';
-      linha1.textContent = U.formatarDataOperacional(sessao.startTime) + ' • Iniciado às ' + U.formatarHoraOperacional(sessao.startTime) + ' • Finalizado às ' + (sessao.endTime ? U.formatarHoraOperacional(sessao.endTime) : '—');
+      linha1.textContent = U.formatarDataOperacional(sessao.startTime) + ' • Iniciado às ' + U.formatarHoraOperacional(sessao.startTime) + (sessao.status === C.SESSION_STATUS.CANCELADA ? ' • Cancelado às ' : ' • Finalizado às ') + (sessao.endTime ? U.formatarHoraOperacional(sessao.endTime) : '—');
+      if (sessao.status === C.SESSION_STATUS.CANCELADA) linha1.textContent += ' • OPERAÇÃO CANCELADA';
       botao.appendChild(linha1);
 
       var linha2 = document.createElement('span');
@@ -429,7 +430,8 @@
     while ($.detalheHistoricoInfo.firstChild) $.detalheHistoricoInfo.removeChild($.detalheHistoricoInfo.firstChild);
     var campos = [
       ['Data', U.formatarDataOperacional(sessao.startTime)],
-      ['Finalização', sessao.endTime ? U.formatarHora(sessao.endTime) : '—'],
+      [sessao.status === C.SESSION_STATUS.CANCELADA ? 'Cancelamento' : 'Finalização', sessao.endTime ? U.formatarHora(sessao.endTime) : '—'],
+      ['Situação', sessao.status === C.SESSION_STATUS.CANCELADA ? 'Cancelada' : 'Finalizada'],
       ['Sacas', U.formatarNumeroBR(sessao.sacas)],
       ['Pacotes', U.formatarNumeroBR(sessao.pacotes)]
     ];
@@ -1146,6 +1148,32 @@
     $.modalFinalizar.showModal();
   }
 
+  async function cancelarOperacao() {
+    var sessaoAtual = sessaoAtiva();
+    if (!sessaoAtual) { toast('Não há operação ativa para cancelar.', 'erro'); return; }
+    var ok = await confirmar({
+      titulo: 'Cancelar operação em andamento?',
+      mensagem: 'A operação será encerrada e preservada no histórico como CANCELADA. Seus dados, rotas, sacas e auditorias serão mantidos. Esta ação não poderá ser desfeita.',
+      confirmarLabel: 'Cancelar operação', perigo: true
+    });
+    if (!ok) return;
+    var sessao = JSON.parse(JSON.stringify(sessaoAtual));
+    sessao.endTime = new Date().toISOString();
+    sessao.status = C.SESSION_STATUS.CANCELADA;
+    estado.dados.history.push(sessao);
+    estado.dados.currentSession = null;
+    if (!persistir()) {
+      estado.dados.history = estado.dados.history.filter(function (s) { return s.id !== sessao.id; });
+      estado.dados.currentSession = sessaoAtual;
+      return;
+    }
+    $.painelRelatorio.hidden = true;
+    renderTudo();
+    mudarView('historico');
+    abrirDetalheHistorico(sessao.id);
+    toast('Operação cancelada e preservada no histórico.', 'sucesso');
+  }
+
   function aoConfirmarFinalizar(e) {
     e.preventDefault();
     var valor = $.finalizarHorario.value;
@@ -1347,6 +1375,9 @@
 
     $.btnPreVisualizar.addEventListener('click', preVisualizarRelatorio);
     $.btnFinalizarSessao.addEventListener('click', finalizarSessao);
+    document.addEventListener('click', function (event) {
+      if (event.target && event.target.closest && event.target.closest('#btn-cancelar-operacao')) cancelarOperacao();
+    });
     $.formFinalizar.addEventListener('submit', aoConfirmarFinalizar);
     $.btnCancelarFinalizar.addEventListener('click', function () { $.modalFinalizar.close(); });
 
