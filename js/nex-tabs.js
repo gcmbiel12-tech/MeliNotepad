@@ -266,7 +266,7 @@
           raiz.appendChild(h('pre', { class: 'relatorio-texto-impressao', text: texto }));
         }).catch(function () { avisoRelatorio.textContent = 'Não foi possível preparar o relatório para impressão.'; });
       });
-      finalizeWrap.insertBefore(cancelarOperacao, painelRelatorio);
+      painelRelatorio.parentNode.insertBefore(cancelarOperacao, painelRelatorio);
       acoesRelatorio.appendChild(copiarRelatorio);
       acoesRelatorio.appendChild(imprimirRelatorio);
       acoesRelatorio.appendChild(avisoRelatorio);
