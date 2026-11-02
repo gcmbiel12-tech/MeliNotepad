@@ -606,3 +606,13 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - A validação do armazenamento aceita o novo estado `cancelada`. O cache estático foi incrementado para `v33`.
 - Testes unitários: **84/84 aprovados**. A execução E2E `tela-inicial.test.js` foi tentada, mas parou em uma asserção anterior ao fluxo de cancelamento (histórico acessível sem operação ativa); portanto, o fluxo E2E de cancelamento ainda não foi validado neste ambiente.
 - Nenhuma migração remota ou deploy foi executado.
+
+## Detalhamento das ocorrências NEX e foto de evidência — 01/11/2026
+
+- O relatório de texto passa a apresentar, junto ao código/categoria/status, data e hora, tipo do produto, rota, saca, gaiola encontrada, gaiola correta, responsável, descrição e observações quando preenchidos. Ocorrências antigas continuam compatíveis; campos ausentes são omitidos.
+- O relatório estruturado também expõe os campos individualmente, além da nota consolidada, e mantém o identificador da foto quando houver.
+- O formulário de ocorrência tem a ação **Tirar foto da ocorrência**. Em dispositivos móveis, o seletor usa capture=environment para solicitar a câmera traseira; a imagem é redimensionada e salva no IndexedDB existente, associada à ocorrência pelo identificador fotoId. A foto é opcional e não aumenta o LocalStorage.
+- O resumo textual informa quando existe foto anexada; o arquivo binário permanece no armazenamento local do aparelho. Não foi implementada sincronização dessas fotos entre dispositivos nem incorporação binária no texto WhatsApp.
+- O rodapé Nex Finalizado (HH:MM) foi removido do resumo. A saudação passa a considerar 04:00 como início de Bom dia.
+- Cache estático atualizado para v34.
+- Validações: testes unitários 86/86; E2E de foto/relatório aprovado; E2E de regressão NEX 31 passos, 0 falhas; sem erros JavaScript nos fluxos testados.

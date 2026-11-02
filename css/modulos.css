@@ -1277,3 +1277,8 @@ dialog.modal[id^="dlg-xpt-"] {
 #nex-historico-independente[hidden] { display: none !important; }
 .nex-historico-independente { width: 100%; }
 .nex-historico-independente__cabecalho { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+
+/* Foto de evidência das ocorrências NEX */
+#nex-tab-ocorrencias .nex-foto-ocorrencia-controles { grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; padding:.65rem .75rem; border:1px dashed #d9c77b; border-radius:10px; background:#fffdf2; }
+#nex-tab-ocorrencias #btn-foto-ocorrencia { min-height:44px; font-weight:700; }
+#nex-tab-ocorrencias #status-foto-ocorrencia { overflow-wrap:anywhere; }

@@ -91,6 +91,10 @@
       linhas.push(cat.emoji + ' *' + cat.label + '*' + descricao + ' — ' + itens.length);
       itens.forEach(function (o) {
         linhas.push('└ ' + C.STATUS_EMOJI[o.status] + ' ' + o.code + ' — ' + C.STATUS_LABEL[o.status]);
+        var detalhes = [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.rota ? 'Rota: ' + o.rota : '', o.saca ? 'Saca: ' + o.saca : '', o.gaiolaEncontrada ? 'Gaiola encontrada: ' + o.gaiolaEncontrada : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note ? 'Observações: ' + o.note : ''].filter(Boolean);
+        if (o.createdAt) detalhes.unshift('Data/hora: ' + U.formatarDataHora(o.createdAt));
+        if (o.fotoId) detalhes.push('Foto da ocorrência anexada');
+        if (detalhes.length) linhas.push('  ' + detalhes.join(' · '));
       });
     });
 
@@ -103,7 +107,6 @@
     }
 
     linhas.push('');
-    linhas.push('🏁 *Nex Finalizado (' + horaFinal + ')*');
 
     return linhas.join('\n');
   }
@@ -146,7 +149,16 @@
             return {
               code: o.code,
               status: C.STATUS_LABEL[o.status],
-              nota: [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.gaiolaEncontrada ? 'Gaiola encontrada: ' + o.gaiolaEncontrada : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note || ''].filter(Boolean).join(' · ')
+              dataHora: o.createdAt || null,
+              tipoProduto: o.tipoProduto || '',
+              rota: o.rota || '',
+              saca: o.saca || '',
+              gaiolaEncontrada: o.gaiolaEncontrada || '',
+              gaiolaCorreta: o.gaiolaCorreta || '',
+              encontradoPor: o.encontradoPor || '',
+              descricaoOutra: o.descricaoOutra || '',
+              fotoId: o.fotoId || null,
+              nota: [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.rota ? 'Rota: ' + o.rota : '', o.saca ? 'Saca: ' + o.saca : '', o.gaiolaEncontrada ? 'Gaiola encontrada: ' + o.gaiolaEncontrada : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note || ''].filter(Boolean).join(' · ')
             };
           })
         };

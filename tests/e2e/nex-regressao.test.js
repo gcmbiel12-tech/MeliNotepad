@@ -166,7 +166,7 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     assert.ok(texto.includes('Pacotes: *7.007*'), 'pacotes em negrito ausente');
     assert.ok(texto.includes('*Pacotes avariados e retirados*'), 'categoria com ocorrência deveria aparecer');
     assert.ok(!texto.includes('despachar'), 'categoria SEM ocorrência não deveria aparecer no texto: trecho = ' + texto);
-    assert.ok(/\*Nex Finalizado \(\d{2}:\d{2}\)\*/.test(texto), 'rodapé em negrito ausente/mal formatado');
+    assert.ok(!texto.includes('Nex Finalizado'), 'rodapé Nex Finalizado não deve aparecer no relatório');
     assert.ok(/📊 \*4\* ocorrência/.test(texto), 'resumo de totais ausente: ' + texto);
     assert.ok(texto.includes('*MeliNotepad* — Conferência NEX'), 'cabeçalho de marca ausente');
   });
@@ -196,11 +196,11 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
 
   await etapa('Histórico: detalhe sem "Início", relatório é textarea editável com horário manual exato', async () => {
     const rotulos = await page.$$eval('#detalhe-historico-info dt', els => els.map(e => e.textContent));
-    assert.deepStrictEqual(rotulos, ['Data', 'Finalização', 'Sacas', 'Pacotes']);
+    assert.deepStrictEqual(rotulos, ['Data', 'Finalização', 'Situação', 'Sacas', 'Pacotes']);
     const tag = await page.evaluate(() => document.getElementById('detalhe-historico-relatorio').tagName);
     assert.strictEqual(tag, 'TEXTAREA', 'relatório do histórico deveria ser uma textarea editável');
     const texto = await page.inputValue('#detalhe-historico-relatorio');
-    assert.ok(texto.includes('Nex Finalizado (' + horarioFinalizacaoEscolhido.slice(11, 16) + ')'), 'deveria usar o horário manual exato informado: ' + texto);
+    assert.ok(!texto.includes('Nex Finalizado'), 'relatório restaurado não deve exibir o rodapé removido');
     assert.ok(!texto.includes('despachar'), 'categoria zerada ainda não deveria aparecer no texto final');
   });
 
@@ -234,7 +234,7 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
   await etapa('"Restaurar texto gerado" devolve o relatório original', async () => {
     await page.click('#btn-restaurar-relatorio-historico');
     const texto = await page.inputValue('#detalhe-historico-relatorio');
-    assert.ok(texto.includes('Nex Finalizado (' + horarioFinalizacaoEscolhido.slice(11, 16) + ')'), 'texto restaurado deveria trazer o relatório gerado de novo');
+    assert.ok(!texto.includes('Nex Finalizado'), 'relatório restaurado não deve exibir o rodapé removido');
     assert.ok(!texto.includes('reescrito pelo usuário'));
   });
 

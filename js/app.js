@@ -35,6 +35,7 @@
   // ela libera assim que o registro atual termina, sem atrapalhar o
   // próximo código digitado ou lido em seguida — fluxo comum na conferência.
   var registrandoOcorrencia = false;
+  var fotoOcorrenciaPendenteId = null;
   var importacaoNex = { resultado: null, arquivoNome: '', totaisAlterados: false, lendo: false };
 
   // -----------------------------------------------------------------------
@@ -56,6 +57,7 @@
       'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'ajuda-categoria', 'input-observacao',
       'input-tipo-produto', 'input-rota-ocorrencia', 'input-saca-ocorrencia', 'select-gaiola-encontrada', 'input-gaiola-correta', 'input-encontrado-por',
       'input-data-hora-ocorrencia', 'input-descricao-outra', 'campo-categoria-outra',
+      'btn-foto-ocorrencia', 'input-foto-ocorrencia', 'status-foto-ocorrencia',
       'contagem-total', 'contagem-pendente', 'contagem-resolvida',
       'filtro-categoria', 'filtro-status', 'filtro-codigo', 'btn-ver-pendentes', 'btn-limpar-filtros',
       'lista-ocorrencias-vazia', 'lista-ocorrencias',
@@ -870,7 +872,8 @@
       gaiolaEncontrada: detalhes.gaiolaEncontrada || undefined,
       gaiolaCorreta: detalhes.gaiolaCorreta || undefined,
       encontradoPor: detalhes.encontradoPor || undefined,
-      descricaoOutra: detalhes.descricaoOutra || undefined
+      descricaoOutra: detalhes.descricaoOutra || undefined,
+      fotoId: detalhes.fotoId || undefined
     });
     if (!persistir()) { sessao.occurrences.pop(); return false; }
     renderListaOcorrencias();
@@ -913,7 +916,8 @@
       gaiolaCorreta: U.normalizarTexto($.inputGaiolaCorreta.value),
       encontradoPor: U.normalizarTexto($.inputEncontradoPor.value),
       quando: $.inputDataHoraOcorrencia.value ? new Date($.inputDataHoraOcorrencia.value).toISOString() : U.agora().toISOString(),
-      descricaoOutra: U.normalizarTexto($.inputDescricaoOutra.value)
+      descricaoOutra: U.normalizarTexto($.inputDescricaoOutra.value),
+      fotoId: fotoOcorrenciaPendenteId
     };
 
     if (!codigo) {
@@ -976,6 +980,9 @@
       $.inputGaiolaCorreta.value = '';
       $.inputEncontradoPor.value = '';
       $.inputDescricaoOutra.value = '';
+      fotoOcorrenciaPendenteId = null;
+      $.statusFotoOcorrencia.textContent = 'Foto opcional para registrar evidências.';
+      $.inputFotoOcorrencia.value = '';
       $.inputDataHoraOcorrencia.value = U.paraDatetimeLocal(U.agora());
       $.campoCategoriaOutra.hidden = true;
       limparSelecaoDeStatus();
@@ -1358,6 +1365,25 @@
     $.btnAbrirCamera.addEventListener('click', abrirCamera);
     $.btnFecharCamera.addEventListener('click', fecharCamera);
     $.selectCamera.addEventListener('change', aoTrocarCamera);
+    $.btnFotoOcorrencia.addEventListener('click', function () { $.inputFotoOcorrencia.click(); });
+    $.inputFotoOcorrencia.addEventListener('change', function () {
+      var arquivo = $.inputFotoOcorrencia.files && $.inputFotoOcorrencia.files[0];
+      if (!arquivo) return;
+      var fotos = window.MeliNotepad && window.MeliNotepad.Fotos;
+      if (!fotos) { toast('O armazenamento de fotos não está disponível. Atualize a página.', 'erro'); return; }
+      $.btnFotoOcorrencia.disabled = true;
+      $.statusFotoOcorrencia.textContent = 'Preparando foto…';
+      fotos.processarArquivo(arquivo, 1600).then(function (imagem) {
+        var id = U.gerarId('foto-occ');
+        return fotos.salvar({ id: id, blob: imagem.blob, largura: imagem.largura, altura: imagem.altura, mime: imagem.mime, origem: 'nex-ocorrencia', criadaEm: U.agora().toISOString(), sincronizada: false }).then(function () {
+          fotoOcorrenciaPendenteId = id;
+          $.statusFotoOcorrencia.textContent = 'Foto anexada à próxima ocorrência.';
+        });
+      }).catch(function (erro) {
+        $.statusFotoOcorrencia.textContent = 'Não foi possível anexar a foto.';
+        toast(erro && erro.message ? erro.message : 'Falha ao salvar a foto.', 'erro');
+      }).then(function () { $.btnFotoOcorrencia.disabled = false; $.inputFotoOcorrencia.value = ''; });
+    });
 
     $.formRegistrarOcorrencia.addEventListener('submit', aoEnviarRegistrarOcorrencia);
     $.selectCategoria.addEventListener('change', atualizarAjudaCategoria);

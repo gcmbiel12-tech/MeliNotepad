@@ -156,7 +156,7 @@
       var d = data instanceof Date ? data : new Date(data);
       if (isNaN(d.getTime())) return 'Olá!';
       var h = d.getHours();
-      if (h >= 5 && h < 12) return 'Bom dia!!!';
+      if (h >= 4 && h < 12) return 'Bom dia!!!';
       if (h >= 12 && h < 18) return 'Boa tarde!!!';
       return 'Boa noite!!!';
     } catch (e) {
@@ -170,7 +170,7 @@
       var d = data instanceof Date ? data : new Date(data);
       if (isNaN(d.getTime())) return '👋';
       var h = d.getHours();
-      if (h >= 5 && h < 12) return '🌅';
+      if (h >= 4 && h < 12) return '🌅';
       if (h >= 12 && h < 18) return '☀️';
       return '🌙';
     } catch (e) {

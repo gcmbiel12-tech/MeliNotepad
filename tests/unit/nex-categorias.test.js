@@ -54,3 +54,18 @@ test('NEX distingue Bingo e Faltando nos relatórios de texto e estruturados', (
   assert.strictEqual(relatorioHistorico.totais.sacasIndividuais, 2);
   assert.strictEqual(relatorioHistorico.totais.auditadas, 1);
 });
+
+
+test('relatório NEX inclui todos os campos da ocorrência e não exibe rodapé de finalização', () => {
+  const sessao = { id: 'occ-detalhada', startTime: '2026-11-01T08:00:00.000Z', endTime: '2026-11-01T09:00:00.000Z', status: 'finalizada', sacas: 1, pacotes: 1, occurrences: [{ id: 'o1', code: 'PKG-123', category: 'avariados', status: 'pendente', createdAt: '2026-11-01T08:30:00.000Z', tipoProduto: 'Eletrônico', rota: 'M2', saca: '15', gaiolaEncontrada: 'G-10', gaiolaCorreta: 'G-12', encontradoPor: 'Carlos', descricaoOutra: 'Embalagem molhada', note: 'Produto úmido', fotoId: 'foto-occ-1' }] };
+  const texto = Report.gerarTextoRelatorio(sessao);
+  ['PKG-123', 'Eletrônico', 'Rota: M2', 'Saca: 15', 'Gaiola encontrada: G-10', 'Gaiola correta: G-12', 'Encontrado por: Carlos', 'Descrição: Embalagem molhada', 'Observações: Produto úmido', 'Foto da ocorrência anexada'].forEach(v => assert.ok(texto.includes(v), 'campo ausente: ' + v));
+  assert.ok(!texto.includes('Nex Finalizado'));
+  const estruturado = Report.montarDadosCompletos(sessao).categorias.find(c => c.label === 'Pacotes avariados e retirados').itens[0];
+  assert.equal(estruturado.rota, 'M2'); assert.equal(estruturado.saca, '15'); assert.equal(estruturado.gaiolaCorreta, 'G-12'); assert.equal(estruturado.fotoId, 'foto-occ-1');
+});
+
+test('saudação do relatório considera madrugada como Bom dia', () => {
+  assert.equal(NS.Utils.saudacaoPorHorario(new Date('2026-11-01T04:00:00-03:00')), 'Bom dia!!!');
+  assert.equal(NS.Utils.saudacaoPorHorario(new Date('2026-11-01T03:59:00-03:00')), 'Boa noite!!!');
+});
