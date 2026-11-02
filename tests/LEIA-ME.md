@@ -12,7 +12,9 @@ Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional, r
     python3 -m http.server 8743 --bind 127.0.0.1      # em outro terminal, na raiz do projeto
     node tests/e2e/auth-gate.test.js                  # login, acesso, sync, conflito, backup e upload de foto XPT (Auth/Storage simulados)
     node tests/e2e/auth-layout.test.js                # tela de autenticação em 7 larguras (320–1280 px)
-    node tests/e2e/nex-abas.test.js                   # Abas NEX, quantidades, ocorrências e relatórios
+    node tests/e2e/nex-abas.test.js                   # Abas NEX, distribuição inicial de sacas, quantidades, ocorrências e relatórios
+    node tests/e2e/nex-distribuicao-sacas.test.js     # Sequência natural, confirmação/cancelamento e substituição da Optimization
+    node tests/e2e/nex-edicao-saca.test.js            # Edição pelo card, renumeração da sequência e preservação das auditorias
     node tests/e2e/nex-regressao.test.js              # NEX, filtros, histórico, backup e impressão PDF
     node tests/e2e/nex-melhorias.test.js              # Bingo/Faltando, duplicidade, pendências e filtros do histórico
     node tests/e2e/nex-cancelamento.test.js          # Cancelamento de operação NEX e preservação no histórico

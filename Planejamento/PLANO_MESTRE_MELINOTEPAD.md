@@ -129,6 +129,17 @@ Nunca indicar que os dados estão salvos quando a gravação não foi confirmada
 - Manter o histórico de finalizadas imutável também na camada responsável por salvar os dados, e não apenas na interface.
 - Validar salvamento, retomada, cancelamento, pré-encerramento, finalização, nova conferência, PDF, compartilhamento e falhas de conexão.
 
+## 1.7 Rotas e numeração individual de sacas
+
+- Ao importar uma Optimization, criar automaticamente uma saca individual para cada unidade indicada em `Quantidade de sacas` nas linhas HYBRID.
+- A numeração começa em **1 a cada operação** e segue continuamente entre as rotas em ordem natural alfanumérica (M1, M2, M3 ... M10, N1), independentemente da ordem das linhas da planilha.
+- O histórico serve exclusivamente para preservar operações anteriores. Números iguais podem existir em operações diferentes; a unicidade da numeração é limitada à operação atual.
+- Ao importar uma nova Optimization durante uma operação, solicitar confirmação antes de substituir todas as sacas individuais atuais. Se cancelar, preservar os dados atuais; se confirmar, recriar as sacas e reiniciar a sequência em 1.
+- Rotas antigas ausentes da nova planilha permanecem cadastradas, mas sem sacas individuais da nova distribuição.
+- A confirmação informa que auditorias vinculadas às sacas substituídas também serão removidas, pois pertencem aos registros individuais anteriores.
+- A opção **Editar numeração** fica no diálogo aberto ao selecionar o card da saca, junto de Auditar saca e Retirar saca.
+- Ao editar uma saca, a sequência a partir dela é recalculada entre as rotas em ordem natural alfanumérica. O novo número deve ser maior que o da saca imediatamente anterior; os IDs e históricos de auditoria são preservados.
+
 ---
 
 # 2. XPT — Gaiolas e Auditoria

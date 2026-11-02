@@ -616,3 +616,51 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - O rodapé Nex Finalizado (HH:MM) foi removido do resumo. A saudação passa a considerar 04:00 como início de Bom dia.
 - Cache estático atualizado para v34.
 - Validações: testes unitários 86/86; E2E de foto/relatório aprovado; E2E de regressão NEX 31 passos, 0 falhas; sem erros JavaScript nos fluxos testados.
+
+
+## Distribuição automática de sacas por Optimization — 02/11/2026
+
+### Regra aplicada
+
+- A importação inicial da Optimization cria automaticamente as sacas individuais a partir da quantidade informada em cada rota HYBRID.
+- A distribuição segue ordem natural alfanumérica das rotas, independente da ordem das linhas: M1, M2, M3 ... M10, N1. A sequência começa em 1 e continua entre as rotas.
+- A numeração é reiniciada em cada nova operação. O histórico é apenas o registro das operações anteriores; não participa da verificação de duplicidade de sacas.
+- Ao importar uma nova Optimization durante a operação, o sistema pede confirmação antes de substituir as sacas individuais existentes. Cancelar preserva tudo. Confirmar recria as sacas, reinicia a numeração em 1 e remove auditorias ligadas às sacas antigas.
+- Rotas que não constam na nova planilha permanecem cadastradas, mas sem sacas individuais; a distribuição nova é aplicada somente às rotas importadas.
+
+### Arquivos alterados
+
+- `js/app.js`: geração sequencial das sacas na criação da operação e na atualização por Optimization; duplicidade limitada à operação ativa.
+- `js/nex-tabs.js`: confirmação explícita de substituição, aviso sobre remoção das auditorias associadas e estado de conclusão da importação.
+- `index.html`: atualização das versões dos scripts `app.js?v=22` e `nex-tabs.js?v=21`.
+- `service-worker.js`: cache estático incrementado para `v35`.
+- `tests/e2e/nex-abas.test.js`: validação da distribuição inicial e atualização das expectativas de cadastro manual.
+- `tests/e2e/nex-distribuicao-sacas.test.js`: cobertura de ordem natural, sequência entre rotas, cancelamento da confirmação e substituição da Optimization.
+- `tests/LEIA-ME.md`: comando e escopo do novo E2E registrados.
+- `Planejamento/PLANO_MESTRE_MELINOTEPAD.md`: regra funcional consolidada.
+
+### Validações executadas
+
+- Testes unitários: **86/86 aprovados**.
+- `nex-distribuicao-sacas.test.js`: aprovado — ordem natural M1/M2/M10/N1, sequência contínua, cancelamento sem alterações e substituição confirmada.
+- `nex-abas.test.js`: aprovado após ajustar as expectativas para as sacas geradas automaticamente.
+- `node --check` nos arquivos JavaScript e testes alterados: aprovado.
+- `git diff --check`: aprovado; avisos de conversão LF/CRLF do ambiente Windows.
+- Servidor local utilizado: `http://127.0.0.1:8743` (HTTP 200).
+
+### Observações
+
+- A substituição de sacas também remove as auditorias vinculadas às sacas antigas; isso é informado antes da confirmação. Não há tentativa de associar auditorias antigas a novos identificadores.
+- Não foi executado commit, push, deploy ou migração remota.
+
+
+## Edição da numeração de sacas pelo card NEX — 02/11/2026
+
+- O diálogo aberto ao selecionar o card da saca agora reúne as ações Fechar, Editar numeração, Auditar saca e Retirar saca.
+- A edição altera o número da saca selecionada e recalcula as sacas seguintes na sequência global, respeitando a ordenação natural alfanumérica das rotas. O número informado deve ser maior que o da saca imediatamente anterior.
+- Antes de aplicar, a interface informa que registros seguintes poderão ser renumerados. Os IDs das sacas e seus históricos de auditoria são preservados; somente o campo de numeração é atualizado.
+- As ações foram reorganizadas em uma grade responsiva: auditoria em destaque e edição/remoção lado a lado, com empilhamento em telas estreitas.
+- Arquivos alterados nesta etapa: `js/app.js`, `js/nex-tabs.js`, `css/modulos.css`, `index.html`, `service-worker.js`, `tests/e2e/nex-edicao-saca.test.js` e `tests/LEIA-ME.md`.
+- Cache estático incrementado para `v36`; versões dos recursos atualizadas no HTML.
+- Validações: E2E específico de edição aprovado; E2E `nex-abas.test.js` aprovado; testes unitários 86/86; `node --check` e `git diff --check` aprovados.
+- Não foi executado commit, push, deploy ou migração remota.

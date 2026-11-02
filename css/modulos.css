@@ -1282,3 +1282,38 @@ dialog.modal[id^="dlg-xpt-"] {
 #nex-tab-ocorrencias .nex-foto-ocorrencia-controles { grid-column:1/-1; display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; padding:.65rem .75rem; border:1px dashed #d9c77b; border-radius:10px; background:#fffdf2; }
 #nex-tab-ocorrencias #btn-foto-ocorrencia { min-height:44px; font-weight:700; }
 #nex-tab-ocorrencias #status-foto-ocorrencia { overflow-wrap:anywhere; }
+
+
+/* NEX: acoes do modal da saca organizadas por prioridade e adaptadas ao toque. */
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-acoes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .6rem;
+  width: 100%;
+  margin-top: .15rem;
+}
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-acoes .botao {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  margin: 0;
+  padding: .65rem .7rem;
+  border-radius: .7rem;
+  font-size: .9rem;
+  line-height: 1.25;
+  white-space: normal;
+}
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-acoes .botao--primario { grid-column: 1 / -1; grid-row: 1; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-editar-saca { grid-column: 1; grid-row: 2; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-remover-saca { grid-column: 2; grid-row: 2; border-color: #e4d8d5; color: #8a3932; background: #fff9f8; }
+#nex-rotas-auditoria .nex-saca-dialog .nex-saca-dialog__fechar { min-width: 92px; }
+@media (max-width: 420px) {
+  #nex-rotas-auditoria .nex-saca-dialog .nex-saca-acoes { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+  #nex-rotas-auditoria .nex-saca-dialog .nex-saca-acoes .botao--primario,
+  #nex-rotas-auditoria .nex-saca-dialog .nex-editar-saca,
+  #nex-rotas-auditoria .nex-saca-dialog .nex-remover-saca { grid-column: 1; grid-row: auto; }
+}
+
+@media (max-width: 420px) {
+  #nex-rotas-auditoria .nex-saca-dialog .nex-saca-acoes .botao--primario { order: -1; }
+}

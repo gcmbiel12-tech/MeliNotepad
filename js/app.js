@@ -658,6 +658,25 @@
     $.inputPacotes.addEventListener('input', function () { if (importacaoNex.resultado) importacaoNex.totaisAlterados = true; });
   }
 
+  function gerarSacasIndividuais(rotas) {
+    var ordenadas = rotas.slice().sort(function (a, b) {
+      return String(a.rota).localeCompare(String(b.rota), 'pt-BR', { numeric: true, sensitivity: 'base' });
+    });
+    var proximoNumero = 1;
+    ordenadas.forEach(function (rota) {
+      rota.sacasIndividuais = [];
+      var quantidade = Number(rota.sacas) || 0;
+      for (var i = 0; i < quantidade; i++) {
+        rota.sacasIndividuais.push({
+          id: U.gerarId('saca'),
+          numero: String(proximoNumero++),
+          auditorias: []
+        });
+      }
+    });
+    return rotas;
+  }
+
   function aoEnviarIniciarSessao(e) {
     e.preventDefault();
     if (importacaoNex.lendo) { toast('Aguarde a conclusão da leitura da planilha antes de iniciar a operação.', 'info'); return; }
@@ -681,7 +700,9 @@
       status: C.SESSION_STATUS.EM_ANDAMENTO,
       sacas: parseInt(sacas, 10),
       pacotes: parseInt(pacotes, 10),
-      rotasHybrid: importacaoNex.resultado ? importacaoNex.resultado.rotas : [],
+      rotasHybrid: importacaoNex.resultado ? gerarSacasIndividuais(importacaoNex.resultado.rotas.map(function (rota) {
+        return Object.assign({}, rota, { sacasIndividuais: [] });
+      })) : [],
       planilhaOptimization: importacaoNex.resultado ? importacaoNex.arquivoNome : null,
       occurrences: []
     };
@@ -1465,6 +1486,9 @@
       return window.MeliNotepad.NexPlanilha.analisarArquivo(arquivo).then(function (resultado) {
         var snapshot = JSON.parse(JSON.stringify(sessao));
         if (!Array.isArray(sessao.rotasHybrid)) sessao.rotasHybrid = [];
+        sessao.rotasHybrid.forEach(function (rota) {
+          rota.sacasIndividuais = [];
+        });
         resultado.rotas.forEach(function (importada) {
           var existente = sessao.rotasHybrid.find(function (r) { return String(r.rota).toLocaleLowerCase('pt-BR') === String(importada.rota).toLocaleLowerCase('pt-BR'); });
           if (existente) {
@@ -1472,11 +1496,16 @@
             existente.servico = importada.servico;
             existente.sacas = importada.sacas;
             existente.pacotes = importada.pacotes;
-            if (!Array.isArray(existente.sacasIndividuais)) existente.sacasIndividuais = [];
+            existente.sacasIndividuais = [];
           } else {
             sessao.rotasHybrid.push({ rota: importada.rota, idOtimizado: importada.idOtimizado, servico: importada.servico, sacas: importada.sacas, pacotes: importada.pacotes, sacasIndividuais: [], origem: 'planilha' });
           }
         });
+        gerarSacasIndividuais(sessao.rotasHybrid.filter(function (rota) {
+          return resultado.rotas.some(function (importada) {
+            return String(rota.rota).toLocaleLowerCase('pt-BR') === String(importada.rota).toLocaleLowerCase('pt-BR');
+          });
+        }));
         sessao.sacas = resultado.totalSacas;
         sessao.pacotes = resultado.totalPacotes;
         sessao.planilhaOptimization = arquivo.name;
@@ -1526,15 +1555,51 @@
       if (!/^\d+$/.test(normalizado)) return { sucesso: false, erro: 'A saca deve ter um número inteiro, sem letras.' };
       var chave = String(Number(normalizado));
       if (!Number.isSafeInteger(Number(normalizado))) return { sucesso: false, erro: 'Número de saca inválido.' };
-      var sessoes = [sessao].concat(estado.dados.history || []);
-      var duplicada = sessoes.some(function (s) { return (s.rotasHybrid || []).some(function (r) { return (r.sacasIndividuais || []).some(function (sc) { return String(Number(sc.numero)) === chave; }); }); });
-      if (duplicada) return { sucesso: false, erro: 'Essa saca já está cadastrada. A numeração é única no NEX; por exemplo, 060 e 60 são o mesmo número.' };
+      var duplicada = (sessao.rotasHybrid || []).some(function (r) { return (r.sacasIndividuais || []).some(function (sc) { return String(Number(sc.numero)) === chave; }); });
+      if (duplicada) return { sucesso: false, erro: 'Essa saca já está cadastrada nesta operação; por exemplo, 060 e 60 são o mesmo número.' };
       var rota = sessao.rotasHybrid.filter(function (r) { return r.rota === routeName; })[0];
       if (!rota) return { sucesso: false, erro: 'A rota não foi encontrada.' };
       if (!Array.isArray(rota.sacasIndividuais)) rota.sacasIndividuais = [];
       rota.sacasIndividuais.push({ id: 'saca-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), numero: normalizado, auditorias: [] });
       if (!persistir()) { rota.sacasIndividuais.pop(); return { sucesso: false, erro: 'Não foi possível salvar a saca.' }; }
       renderTudo(); return { sucesso: true };
+    },
+    editSacaNumber: function (routeName, sacaId, novoNumero) {
+      var sessao = sessaoAtiva();
+      if (!sessao || !Array.isArray(sessao.rotasHybrid)) return { sucesso: false, erro: 'Nao ha uma operacao ativa.' };
+      var normalizado = String(novoNumero == null ? '' : novoNumero).trim();
+      if (!/^\d+$/.test(normalizado) || !Number.isSafeInteger(Number(normalizado)) || Number(normalizado) < 1) return { sucesso: false, erro: 'Informe um numero inteiro maior que zero.' };
+      var todas = [];
+      var rotaEncontrada = null;
+      var sacaEncontrada = null;
+      (sessao.rotasHybrid || []).forEach(function (rota) {
+        (rota.sacasIndividuais || []).forEach(function (saca) {
+          todas.push({ rota: rota, saca: saca });
+          if (rota.rota === routeName && saca.id === sacaId) { rotaEncontrada = rota; sacaEncontrada = saca; }
+        });
+      });
+      if (!sacaEncontrada) return { sucesso: false, erro: 'A saca nao foi encontrada.' };
+      todas.sort(function (a, b) {
+        var ordemRota = String(a.rota.rota).localeCompare(String(b.rota.rota), 'pt-BR', { numeric: true, sensitivity: 'base' });
+        return ordemRota || Number(a.saca.numero) - Number(b.saca.numero);
+      });
+      var indice = todas.findIndex(function (item) { return item.saca.id === sacaId && item.rota.rota === routeName; });
+      var numeroAnterior = indice > 0 ? Number(todas[indice - 1].saca.numero) : 0;
+      var inicio = Number(normalizado);
+      if (inicio <= numeroAnterior) return { sucesso: false, erro: 'A nova numeracao precisa ser maior que a saca anterior (' + numeroAnterior + ') para manter a sequencia.' };
+      var alteracoes = [];
+      for (var i = indice; i < todas.length; i++) {
+        var numeroCalculado = String(inicio + (i - indice));
+        if (String(todas[i].saca.numero) !== numeroCalculado) alteracoes.push({ saca: todas[i].saca, anterior: todas[i].saca.numero, novo: numeroCalculado });
+      }
+      if (!alteracoes.length) return { sucesso: true, alteradas: 0 };
+      alteracoes.forEach(function (item) { item.saca.numero = item.novo; });
+      if (!persistir()) {
+        alteracoes.forEach(function (item) { item.saca.numero = item.anterior; });
+        return { sucesso: false, erro: 'Nao foi possivel salvar a nova numeracao.' };
+      }
+      renderTudo();
+      return { sucesso: true, alteradas: alteracoes.length, rota: rotaEncontrada.rota };
     },
     auditSaca: function (routeName, sacaId, auditor, status, observacao) {
       var sessao = sessaoAtiva();

@@ -86,7 +86,7 @@
   var activeImportTitle = criarElemento('h2', '', 'Importar planilha');
   activeImportTitle.id = 'nex-importacao-quantidades-titulo';
   activeImport.appendChild(activeImportTitle);
-  activeImport.appendChild(criarElemento('p', 'texto-apoio', 'Atualize os totais estimados e os dados das rotas durante a operação. As sacas individuais e o histórico de auditorias serão preservados. Rotas que não estiverem na nova planilha não serão removidas.'));
+  activeImport.appendChild(criarElemento('p', 'texto-apoio', 'Atualize os totais e as rotas durante a operação. A nova Optimization substituirá todas as sacas individuais cadastradas nesta operação e reiniciará a numeração em 1. Rotas ausentes da planilha serão mantidas, mas ficarão sem sacas individuais.'));
   var activeImportInput = document.createElement('input');
   activeImportInput.type = 'file'; activeImportInput.accept = '.xlsx,.csv'; activeImportInput.hidden = true;
   activeImportInput.id = 'nex-arquivo-planilha-quantidades';
@@ -108,12 +108,12 @@
     var extensao = String(arquivo.name || '').split('.').pop().toLowerCase();
     if (['xlsx', 'csv'].indexOf(extensao) < 0) { activeImportStatus.textContent = 'Formato não suportado. Selecione um arquivo .xlsx ou .csv.'; return; }
     if (!arquivo.size || arquivo.size > 20 * 1024 * 1024) { activeImportStatus.textContent = 'O arquivo está vazio ou excede o limite de 20 MB.'; return; }
-    if (!window.confirm('Importar "' + arquivo.name + '" para atualizar os totais e as rotas desta operação? As sacas individuais, auditorias e rotas ausentes da planilha serão preservadas.')) { activeImportInput.value = ''; return; }
+    if (!window.confirm('Importar "' + arquivo.name + '"? Os totais e as rotas serão atualizados, todas as sacas individuais desta operação serão substituídas e as auditorias vinculadas a elas serão removidas. A numeração começará novamente em 1. As rotas ausentes da planilha serão mantidas sem sacas individuais. Deseja continuar?')) { activeImportInput.value = ''; return; }
     var api = window.MeliNotepad && window.MeliNotepad.NexOperations;
     if (!api || typeof api.importPlanilha !== 'function') { activeImportStatus.textContent = 'A função de importação não está disponível. Atualize a página e tente novamente.'; return; }
     activeImportButton.disabled = true; activeImportStatus.textContent = 'Lendo e validando a planilha…';
     api.importPlanilha(arquivo).then(function (resultado) {
-      activeImportStatus.textContent = 'Importação concluída: ' + resultado.rotas + ' rota(s), ' + resultado.sacas + ' sacas e ' + resultado.pacotes + ' pacotes estimados. Cadastros individuais e auditorias preservados.';
+      activeImportStatus.textContent = 'Importação concluída: ' + resultado.rotas + ' rota(s), ' + resultado.sacas + ' sacas e ' + resultado.pacotes + ' pacotes estimados. Sacas individuais recriadas com numeração sequencial a partir de 1.';
       activeImportInput.value = '';
       renderRotas();
     }).catch(function (erro) {
@@ -633,8 +633,27 @@
         item.appendChild(fecharSaca);
         var topo = criarElemento('div', 'nex-saca-item__topo'); topo.appendChild(criarElemento('strong', '', 'Saca ' + saca.numero)); topo.appendChild(criarElemento('span', 'nex-rota-status' + (situacaoSaca === 'ocorrencia-pendente' ? ' is-ocorrencia-pendente' : situacaoSaca === 'divergencia' ? ' is-divergencia' : situacaoSaca === 'concluida' ? ' is-concluida' : ''), rotuloSaca)); item.appendChild(topo);
         if (ultima) { item.appendChild(criarElemento('p', 'texto-apoio', 'Auditor: ' + ultima.auditor + ' · ' + new Date(ultima.data).toLocaleString('pt-BR'))); if (ultima.observacao) item.appendChild(criarElemento('p', 'nex-saca-observacao', ultima.observacao)); }
+        var acoesSaca = criarElemento('div', 'nex-saca-acoes');
+        var editarSaca = document.createElement('button'); editarSaca.type = 'button'; editarSaca.className = 'botao botao--secundario nex-editar-saca'; editarSaca.textContent = 'Editar numera\u00e7\u00e3o';
+        editarSaca.addEventListener('click', function () {
+          var nova = window.prompt('Novo numero para a saca ' + saca.numero + ':', String(saca.numero));
+          if (nova === null) return;
+          nova = nova.trim();
+          if (!/^\d+$/.test(nova) || Number(nova) < 1 || !Number.isSafeInteger(Number(nova))) { window.alert('Informe um numero inteiro maior que zero.'); return; }
+          var todasOrdenadas = [];
+          (sessao.rotasHybrid || []).forEach(function (r) { (r.sacasIndividuais || []).forEach(function (sc) { todasOrdenadas.push({ rota: r, saca: sc }); }); });
+          todasOrdenadas.sort(function (a, b) { var cmp = String(a.rota.rota).localeCompare(String(b.rota.rota), 'pt-BR', { numeric: true, sensitivity: 'base' }); return cmp || Number(a.saca.numero) - Number(b.saca.numero); });
+          var indiceAtual = todasOrdenadas.findIndex(function (x) { return x.saca.id === saca.id && x.rota.rota === rota.rota; });
+          var afetadas = Math.max(0, todasOrdenadas.length - indiceAtual);
+          if (!window.confirm('A partir desta saca, ' + afetadas + ' saca(s) da sequencia serao renumeradas. A distribuicao por rota e o historico das auditorias serao preservados. Deseja continuar?')) return;
+          var resultadoEdicao = api.editSacaNumber(rota.rota, saca.id, nova);
+          if (!resultadoEdicao.sucesso) window.alert(resultadoEdicao.erro);
+          else { rotasAbertas[rota.rota] = true; renderRotas(); }
+        });
+        acoesSaca.appendChild(editarSaca);
         var auditar = document.createElement('button'); auditar.type = 'button'; auditar.className = 'botao botao--primario'; auditar.textContent = ultima ? 'Realizar nova auditoria' : 'Auditar saca';
-        auditar.addEventListener('click', function () { var auditor = window.prompt('Nome do Auditor:'); if (auditor === null) return; auditor = auditor.trim(); if (!auditor) { window.alert('Informe o nome do auditor.'); return; } if (!window.confirm('Confirmar auditoria da saca ' + saca.numero + ' realizada por ' + auditor + '?')) return; var res = api.auditSaca(rota.rota, saca.id, auditor, 'concluida', ''); if (!res.sucesso) window.alert(res.erro); else { rotasAbertas[rota.rota] = true; renderRotas(); } }); item.appendChild(auditar);
+        auditar.addEventListener('click', function () { var auditor = window.prompt('Nome do Auditor:'); if (auditor === null) return; auditor = auditor.trim(); if (!auditor) { window.alert('Informe o nome do auditor.'); return; } if (!window.confirm('Confirmar auditoria da saca ' + saca.numero + ' realizada por ' + auditor + '?')) return; var res = api.auditSaca(rota.rota, saca.id, auditor, 'concluida', ''); if (!res.sucesso) window.alert(res.erro); else { rotasAbertas[rota.rota] = true; renderRotas(); } });
+        acoesSaca.appendChild(auditar);
         var removerSaca = document.createElement('button'); removerSaca.type = 'button'; removerSaca.className = 'botao botao--secundario nex-remover-saca'; removerSaca.textContent = 'Retirar saca'; removerSaca.setAttribute('aria-label', 'Retirar saca ' + saca.numero + ' da rota ' + rota.rota);
         removerSaca.addEventListener('click', function () {
           var mensagem = 'Retirar a saca ' + saca.numero + ' da rota "' + rota.rota + '"?';
@@ -643,7 +662,9 @@
           var resultado = api.removeSaca(rota.rota, saca.id);
           if (!resultado.sucesso) window.alert(resultado.erro);
           else { rotasAbertas[rota.rota] = true; renderRotas(); }
-        }); item.appendChild(removerSaca);
+        });
+        acoesSaca.appendChild(removerSaca);
+        item.appendChild(acoesSaca);
         if (historico.length > 1) { var details = document.createElement('details'); details.className = 'nex-saca-historico'; details.appendChild(criarElemento('summary', '', 'Histórico de auditorias (' + historico.length + ')')); historico.forEach(function (a, i) { details.appendChild(criarElemento('p', 'texto-apoio', (i + 1) + '. ' + (a.status === 'divergencia' ? 'Com divergência' : 'Concluída') + ' · ' + a.auditor + ' · ' + new Date(a.data).toLocaleString('pt-BR') + (a.observacao ? ' · ' + a.observacao : ''))); }); item.appendChild(details); }
         dialogoSaca.appendChild(item);
         card.appendChild(dialogoSaca);
