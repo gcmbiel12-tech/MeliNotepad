@@ -258,16 +258,16 @@
             <input type="text" id="input-tipo-produto" name="tipoProduto" placeholder="Tipo do produto (se conhecido)">
           </div>
           <div class="campo">
-            <label for="input-rota-ocorrencia">Rota</label>
-            <input type="text" id="input-rota-ocorrencia" name="rota" autocomplete="off" placeholder="Digite a rota relacionada (opcional)">
+            <label for="input-rota-ocorrencia">Rota (opcional)</label>
+            <select id="input-rota-ocorrencia" name="rota">
+              <option value="">Selecione uma rota cadastrada</option>
+            </select>
           </div>
           <div class="campo">
-            <label for="input-saca-ocorrencia">Saca</label>
-            <input type="text" id="input-saca-ocorrencia" name="saca" inputmode="numeric" autocomplete="off" placeholder="Digite o número da saca (opcional)">
-          </div>
-          <div class="campo">
-            <label for="select-gaiola-encontrada">Gaiola encontrada</label>
-            <input type="text" id="select-gaiola-encontrada" name="gaiolaEncontrada" autocomplete="off" placeholder="Digite a gaiola onde foi encontrado">
+            <label for="input-saca-ocorrencia">Saca (opcional)</label>
+            <select id="input-saca-ocorrencia" name="saca" disabled>
+              <option value="">Selecione primeiro uma rota</option>
+            </select>
           </div>
           <div class="campo">
             <label for="input-gaiola-correta">Gaiola correta</label>
@@ -402,7 +402,8 @@
       <textarea id="detalhe-historico-relatorio" class="texto-relatorio" rows="14"></textarea>
       <div class="acoes-form">
         <button type="button" id="btn-copiar-resumo-historico" class="botao botao--secundario">Copiar resumo</button>
-          <button type="button" id="btn-gerar-pdf-historico" class="botao botao--secundario">Preparar relatório PDF</button>
+        <button type="button" id="btn-copiar-completo-historico" class="botao botao--secundario">Copiar Relatório Completo</button>
+        <button type="button" id="btn-gerar-pdf-historico" class="botao botao--primario">Preparar relatório PDF</button>
       </div>
       <p id="aviso-copiar-historico" class="texto-aviso" aria-live="polite"></p>
     </section>
@@ -523,8 +524,8 @@
 <script src="js/shell.js"></script>
 <script src="js/intervalos-regras.js"></script>
 <script src="js/relatorios-historico.js"></script>
-<script src="js/app.js?v=23"></script>
-<script src="js/nex-tabs.js?v=22"></script>
+<script src="js/app.js?v=25"></script>
+<script src="js/nex-tabs.js?v=24"></script>
 <script src="js/intervalos.js"></script>
 <script src="js/xpt-regras.js"></script>
 <script src="js/fotos.js"></script>

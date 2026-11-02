@@ -19,6 +19,13 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     await page.locator('#nav-voltar-app').click();
     await page.locator('[data-abrir-modulo="nex"]').click();
     await page.locator('#summary-nex-abrir-operacao').click();
+    await page.evaluate(() => {
+      const api = window.MeliNotepad.NexOperations;
+      api.addRoute('M2');
+      api.addSaca('M2', '15');
+      const saca = api.getCurrentSession().rotasHybrid.find(r => r.rota === 'M2').sacasIndividuais[0];
+      api.auditSaca('M2', saca.id, 'Ana', 'concluida', '');
+    });
     await page.locator('#nex-tab-btn-ocorrencias').click();
 
     await page.locator('#btn-foto-ocorrencia').click();
@@ -29,9 +36,8 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     await page.fill('#input-codigo', 'PROD-OCORRENCIA-01');
     await page.selectOption('#select-categoria', 'avariados');
     await page.fill('#input-tipo-produto', 'Eletrônico');
-    await page.fill('#input-rota-ocorrencia', 'M2');
-    await page.fill('#input-saca-ocorrencia', '15');
-    await page.fill('#select-gaiola-encontrada', 'G-10');
+    await page.selectOption('#input-rota-ocorrencia', 'M2');
+    await page.selectOption('#input-saca-ocorrencia', { label: '15' });
     await page.fill('#input-gaiola-correta', 'G-12');
     await page.fill('#input-encontrado-por', 'Carlos');
     await page.fill('#input-observacao', 'Embalagem molhada');
@@ -48,12 +54,48 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
     assert.ok(salvo.o.fotoId, 'foto deve ficar vinculada à ocorrência');
     assert.equal(await salvo.foto, true, 'imagem deve estar persistida no IndexedDB');
     assert.equal(salvo.o.rota, 'M2'); assert.equal(salvo.o.saca, '15');
+    assert.ok(salvo.o.sacaId, 'ocorrência deve manter vínculo com o ID da saca cadastrada');
 
     await page.locator('#nex-tab-btn-relatorios').click();
     await page.locator('#btn-pre-visualizar').click();
     const texto = await page.locator('#texto-relatorio').innerText();
-    ['PROD-OCORRENCIA-01', 'Tipo do produto: Eletrônico', 'Rota: M2', 'Saca: 15', 'Gaiola encontrada: G-10', 'Gaiola correta: G-12', 'Encontrado por: Carlos', 'Observações: Embalagem molhada', 'Foto da ocorrência anexada'].forEach(v => assert.ok(texto.includes(v), 'relatório sem: ' + v));
+    const statusEstruturado = await page.evaluate(() => window.MeliNotepad.Report.montarDadosCompletos(window.MeliNotepad.NexOperations.getCurrentSession()).rotasHybrid[0].sacasIndividuais[0].status);
+    assert.equal(statusEstruturado, 'Auditada com ocorrência', 'relatório estruturado deve usar o mesmo status');
+    ['PROD-OCORRENCIA-01', 'Tipo do produto: Eletrônico', 'Rota: M2', 'Saca: 15', 'Gaiola correta: G-12', 'Encontrado por: Carlos', 'Observações: Embalagem molhada', 'Foto da ocorrência anexada', '1/1 auditada(s) · 1 com divergência', 'Rota M2 · Saca 15 — Auditada com ocorrência'].forEach(v => assert.ok(texto.includes(v), 'relatório sem: ' + v));
+    assert.ok(!texto.includes('Gaiola encontrada'), 'campo Gaiola encontrada deve ser removido do relatório');
     assert.ok(!texto.includes('Nex Finalizado'), 'rodapé removido');
+
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    const botoesRelatorio = page.locator('#painel-relatorio .nex-acoes-relatorio button');
+    assert.equal(await botoesRelatorio.count(), 3, 'devem existir três ações independentes de relatório');
+    assert.equal(await botoesRelatorio.nth(0).innerText(), 'Copiar resumo');
+    assert.equal(await botoesRelatorio.nth(1).innerText(), 'Copiar Relatório Completo');
+    assert.equal(await botoesRelatorio.nth(2).innerText(), 'Preparar relatório PDF');
+
+    await botoesRelatorio.nth(0).click();
+    const resumo = await page.evaluate(() => navigator.clipboard.readText());
+    assert.ok(resumo.includes('🛒 *Auditoria das sacas cadastradas*'), resumo);
+    assert.ok(resumo.includes('Rota M2 · Saca 15 — Auditada com ocorrência'), resumo);
+    assert.ok(!resumo.includes('PROD-OCORRENCIA-01'), 'resumo não deve detalhar ocorrências');
+    assert.ok(!resumo.includes('Não realizada'), 'resumo não deve listar sacas não realizadas');
+
+    await botoesRelatorio.nth(1).click();
+    const completoCopiado = await page.evaluate(() => navigator.clipboard.readText());
+    assert.ok(completoCopiado.includes('PROD-OCORRENCIA-01'), 'cópia completa mantém detalhes da ocorrência');
+    assert.ok(completoCopiado.includes('1/1 auditada(s) · 1 com divergência'), 'cópia completa mantém contagem');
+
+    await page.evaluate(() => {
+      window.MeliNotepad.Impressao.imprimir = function (titulo, construir) {
+        const raiz = document.createElement('div');
+        const h = (tag, attrs) => { const el = document.createElement(tag); if (attrs.text) el.textContent = attrs.text; return el; };
+        construir(raiz, h);
+        window.__pdfTextoPreparado = raiz.textContent;
+        return Promise.resolve();
+      };
+    });
+    await botoesRelatorio.nth(2).click();
+    const pdfTexto = await page.evaluate(() => window.__pdfTextoPreparado);
+    assert.ok(pdfTexto.includes('PROD-OCORRENCIA-01'), 'PDF continua usando o relatório completo');
     assert.deepEqual(errors, [], 'sem erros JavaScript');
     console.log('PASS E2E ocorrência NEX: captura de foto, persistência IndexedDB e detalhamento do relatório.');
   } finally { await context.close(); await browser.close(); }

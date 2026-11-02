@@ -664,3 +664,21 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - Cache estático incrementado para `v36`; versões dos recursos atualizadas no HTML.
 - Validações: E2E específico de edição aprovado; E2E `nex-abas.test.js` aprovado; testes unitários 86/86; `node --check` e `git diff --check` aprovados.
 - Não foi executado commit, push, deploy ou migração remota.
+
+
+## Vínculo de ocorrência NEX com Gaiolas e Auditoria — 02/11/2026
+
+- O formulário de ocorrência removeu o campo **Gaiola encontrada**; em Localização ficam Tipo do produto, Rota, Saca e Gaiola correta.
+- Rota e Saca passaram a ser seletores opcionais alimentados pelas rotas e sacas individuais cadastradas na operação ativa. A lista de sacas depende da rota selecionada; não é permitido registrar somente uma das duas.
+- Quando selecionadas, a ocorrência persiste `sacaId` junto à rota e ao número da saca. A identificação usa o ID da saca, evitando perder o vínculo se sua numeração for alterada posteriormente.
+- Uma ocorrência vinculada caracteriza divergência na saca. A contagem de divergências no resumo de Gaiolas e Auditoria e no relatório considera a união das sacas com auditoria divergente e das sacas com ocorrência vinculada, contando cada saca uma única vez. O total de sacas auditadas continua baseado nas auditorias registradas.
+- Relatório textual e estruturado deixam de apresentar Gaiola encontrada; registros antigos continuam legíveis, mas o campo legado é omitido na saída.
+- Cache estático atualizado para v39; versões dos scripts NEX incrementadas.
+
+## Separação das ações de relatório NEX — 02/11/2026
+
+- A prévia continua exibindo o relatório completo.
+- **Copiar resumo** gera uma versão curta com cabeçalho, saudação, data/hora, totais e somente sacas que tiveram auditoria ou ocorrência vinculada; não lista sacas não realizadas nem detalha ocorrências.
+- **Copiar Relatório Completo** copia o texto integral, com todas as sacas, status, ocorrências e detalhes.
+- **Preparar relatório PDF** mantém a impressão do relatório completo e detalhado.
+- As três ações ficam disponíveis tanto na prévia da operação quanto no detalhe da sessão no histórico. A cópia completa respeita eventuais edições feitas na caixa de texto do histórico.

@@ -832,3 +832,10 @@ Ao concluir a Fase 7, apresente:
 ## Instrução final
 
 Comece agora pela Fase 0 na pasta oficial do projeto. Use Remote Desktop conforme autorizado. Leia o documento de planejamento completo, inspecione o estado atual e execute sequencialmente todas as fases até a Fase 7. **Não pare entre fases por conveniência; só pare se surgir uma necessidade especial real.** A qualidade, integridade dos dados e evidência dos testes prevalecem sobre velocidade.
+
+## Ocorrências NEX vinculadas às sacas — regra funcional
+
+- Na seção **2. Localização** do formulário, manter Tipo do produto, Rota, Saca e Gaiola correta. O campo Gaiola encontrada não faz mais parte do fluxo.
+- Rota e Saca são opcionais. Quando preenchidas, devem ser escolhidas dos cadastros da operação ativa em Gaiolas e Auditoria; a Saca é filtrada pela Rota selecionada.
+- A ocorrência salva o identificador estável da saca (`sacaId`) além da rota e do número exibidos. Assim, a relação permanece correta mesmo se a numeração da saca for alterada.
+- Uma ocorrência vinculada a uma saca caracteriza divergência nessa saca. O resumo mantém o total auditado e contabiliza a saca vinculada entre as divergências, sem duplicar a contagem quando houver mais de uma ocorrência para a mesma saca.

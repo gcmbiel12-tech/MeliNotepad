@@ -223,9 +223,15 @@ async function registrarOcorrencia(page, { codigo, categoria, status, observacao
     assert.ok(pdfReal.length > 1000, 'o PDF deve conter páginas e conteúdo');
   });
 
-  await etapa('Editar o texto do relatório manualmente e copiar respeita a edição', async () => {
-    await page.fill('#detalhe-historico-relatorio', 'Texto totalmente reescrito pelo usuário antes de enviar.');
+  await etapa('Resumo do histórico é curto e cópia completa respeita a edição manual', async () => {
     await page.click('#btn-copiar-resumo-historico');
+    await page.waitForFunction(() => document.getElementById('aviso-copiar-historico').textContent.includes('copiado'));
+    const resumo = await page.evaluate(() => navigator.clipboard.readText());
+    assert.ok(resumo.includes('*MeliNotepad* — Conferência NEX'));
+    assert.ok(resumo.includes('Sacas: *96*') && resumo.includes('Pacotes: *7.007*'));
+    assert.ok(!resumo.includes('48123456789'), 'resumo não deve detalhar ocorrências');
+    await page.fill('#detalhe-historico-relatorio', 'Texto totalmente reescrito pelo usuário antes de enviar.');
+    await page.click('#btn-copiar-completo-historico');
     await page.waitForFunction(() => document.getElementById('aviso-copiar-historico').textContent.includes('copiado'));
     const clip = await page.evaluate(() => navigator.clipboard.readText());
     assert.strictEqual(clip, 'Texto totalmente reescrito pelo usuário antes de enviar.');

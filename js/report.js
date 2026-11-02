@@ -33,6 +33,12 @@
     return { pendentes: pendentes, resolvidas: resolvidas, total: occurrences.length };
   }
 
+  function sacaTemOcorrencia(sessao, saca) {
+    return (sessao.occurrences || []).some(function (ocorrencia) {
+      return !!saca.id && ocorrencia.sacaId === saca.id;
+    });
+  }
+
   /**
    * Gera o resumo pronto para colar no WhatsApp: saudação, data/hora de
    * finalização, totais manuais e só as categorias que têm pelo menos uma
@@ -75,10 +81,12 @@
     rotasHybrid.forEach(function (rota) { (rota.sacasIndividuais || []).forEach(function (saca) { var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : []; sacasIndividuais.push({ rota: rota.rota, saca: saca, ultima: auditorias.slice(-1)[0] || null }); }); });
     if (sacasIndividuais.length) {
       var auditadas = sacasIndividuais.filter(function (item) { return !!item.ultima; }).length;
-      var comDivergencia = sacasIndividuais.filter(function (item) { return item.ultima && item.ultima.status === 'divergencia'; }).length;
+      var comDivergencia = sacasIndividuais.filter(function (item) {
+        return (item.ultima && item.ultima.status === 'divergencia') || sacaTemOcorrencia(sessao, item.saca);
+      }).length;
       linhas.push('');
       linhas.push('🛒 *Auditoria das sacas cadastradas* — ' + auditadas + '/' + sacasIndividuais.length + ' auditada(s) · ' + comDivergencia + ' com divergência');
-      rotasHybrid.forEach(function (rota) { (rota.sacasIndividuais || []).forEach(function (saca) { var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : []; var ultima = auditorias.slice(-1)[0]; linhas.push('└ Rota ' + rota.rota + ' · Saca ' + saca.numero + ' — ' + (!ultima ? 'Não realizada' : ultima.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída') + (ultima ? ' · Auditor: ' + ultima.auditor : '')); if (ultima && ultima.observacao) linhas.push('  Observação: ' + ultima.observacao); }); });
+      rotasHybrid.forEach(function (rota) { (rota.sacasIndividuais || []).forEach(function (saca) { var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : []; var ultima = auditorias.slice(-1)[0]; var divergenciaOcorrencia = sacaTemOcorrencia(sessao, saca); linhas.push('└ Rota ' + rota.rota + ' · Saca ' + saca.numero + ' — ' + (divergenciaOcorrencia ? 'Auditada com ocorrência' : ultima ? (ultima.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída') : 'Não realizada') + (ultima ? ' · Auditor: ' + ultima.auditor : '')); if (ultima && ultima.observacao) linhas.push('  Observação: ' + ultima.observacao); }); });
     }
     linhas.push(divisoria);
 
@@ -91,7 +99,7 @@
       linhas.push(cat.emoji + ' *' + cat.label + '*' + descricao + ' — ' + itens.length);
       itens.forEach(function (o) {
         linhas.push('└ ' + C.STATUS_EMOJI[o.status] + ' ' + o.code + ' — ' + C.STATUS_LABEL[o.status]);
-        var detalhes = [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.rota ? 'Rota: ' + o.rota : '', o.saca ? 'Saca: ' + o.saca : '', o.gaiolaEncontrada ? 'Gaiola encontrada: ' + o.gaiolaEncontrada : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note ? 'Observações: ' + o.note : ''].filter(Boolean);
+        var detalhes = [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.rota ? 'Rota: ' + o.rota : '', o.saca ? 'Saca: ' + o.saca : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note ? 'Observações: ' + o.note : ''].filter(Boolean);
         if (o.createdAt) detalhes.unshift('Data/hora: ' + U.formatarDataHora(o.createdAt));
         if (o.fotoId) detalhes.push('Foto da ocorrência anexada');
         if (detalhes.length) linhas.push('  ' + detalhes.join(' · '));
@@ -108,6 +116,50 @@
 
     linhas.push('');
 
+    return linhas.join('\n');
+  }
+
+  /**
+   * Gera a versão curta para compartilhamento: mantém identificação, saudação,
+   * horário e totais, listando apenas sacas auditadas ou com ocorrência vinculada.
+   */
+  function gerarTextoResumo(sessao) {
+    var momentoReferencia = sessao.endTime || U.agora().toISOString();
+    var saudacao = U.saudacaoPorHorario(momentoReferencia);
+    var emojiSaudacao = U.emojiPorHorario(momentoReferencia);
+    var dataOperacional = U.dataOperacional(sessao.startTime);
+    var dataRef = dataOperacional.slice(8, 10) + '/' + dataOperacional.slice(5, 7);
+    var horaFinal = U.formatarHoraOperacional(momentoReferencia);
+    var divisoria = '━━━━━━━━━━━━━━━━';
+    var linhas = [
+      '📦 *MeliNotepad* — Conferência NEX',
+      divisoria,
+      '',
+      emojiSaudacao + ' *' + saudacao + '*',
+      '',
+      '📋 *Rotas Nex finalizadas hoje ' + dataRef + ' às ' + horaFinal + '*',
+      '',
+      '🧺 Sacas: *' + U.formatarNumeroBR(sessao.sacas) + '*',
+      '📦 Pacotes: *' + U.formatarNumeroBR(sessao.pacotes) + '*'
+    ];
+    var rotasHybrid = Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid : [];
+    var sacasListadas = [];
+    rotasHybrid.forEach(function (rota) {
+      (rota.sacasIndividuais || []).forEach(function (saca) {
+        var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : [];
+        var ultima = auditorias.slice(-1)[0] || null;
+        var ocorrencia = sacaTemOcorrencia(sessao, saca);
+        if (!ultima && !ocorrencia) return;
+        var status = ocorrencia ? 'Auditada com ocorrência' :
+          (ultima.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída');
+        sacasListadas.push('└ Rota ' + rota.rota + ' · Saca ' + saca.numero + ' — ' + status);
+      });
+    });
+    if (sacasListadas.length) {
+      linhas.push('');
+      linhas.push('🛒 *Auditoria das sacas cadastradas*');
+      Array.prototype.push.apply(linhas, sacasListadas);
+    }
     return linhas.join('\n');
   }
 
@@ -135,7 +187,8 @@
           sacasIndividuais: (rota.sacasIndividuais || []).map(function (saca) {
             var auditorias = Array.isArray(saca.auditorias) ? saca.auditorias : [];
             var ultima = auditorias.slice(-1)[0] || null;
-            return { numero: saca.numero, status: !ultima ? 'Não realizada' : ultima.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída', auditor: ultima ? ultima.auditor : null, auditadaEm: ultima ? ultima.data : null, observacao: ultima ? (ultima.observacao || '') : '', historico: auditorias.map(function (a) { return { status: a.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída', auditor: a.auditor, data: a.data, observacao: a.observacao || '' }; }) };
+            var divergenciaOcorrencia = sacaTemOcorrencia(sessao, saca);
+            return { numero: saca.numero, status: divergenciaOcorrencia ? 'Auditada com ocorrência' : ultima ? (ultima.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída') : 'Não realizada', auditor: ultima ? ultima.auditor : null, auditadaEm: ultima ? ultima.data : null, observacao: ultima ? (ultima.observacao || '') : '', historico: auditorias.map(function (a) { return { status: a.status === 'divergencia' ? 'Concluída com divergência' : 'Concluída', auditor: a.auditor, data: a.data, observacao: a.observacao || '' }; }) };
           }),
           auditoriaLegada: rota.auditStatus ? { status: rota.auditStatus, auditor: rota.auditor || null, data: rota.auditedAt || null } : null
         };
@@ -153,12 +206,12 @@
               tipoProduto: o.tipoProduto || '',
               rota: o.rota || '',
               saca: o.saca || '',
-              gaiolaEncontrada: o.gaiolaEncontrada || '',
+              sacaId: o.sacaId || null,
               gaiolaCorreta: o.gaiolaCorreta || '',
               encontradoPor: o.encontradoPor || '',
               descricaoOutra: o.descricaoOutra || '',
               fotoId: o.fotoId || null,
-              nota: [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.rota ? 'Rota: ' + o.rota : '', o.saca ? 'Saca: ' + o.saca : '', o.gaiolaEncontrada ? 'Gaiola encontrada: ' + o.gaiolaEncontrada : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note || ''].filter(Boolean).join(' · ')
+              nota: [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.rota ? 'Rota: ' + o.rota : '', o.saca ? 'Saca: ' + o.saca : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note || ''].filter(Boolean).join(' · ')
             };
           })
         };
@@ -181,6 +234,7 @@
     contarPorCategoria: contarPorCategoria,
     contarStatus: contarStatus,
     gerarTextoRelatorio: gerarTextoRelatorio,
+    gerarTextoResumo: gerarTextoResumo,
     montarDadosCompletos: montarDadosCompletos,
     nomeArquivoSugerido: nomeArquivoSugerido
   };

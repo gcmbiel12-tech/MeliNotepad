@@ -142,10 +142,9 @@
       (rota.sacasIndividuais || []).forEach(function (saca) {
         sacas.push(saca);
         var ultima = (saca.auditorias || []).slice(-1)[0];
-        if (ultima) {
-          auditadas++;
-          if (ultima.status === 'divergencia') divergencias++;
-        }
+        if (ultima) auditadas++;
+        var possuiOcorrenciaVinculada = (sessao.occurrences || []).some(function (ocorrencia) { return ocorrencia.sacaId === saca.id; });
+        if ((ultima && ultima.status === 'divergencia') || possuiOcorrenciaVinculada) divergencias++;
       });
     });
     var pendentes = Math.max(0, sacas.length - auditadas);
@@ -221,7 +220,7 @@
     panels.relatorios.appendChild(finalizeWrap);
     move(finalizeSection, finalizeWrap);
 
-    // A prévia, o texto copiado e o PDF usam exatamente o mesmo relatório NEX.
+    // A prévia e o PDF mantêm o relatório completo; a cópia curta é independente.
     var painelRelatorio = document.getElementById('painel-relatorio');
     var textoRelatorio = document.getElementById('texto-relatorio');
     if (painelRelatorio && textoRelatorio) {
@@ -232,11 +231,7 @@
       cancelarOperacao.type = 'button'; cancelarOperacao.id = 'btn-cancelar-operacao';
       cancelarOperacao.className = 'botao botao--perigo';
       cancelarOperacao.textContent = 'Cancelar operação';
-      var copiarRelatorio = document.createElement('button');
-      copiarRelatorio.type = 'button'; copiarRelatorio.className = 'botao botao--secundario';
-      copiarRelatorio.textContent = 'Copiar relatório';
-      copiarRelatorio.addEventListener('click', function () {
-        var texto = textoRelatorio.textContent || '';
+      function copiarTextoRelatorio(texto, mensagem) {
         function fallback() {
           var campo = document.createElement('textarea');
           campo.value = texto; campo.setAttribute('aria-label', 'Texto do relatório para copiar');
@@ -244,12 +239,31 @@
           campo.focus(); campo.select();
           var ok = false;
           try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-          avisoRelatorio.textContent = ok ? 'Relatório copiado.' : 'Selecione o texto exibido e copie manualmente.';
+          avisoRelatorio.textContent = ok ? mensagem : 'Selecione o texto exibido e copie manualmente.';
           if (ok) campo.remove();
         }
         if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
-          navigator.clipboard.writeText(texto).then(function () { avisoRelatorio.textContent = 'Relatório copiado.'; }).catch(fallback);
+          navigator.clipboard.writeText(texto).then(function () { avisoRelatorio.textContent = mensagem; }).catch(fallback);
         } else fallback();
+      }
+      var copiarResumo = document.createElement('button');
+      copiarResumo.type = 'button'; copiarResumo.className = 'botao botao--secundario';
+      copiarResumo.textContent = 'Copiar resumo';
+      copiarResumo.addEventListener('click', function () {
+        var sessao = window.MeliNotepad && window.MeliNotepad.NexOperations && window.MeliNotepad.NexOperations.getCurrentSession();
+        var report = window.MeliNotepad && window.MeliNotepad.Report;
+        if (!sessao || !report || typeof report.gerarTextoResumo !== 'function') {
+          avisoRelatorio.textContent = 'Não foi possível preparar o resumo desta operação.';
+          return;
+        }
+        copiarTextoRelatorio(report.gerarTextoResumo(sessao), 'Resumo copiado.');
+      });
+      var copiarRelatorio = document.createElement('button');
+      copiarRelatorio.type = 'button'; copiarRelatorio.className = 'botao botao--secundario';
+      copiarRelatorio.textContent = 'Copiar Relatório Completo';
+      copiarRelatorio.addEventListener('click', function () {
+        var texto = textoRelatorio.textContent || '';
+        copiarTextoRelatorio(texto, 'Relatório completo copiado.');
       });
       var imprimirRelatorio = document.createElement('button');
       imprimirRelatorio.type = 'button'; imprimirRelatorio.className = 'botao botao--primario';
@@ -267,7 +281,9 @@
         }).catch(function () { avisoRelatorio.textContent = 'Não foi possível preparar o relatório para impressão.'; });
       });
       painelRelatorio.parentNode.insertBefore(cancelarOperacao, painelRelatorio);
+      acoesRelatorio.appendChild(copiarResumo);
       acoesRelatorio.appendChild(copiarRelatorio);
+      imprimirRelatorio.textContent = 'Preparar relatório PDF';
       acoesRelatorio.appendChild(imprimirRelatorio);
       acoesRelatorio.appendChild(avisoRelatorio);
       painelRelatorio.appendChild(acoesRelatorio);
@@ -472,6 +488,7 @@
   function ocorrenciasDaSaca(saca, sessao) {
     var chave = String(Number(saca.numero));
     return (sessao && Array.isArray(sessao.occurrences) ? sessao.occurrences : []).filter(function (o) {
+      if (o.sacaId) return o.sacaId === saca.id;
       return /^\d+$/.test(String(o.code || '').trim()) && String(Number(o.code)) === chave;
     });
   }
@@ -481,6 +498,7 @@
     var ultima = auditorias.slice(-1)[0];
     var ocorrencias = ocorrenciasDaSaca(saca, sessao);
     var dataAuditoria = ultima ? Date.parse(ultima.data) : 0;
+    if (ocorrencias.some(function (o) { return o.sacaId === saca.id; })) return 'divergencia';
     var ocorrenciaNaoAuditada = ocorrencias.some(function (o) {
       var dataOcorrencia = Date.parse(o.createdAt || o.updatedAt || 0);
       return !ultima || !isFinite(dataOcorrencia) || dataOcorrencia > dataAuditoria;

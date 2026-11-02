@@ -18,7 +18,7 @@ Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional, r
     node tests/e2e/nex-regressao.test.js              # NEX, filtros, histórico, backup e impressão PDF
     node tests/e2e/nex-melhorias.test.js              # Bingo/Faltando, duplicidade, pendências e filtros do histórico
     node tests/e2e/nex-cancelamento.test.js          # Cancelamento de operação NEX e preservação no histórico
-    node tests/e2e/nex-foto-relatorio.test.js       # Foto de evidência da ocorrência e detalhamento do relatório
+    node tests/e2e/nex-foto-relatorio.test.js       # Foto, vínculo da ocorrência com rota/saca cadastrada e divergência no relatório
     node tests/e2e/intervalos.test.js                 # Intervalos, filtros, relógio simulado e impressão PDF
     node tests/e2e/qr-scanner.test.js                  # Interpretação de QR e alternativa manual (sem câmera física)
     node tests/e2e/responsive-layout.test.js           # NEX/XPT/Intervalos em 8 larguras (320–1440 px)

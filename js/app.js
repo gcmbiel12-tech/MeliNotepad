@@ -55,7 +55,7 @@
       'form-editar-totais', 'input-sacas-edit', 'input-pacotes-edit', 'btn-cancelar-editar-totais',
       'btn-abrir-camera', 'btn-fechar-camera', 'label-select-camera', 'select-camera', 'video-camera', 'aviso-camera',
       'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'ajuda-categoria', 'input-observacao',
-      'input-tipo-produto', 'input-rota-ocorrencia', 'input-saca-ocorrencia', 'select-gaiola-encontrada', 'input-gaiola-correta', 'input-encontrado-por',
+      'input-tipo-produto', 'input-rota-ocorrencia', 'input-saca-ocorrencia', 'input-gaiola-correta', 'input-encontrado-por',
       'input-data-hora-ocorrencia', 'input-descricao-outra', 'campo-categoria-outra',
       'btn-foto-ocorrencia', 'input-foto-ocorrencia', 'status-foto-ocorrencia',
       'contagem-total', 'contagem-pendente', 'contagem-resolvida',
@@ -68,7 +68,7 @@
       'historico-inicio', 'historico-fim', 'historico-inicio-wrap', 'historico-fim-wrap', 'historico-busca', 'historico-categoria', 'historico-status', 'historico-limpar',
       'nex-relatorio-historico',
       'detalhe-historico', 'detalhe-historico-info', 'detalhe-historico-ocorrencias', 'detalhe-historico-relatorio',
-      'btn-fechar-detalhe-historico', 'btn-copiar-resumo-historico', 'btn-gerar-pdf-historico', 'aviso-copiar-historico',
+      'btn-fechar-detalhe-historico', 'btn-copiar-resumo-historico', 'btn-copiar-completo-historico', 'btn-gerar-pdf-historico', 'aviso-copiar-historico',
       'btn-restaurar-relatorio-historico', 'btn-excluir-sessao-historico',
       'btn-exportar-backup', 'btn-importar-backup', 'input-importar-arquivo',
       'modal-confirmar', 'modal-confirmar-titulo', 'modal-confirmar-mensagem', 'modal-confirmar-cancelar', 'modal-confirmar-ok',
@@ -288,7 +288,6 @@
     if (o.tipoProduto) detalhesOcorrencia.push('Tipo do produto: ' + o.tipoProduto);
     if (o.rota) detalhesOcorrencia.push('Rota: ' + o.rota);
     if (o.saca) detalhesOcorrencia.push('Saca: ' + o.saca);
-    if (o.gaiolaEncontrada) detalhesOcorrencia.push('Gaiola encontrada: ' + o.gaiolaEncontrada);
     if (o.gaiolaCorreta) detalhesOcorrencia.push('Gaiola correta: ' + o.gaiolaCorreta);
     if (o.encontradoPor) detalhesOcorrencia.push('Encontrado por: ' + o.encontradoPor);
     if (o.descricaoOutra) detalhesOcorrencia.push('Descrição: ' + o.descricaoOutra);
@@ -500,9 +499,52 @@
   // Render geral
   // -----------------------------------------------------------------------
 
+  function atualizarSelectSacas(preservarSelecao) {
+    var sessao = sessaoAtiva();
+    var rotaNome = $.inputRotaOcorrencia.value;
+    var rota = sessao && (sessao.rotasHybrid || []).find(function (item) { return item.rota === rotaNome; });
+    var selecaoAtual = preservarSelecao ? $.inputSacaOcorrencia.value : '';
+    while ($.inputSacaOcorrencia.firstChild) $.inputSacaOcorrencia.removeChild($.inputSacaOcorrencia.firstChild);
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = rota ? 'Selecione uma saca cadastrada' : 'Selecione primeiro uma rota';
+    $.inputSacaOcorrencia.appendChild(placeholder);
+    var sacas = rota && Array.isArray(rota.sacasIndividuais) ? rota.sacasIndividuais.slice() : [];
+    sacas.sort(function (a, b) { return Number(a.numero) - Number(b.numero); });
+    sacas.forEach(function (saca) {
+      var option = document.createElement('option');
+      option.value = saca.id;
+      option.textContent = String(saca.numero);
+      $.inputSacaOcorrencia.appendChild(option);
+    });
+    $.inputSacaOcorrencia.disabled = !rota || sacas.length === 0;
+    if (selecaoAtual && sacas.some(function (saca) { return saca.id === selecaoAtual; })) $.inputSacaOcorrencia.value = selecaoAtual;
+  }
+
+  function atualizarSelectRotas(preservarSelecao) {
+    var sessao = sessaoAtiva();
+    var selecaoAtual = preservarSelecao ? $.inputRotaOcorrencia.value : '';
+    while ($.inputRotaOcorrencia.firstChild) $.inputRotaOcorrencia.removeChild($.inputRotaOcorrencia.firstChild);
+    var placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Selecione uma rota cadastrada (opcional)';
+    $.inputRotaOcorrencia.appendChild(placeholder);
+    var rotas = sessao && Array.isArray(sessao.rotasHybrid) ? sessao.rotasHybrid.slice() : [];
+    rotas.sort(function (a, b) { return String(a.rota).localeCompare(String(b.rota), 'pt-BR', { numeric: true, sensitivity: 'base' }); });
+    rotas.forEach(function (rota) {
+      var option = document.createElement('option');
+      option.value = rota.rota;
+      option.textContent = rota.rota;
+      $.inputRotaOcorrencia.appendChild(option);
+    });
+    if (selecaoAtual && rotas.some(function (rota) { return rota.rota === selecaoAtual; })) $.inputRotaOcorrencia.value = selecaoAtual;
+    atualizarSelectSacas(preservarSelecao);
+  }
+
   function renderTudo() {
     renderStatusChip();
     renderPainelPrincipal();
+    atualizarSelectRotas(true);
     if (sessaoAtiva()) renderListaOcorrencias();
     renderHistoricoLista();
   }
@@ -890,7 +932,7 @@
       tipoProduto: detalhes.tipoProduto || undefined,
       rota: detalhes.rota || undefined,
       saca: detalhes.saca || undefined,
-      gaiolaEncontrada: detalhes.gaiolaEncontrada || undefined,
+      sacaId: detalhes.sacaId || undefined,
       gaiolaCorreta: detalhes.gaiolaCorreta || undefined,
       encontradoPor: detalhes.encontradoPor || undefined,
       descricaoOutra: detalhes.descricaoOutra || undefined,
@@ -929,11 +971,16 @@
     var categoria = $.selectCategoria.value;
     var status = statusEscolhidoNoFormulario();
     var nota = U.normalizarTexto($.inputObservacao.value);
+    var rotaSelecionada = U.normalizarTexto($.inputRotaOcorrencia.value);
+    var sessaoAtual = sessaoAtiva();
+    var rotaCadastrada = rotaSelecionada && sessaoAtual ? (sessaoAtual.rotasHybrid || []).find(function (item) { return item.rota === rotaSelecionada; }) : null;
+    var sacaSelecionadaId = $.inputSacaOcorrencia.value;
+    var sacaCadastrada = rotaCadastrada && (rotaCadastrada.sacasIndividuais || []).find(function (item) { return item.id === sacaSelecionadaId; });
     var detalhes = {
       tipoProduto: U.normalizarTexto($.inputTipoProduto.value),
-      rota: U.normalizarTexto($.inputRotaOcorrencia.value),
-      saca: U.normalizarTexto($.inputSacaOcorrencia.value),
-      gaiolaEncontrada: U.normalizarTexto($.selectGaiolaEncontrada.value),
+      rota: rotaSelecionada,
+      saca: sacaCadastrada ? String(sacaCadastrada.numero) : '',
+      sacaId: sacaCadastrada ? sacaCadastrada.id : '',
       gaiolaCorreta: U.normalizarTexto($.inputGaiolaCorreta.value),
       encontradoPor: U.normalizarTexto($.inputEncontradoPor.value),
       quando: $.inputDataHoraOcorrencia.value ? new Date($.inputDataHoraOcorrencia.value).toISOString() : U.agora().toISOString(),
@@ -941,6 +988,19 @@
       fotoId: fotoOcorrenciaPendenteId
     };
 
+    if (rotaSelecionada && !rotaCadastrada) {
+      toast('A rota selecionada não está mais cadastrada. Atualize a seleção.', 'erro');
+      return;
+    }
+    if (rotaSelecionada && !sacaCadastrada) {
+      toast('Selecione uma saca cadastrada na rota escolhida.', 'erro');
+      $.inputSacaOcorrencia.focus();
+      return;
+    }
+    if (!rotaSelecionada && sacaSelecionadaId) {
+      toast('Selecione a rota correspondente à saca.', 'erro');
+      return;
+    }
     if (!codigo) {
       toast('Informe o código do pacote.', 'erro');
       return;
@@ -996,8 +1056,8 @@
       $.inputObservacao.value = '';
       $.inputTipoProduto.value = '';
       $.inputRotaOcorrencia.value = '';
+      atualizarSelectRotas(false);
       $.inputSacaOcorrencia.value = '';
-      $.selectGaiolaEncontrada.value = '';
       $.inputGaiolaCorreta.value = '';
       $.inputEncontradoPor.value = '';
       $.inputDescricaoOutra.value = '';
@@ -1244,18 +1304,19 @@
   // Copiar resumo (compartilhado entre sessão ativa e histórico)
   // -----------------------------------------------------------------------
 
-  function copiarTexto(texto, avisoEl, textareaEl) {
+  function copiarTexto(texto, avisoEl, textareaEl, mensagem) {
+    mensagem = mensagem || 'Resumo copiado para a área de transferência.';
     if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
       navigator.clipboard.writeText(texto).then(function () {
-        avisoEl.textContent = 'Resumo copiado para a área de transferência.';
+        avisoEl.textContent = mensagem;
         textareaEl.hidden = true;
-      }).catch(function () { copiarComFallback(texto, avisoEl, textareaEl); });
+      }).catch(function () { copiarComFallback(texto, avisoEl, textareaEl, mensagem); });
     } else {
-      copiarComFallback(texto, avisoEl, textareaEl);
+      copiarComFallback(texto, avisoEl, textareaEl, mensagem);
     }
   }
 
-  function copiarComFallback(texto, avisoEl, textareaEl) {
+  function copiarComFallback(texto, avisoEl, textareaEl, mensagem) {
     textareaEl.value = texto;
     textareaEl.hidden = false;
     textareaEl.focus();
@@ -1267,7 +1328,7 @@
       copiou = false;
     }
     if (copiou) {
-      avisoEl.textContent = 'Resumo copiado para a área de transferência.';
+      avisoEl.textContent = mensagem;
     } else {
       avisoEl.textContent = 'Não foi possível copiar automaticamente. O texto está selecionado abaixo — use Ctrl+C (ou Cmd+C) para copiar.';
     }
@@ -1407,6 +1468,7 @@
     });
 
     $.formRegistrarOcorrencia.addEventListener('submit', aoEnviarRegistrarOcorrencia);
+    $.inputRotaOcorrencia.addEventListener('change', function () { atualizarSelectSacas(false); });
     $.selectCategoria.addEventListener('change', atualizarAjudaCategoria);
     $.inputDataHoraOcorrencia.value = U.paraDatetimeLocal(U.agora());
     $.listaOcorrencias.addEventListener('click', aoClicarListaOcorrencias);
@@ -1456,9 +1518,13 @@
     $.btnExcluirSessaoHistorico.addEventListener('click', excluirSessaoHistorico);
     $.btnRestaurarRelatorioHistorico.addEventListener('click', restaurarRelatorioHistorico);
     $.btnCopiarResumoHistorico.addEventListener('click', function () {
-      // Copia exatamente o que está na caixa de texto (o usuário pode ter editado),
-      // não um texto gerado na hora — ver "Restaurar texto gerado" para voltar ao original.
-      copiarTexto($.detalheHistoricoRelatorio.value, $.avisoCopiarHistorico, $.areaCopiaManual);
+      var sessao = sessaoHistoricoAberta();
+      if (!sessao) return;
+      copiarTexto(Report.gerarTextoResumo(sessao), $.avisoCopiarHistorico, $.areaCopiaManual, 'Resumo copiado para a área de transferência.');
+    });
+    $.btnCopiarCompletoHistorico.addEventListener('click', function () {
+      // A versão completa respeita eventuais edições feitas na caixa de texto.
+      copiarTexto($.detalheHistoricoRelatorio.value, $.avisoCopiarHistorico, $.areaCopiaManual, 'Relatório completo copiado para a área de transferência.');
     });
     $.btnGerarPdfHistorico.addEventListener('click', function () {
       var sessao = sessaoHistoricoAberta();
