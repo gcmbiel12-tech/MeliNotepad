@@ -1,5 +1,13 @@
 # MeliNotepad — Diagnóstico Técnico e Histórico
 
+## Atualizacao das categorias e relatorios NEX - 04/11/2026
+
+- A lista do NEX foi padronizada para somente oito categorias, nesta ordem: Pacotes Avariados; Pacotes Duplicados; Possiveis Duplicados; Pacotes nao Localizados em auditoria; Pacote sem Produto; Bingo; Faltando; Outra.
+- Os identificadores internos foram preservados para nao invalidar ocorrencias existentes nem a restricao CHECK do banco. Pacote sem Produto permanece associado a despachar_nao_agregados; Pacotes Duplicados permanece associado a duplicados_inventario.
+- O resumo de texto lista somente categorias com ocorrencias e suas quantidades, na ordem definida; o relatorio estruturado inclui as oito categorias, inclusive as zeradas; o historico agrega as quantidades pelos mesmos rotulos. Testes cobrem nomes, ordem e contagens nos tres formatos.
+- Cache estatico atualizado para v41. Validacao: 87 testes unitarios e E2E NEX melhorias aprovados; sintaxe e git diff --check aprovados. Sem commit, push, deploy ou migracao remota.
+
+
 > Documento consolidado de arquitetura, persistência, auditorias e validações. Os registros abaixo são históricos e podem descrever estados anteriores; para estado atual, consulte a seção “Situação da consolidação” no início e execute os testes indicados. Os conteúdos originais foram preservados integralmente.
 
 ## Atualização de navegação e validação — 29/10/2026

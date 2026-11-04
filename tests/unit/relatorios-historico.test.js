@@ -48,7 +48,7 @@ test('resumo exclui identificadores e detalhes incluem códigos, status, notas e
   ] })];
   const resumo = P.construirNex(dados, { periodo: 'todo', tipo: 'resumido', agora: '2026-10-16T12:00:00Z' });
   assert.strictEqual(resumo.registros.length, 0); assert.strictEqual(resumo.totais.ocorrencias, 2);
-  assert.strictEqual(resumo.totais.categorias['Pacotes avariados e retirados'], 2);
+  assert.strictEqual(resumo.totais.categorias['Pacotes Avariados'], 2);
   const detalhe = P.construirNex(dados, { periodo: 'todo', tipo: 'detalhado', agora: '2026-10-16T12:00:00Z' });
   assert.strictEqual(detalhe.registros[0].id, 'sessao-privada');
   assert.strictEqual(detalhe.registros[0].occurrences[0].code, 'PKG123');

@@ -629,6 +629,7 @@ Sempre que a lógica do aplicativo mudar:
 |---|---|---|
 | 2026-10-25 | Supabase/PostgreSQL proposto como banco principal; Google Planilhas opcional para exportações; não depender de Apps Script. | Proposta inicial, sujeita à revisão após inventário e estabilização das regras. |
 | 2026-10-26 | Identificada divergência entre categorias NEX no frontend e CHECK SQL; criada migração aditiva para permitir `bingo` e `faltando`, com testes de contrato. | Migração versionada, ainda não aplicada nem validada em banco local/remoto; Docker indisponível no ambiente. |
+| 2026-11-04 | NEX: padronizar a lista para oito categorias na ordem aprovada e manter os identificadores internos para preservar dados; relatorios de texto, estruturado e historico devem refletir os mesmos rotulos, ordem e contagens. | Implementado localmente e validado por testes unitarios e E2E; sem commit, push, deploy ou migracao remota. |
 
 ## 10. Referências oficiais
 

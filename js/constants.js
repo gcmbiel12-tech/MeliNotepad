@@ -20,14 +20,14 @@
   // deixar o relatório mais fácil de escanear visualmente quando colado no
   // grupo — não aparece em nenhum outro lugar (tela, PDF).
   var CATEGORIES = [
-    { key: 'avariados', label: 'Pacotes avariados e retirados', emoji: '🛠️' },
-    { key: 'duplicados_inventario', label: 'Pacotes duplicados/sem produto encaminhados ao inventário', emoji: '📥' },
-    { key: 'possiveis_duplicados', label: 'Possíveis duplicados', emoji: '🔁' },
-    { key: 'nao_localizados', label: 'Pacotes não localizados em auditoria', emoji: '🔎' },
-    { key: 'despachar_nao_agregados', label: 'Pacotes com status "despachar" não agregados', emoji: '🚚' },
-    { key: 'bingo', label: 'Bingo', emoji: '🎯' },
-    { key: 'faltando', label: 'Faltando', emoji: '❗' },
-    { key: 'outra', label: 'Outra', emoji: '📝' }
+    { key: 'avariados', label: 'Pacotes Avariados', emoji: '\u{1F6E0}\uFE0F' },
+    { key: 'duplicados_inventario', label: 'Pacotes Duplicados', emoji: '\u{1F4E5}' },
+    { key: 'possiveis_duplicados', label: 'Poss\u00edveis Duplicados', emoji: '\u{1F501}' },
+    { key: 'nao_localizados', label: 'Pacotes n\u00e3o Localizados em auditoria', emoji: '\u{1F50E}' },
+    { key: 'despachar_nao_agregados', label: 'Pacote sem Produto', emoji: '\u{1F69A}' },
+    { key: 'bingo', label: 'Bingo', emoji: '\u{1F3AF}' },
+    { key: 'faltando', label: 'Faltando', emoji: '\u{2757}' },
+    { key: 'outra', label: 'Outra', emoji: '\u{1F4DD}' }
   ];
 
   var STATUS = {

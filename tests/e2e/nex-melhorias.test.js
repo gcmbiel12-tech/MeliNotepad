@@ -21,6 +21,10 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
   await page.click('#nex-tab-btn-ocorrencias');
   await page.waitForSelector('#painel-sessao-ativa:not([hidden])');
 
+  const categoriasEsperadas = ['Pacotes Avariados', 'Pacotes Duplicados', 'Poss\u00edveis Duplicados', 'Pacotes n\u00e3o Localizados em auditoria', 'Pacote sem Produto', 'Bingo', 'Faltando', 'Outra'];
+  const categoriasTela = await page.locator('#select-categoria option').evaluateAll(options => options.slice(1).map(option => option.textContent));
+  assert.deepStrictEqual(categoriasTela, categoriasEsperadas, 'formul\u00e1rio deve exibir somente as oito categorias na ordem solicitada');
+
   await page.fill('#input-codigo', 'PKG-B1');
   await page.selectOption('#select-categoria', 'bingo');
   assert.strictEqual(await page.textContent('#ajuda-categoria'), 'Selecione a categoria que melhor descreve a ocorrência.');

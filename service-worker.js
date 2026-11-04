@@ -13,7 +13,7 @@
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v40';
+var CACHE_VERSION = 'v41';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [

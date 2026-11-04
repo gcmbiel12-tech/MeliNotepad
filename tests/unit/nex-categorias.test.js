@@ -63,7 +63,7 @@ test('relatório NEX inclui todos os campos da ocorrência e não exibe rodapé 
   ['PKG-123', 'Eletrônico', 'Rota: M2', 'Saca: 15', 'Gaiola correta: G-12', 'Encontrado por: Carlos', 'Descrição: Embalagem molhada', 'Observações: Produto úmido', 'Foto da ocorrência anexada'].forEach(v => assert.ok(texto.includes(v), 'campo ausente: ' + v));
   assert.ok(!texto.includes('Gaiola encontrada'));
   assert.ok(!texto.includes('Nex Finalizado'));
-  const estruturado = Report.montarDadosCompletos(sessao).categorias.find(c => c.label === 'Pacotes avariados e retirados').itens[0];
+  const estruturado = Report.montarDadosCompletos(sessao).categorias.find(c => c.label === 'Pacotes Avariados').itens[0];
   assert.equal(estruturado.rota, 'M2'); assert.equal(estruturado.saca, '15'); assert.equal(estruturado.sacaId, 'saca-15'); assert.equal(estruturado.gaiolaCorreta, 'G-12'); assert.equal(estruturado.fotoId, 'foto-occ-1');
   assert.ok(!Object.prototype.hasOwnProperty.call(estruturado, 'gaiolaEncontrada'));
 });
@@ -71,4 +71,31 @@ test('relatório NEX inclui todos os campos da ocorrência e não exibe rodapé 
 test('saudação do relatório considera madrugada como Bom dia', () => {
   assert.equal(NS.Utils.saudacaoPorHorario(new Date('2026-11-01T04:00:00-03:00')), 'Bom dia!!!');
   assert.equal(NS.Utils.saudacaoPorHorario(new Date('2026-11-01T03:59:00-03:00')), 'Boa noite!!!');
+});
+
+
+test('NEX mant\u00e9m somente as oito categorias solicitadas e o relat\u00f3rio respeita nomes, ordem e contagens', () => {
+  const esperadas = [
+    'Pacotes Avariados', 'Pacotes Duplicados', 'Poss\u00edveis Duplicados',
+    'Pacotes n\u00e3o Localizados em auditoria', 'Pacote sem Produto',
+    'Bingo', 'Faltando', 'Outra'
+  ];
+  assert.deepStrictEqual(Array.from(NS.Constants.CATEGORIES, c => c.label), esperadas);
+  const sessao = {
+    id: 'categorias-completas', startTime: '2026-11-02T10:00:00.000Z',
+    status: 'finalizada', sacas: 8, pacotes: 8,
+    occurrences: NS.Constants.CATEGORIES.map((c, i) => ({
+      id: 'o' + i, code: 'COD-' + i, category: c.key, status: 'pendente'
+    }))
+  };
+  const texto = Report.gerarTextoRelatorio(sessao);
+  const posicoes = esperadas.map(label => texto.indexOf('*' + label + '*'));
+  assert.ok(posicoes.every(pos => pos >= 0), 'todas as categorias com ocorr\u00eancia devem aparecer no relat\u00f3rio');
+  assert.deepStrictEqual(posicoes, posicoes.slice().sort((a, b) => a - b), 'relat\u00f3rio deve respeitar a ordem das categorias');
+  esperadas.forEach(label => { const linha = texto.split('\n').find(item => item.includes('*' + label + '*')); assert.ok(linha && /1\s*$/.test(linha), 'contagem ausente para ' + label + ': ' + linha); });
+  const completo = Report.montarDadosCompletos(sessao);
+  assert.deepStrictEqual(Array.from(completo.categorias, c => c.label), esperadas);
+  assert.deepStrictEqual(Array.from(completo.categorias, c => c.quantidade), esperadas.map(() => 1));
+  const historico = NS.RelatoriosHistorico.construirNex([sessao], { periodo: 'todo', tipo: 'detalhado' });
+  esperadas.forEach(label => assert.strictEqual(historico.totais.categorias[label], 1));
 });
