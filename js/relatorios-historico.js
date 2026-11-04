@@ -37,10 +37,7 @@
   }
 
   function rotuloCategoriaNex(chave) {
-    var rotulo = C.categoriaLabel(chave);
-    if (chave === 'bingo') return rotulo + ' (produto não encontrado na auditoria)';
-    if (chave === 'faltando') return rotulo + ' (pacote a mais, que não deveria estar no local)';
-    return rotulo;
+    return C.categoriaLabel(chave);
   }
 
   function construirNex(registros, o) {

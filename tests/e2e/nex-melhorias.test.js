@@ -23,17 +23,17 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
 
   await page.fill('#input-codigo', 'PKG-B1');
   await page.selectOption('#select-categoria', 'bingo');
-  assert.match(await page.textContent('#ajuda-categoria'), /produto que não foi encontrado fisicamente/i);
+  assert.strictEqual(await page.textContent('#ajuda-categoria'), 'Selecione a categoria que melhor descreve a ocorrência.');
   await page.check('#grupo-status-ocorrencia input[value="pendente"]');
-  await page.fill('#input-observacao', 'Produto não localizado');
+  await page.fill('#input-observacao', 'Pacote extra encontrado');
   await page.click('#form-registrar-ocorrencia button[type=submit]');
   await page.waitForFunction(() => document.getElementById('contagem-total').textContent === '1');
 
   await page.fill('#input-codigo', 'PKG-F1');
   await page.selectOption('#select-categoria', 'faltando');
-  assert.match(await page.textContent('#ajuda-categoria'), /pacote a mais/i);
+  assert.strictEqual(await page.textContent('#ajuda-categoria'), 'Selecione a categoria que melhor descreve a ocorrência.');
   await page.check('#grupo-status-ocorrencia input[value="resolvido"]');
-  await page.fill('#input-observacao', 'Pacote extra encontrado');
+  await page.fill('#input-observacao', 'Produto não localizado');
   await page.click('#form-registrar-ocorrencia button[type=submit]');
   await page.waitForFunction(() => document.getElementById('contagem-total').textContent === '2');
 
@@ -63,8 +63,9 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
   await page.click('#nex-tab-btn-relatorios');
   await page.click('#btn-pre-visualizar');
   const relatorio = await page.textContent('#texto-relatorio');
-  assert.match(relatorio, /Bingo.*produto não encontrado na auditoria/i);
-  assert.match(relatorio, /Faltando.*pacote a mais, que não deveria estar no local/i);
+  assert.match(relatorio, /Bingo/);
+  assert.match(relatorio, /Faltando/);
+  assert.doesNotMatch(relatorio, /produto não encontrado na auditoria|pacote a mais, que não deveria estar no local/i);
 
   await page.click('#btn-finalizar-sessao');
   await page.waitForSelector('#modal-finalizar[open]');
@@ -83,6 +84,7 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
   await page.selectOption('#historico-categoria', 'faltando');
   await page.selectOption('#historico-status', 'pendente');
   assert.strictEqual(await page.locator('.item-historico__botao').count(), 0, 'categoria e status devem corresponder à mesma ocorrência');
+  await page.selectOption('#historico-categoria', '');
   await page.selectOption('#historico-status', '');
   await page.fill('#historico-busca', 'Pacote extra encontrado');
   assert.strictEqual(await page.locator('.item-historico__botao').count(), 1, 'busca deve encontrar observações no histórico');
@@ -93,7 +95,7 @@ const BASE = (process.env.BASE_URL || 'http://127.0.0.1:8743') + '/index.html';
 
   assert.deepStrictEqual(errors, [], 'não deve haver erros de JavaScript na página');
   await browser.close();
-  console.log('PASS NEX melhorias: descrições Bingo/Faltando, filtro de pendentes, alerta de duplicidade na edição, resumo de finalização e filtros do histórico.');
+  console.log('PASS NEX melhorias: orientação fixa de categoria, relatórios sem descrições, filtro de pendentes, duplicidade, finalização e histórico.');
 })().catch(e => {
   console.error(e);
   process.exit(1);

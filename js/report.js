@@ -94,9 +94,7 @@
       var itens = porCategoria[cat.key];
       if (itens.length === 0) return;
       linhas.push('');
-      var descricao = cat.key === 'bingo' ? ' (produto não encontrado na auditoria)' :
-        (cat.key === 'faltando' ? ' (pacote a mais, que não deveria estar no local)' : '');
-      linhas.push(cat.emoji + ' *' + cat.label + '*' + descricao + ' — ' + itens.length);
+      linhas.push(cat.emoji + ' *' + cat.label + '* — ' + itens.length);
       itens.forEach(function (o) {
         linhas.push('└ ' + C.STATUS_EMOJI[o.status] + ' ' + o.code + ' — ' + C.STATUS_LABEL[o.status]);
         var detalhes = [o.tipoProduto ? 'Tipo do produto: ' + o.tipoProduto : '', o.rota ? 'Rota: ' + o.rota : '', o.saca ? 'Saca: ' + o.saca : '', o.gaiolaCorreta ? 'Gaiola correta: ' + o.gaiolaCorreta : '', o.encontradoPor ? 'Encontrado por: ' + o.encontradoPor : '', o.descricaoOutra ? 'Descrição: ' + o.descricaoOutra : '', o.note ? 'Observações: ' + o.note : ''].filter(Boolean);
@@ -196,7 +194,7 @@
       categorias: C.CATEGORIES.map(function (cat) {
         return {
           label: cat.label,
-          descricao: cat.key === 'bingo' ? 'Produto não encontrado na auditoria' : (cat.key === 'faltando' ? 'Pacote a mais, que não deveria estar no local' : ''),
+          descricao: '',
           quantidade: porCategoria[cat.key].length,
           itens: porCategoria[cat.key].map(function (o) {
             return {

@@ -182,11 +182,7 @@
   }
 
   function atualizarAjudaCategoria() {
-    var descricoes = {
-      bingo: 'Bingo: produto que não foi encontrado fisicamente durante a auditoria.',
-      faltando: 'Faltando: pacote a mais, que não deveria estar naquele local.'
-    };
-    $.ajudaCategoria.textContent = descricoes[$.selectCategoria.value] || 'Selecione a categoria que melhor descreve a ocorrência.';
+    $.ajudaCategoria.textContent = 'Selecione a categoria que melhor descreve a ocorrência.';
     if ($.campoCategoriaOutra) $.campoCategoriaOutra.hidden = $.selectCategoria.value !== 'outra';
   }
 

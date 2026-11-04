@@ -30,21 +30,22 @@ test('NEX distingue Bingo e Faltando nos relatórios de texto e estruturados', (
     ]
   };
   const texto = Report.gerarTextoRelatorio(sessao);
-  assert.match(texto, /Bingo.*produto não encontrado na auditoria/i);
-  assert.match(texto, /Faltando.*pacote a mais, que não deveria estar no local/i);
+  assert.match(texto, /Bingo/);
+  assert.match(texto, /Faltando/);
+  assert.doesNotMatch(texto, /produto não encontrado na auditoria|pacote a mais, que não deveria estar no local/i);
   const estruturado = Report.montarDadosCompletos(sessao);
   const bingo = estruturado.categorias.find(c => c.label === 'Bingo');
   const faltando = estruturado.categorias.find(c => c.label === 'Faltando');
   assert.strictEqual(bingo.quantidade, 1);
-  assert.strictEqual(bingo.descricao, 'Produto não encontrado na auditoria');
+  assert.strictEqual(bingo.descricao, '');
   assert.strictEqual(faltando.quantidade, 1);
-  assert.strictEqual(faltando.descricao, 'Pacote a mais, que não deveria estar no local');
+  assert.strictEqual(faltando.descricao, '');
 
   const relatorioHistorico = NS.RelatoriosHistorico.construirNex([sessao], { periodo: 'todo', tipo: 'detalhado' });
-  assert.ok(Object.keys(relatorioHistorico.totais.categorias).some(k => /Bingo.*produto não encontrado/i.test(k)));
-  assert.ok(Object.keys(relatorioHistorico.totais.categorias).some(k => /Faltando.*pacote a mais/i.test(k)));
-  assert.match(relatorioHistorico.registros[0].occurrences[0].category, /produto não encontrado/i);
-  assert.match(relatorioHistorico.registros[0].occurrences[1].category, /pacote a mais/i);
+  assert.ok(Object.keys(relatorioHistorico.totais.categorias).includes('Bingo'));
+  assert.ok(Object.keys(relatorioHistorico.totais.categorias).includes('Faltando'));
+  assert.strictEqual(relatorioHistorico.registros[0].occurrences[0].category, 'Bingo');
+  assert.strictEqual(relatorioHistorico.registros[0].occurrences[1].category, 'Faltando');
   assert.match(texto, /Rotas Nex finalizadas hoje/);
   assert.match(texto, /Rota J1.*Saca 060/);
   assert.match(texto, /Auditor: Bruno/);
