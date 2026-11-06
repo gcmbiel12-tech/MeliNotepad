@@ -17,7 +17,22 @@
 
   var DICIONARIO = {
     'Pular para o conteúdo': 'Saltar al contenido',
-    'Idioma / Language:': 'Idioma / Language:',
+    'Como deseja começar?': '¿Cómo desea comenzar?',
+    'Escolha uma área para continuar. Cada módulo mantém seus próprios dados e fluxo de trabalho.': 'Elija un área para continuar. Cada módulo mantiene sus propios datos y flujo de trabajo.',
+    'Rotas, sacas e auditorias.': 'Rutas, sacas y auditorías.',
+    'Operações, carregamento e auditorias.': 'Operaciones, carga y auditorías.',
+    'Intervalos ativos, funcionários e histórico.': 'Pausas activas, empleados e historial.',
+    'Abrir NEX': 'Abrir NEX',
+    'Abrir XPT': 'Abrir XPT',
+    'Abrir Intervalos': 'Abrir pausas',
+    'Pacotes Avariados': 'Paquetes dañados',
+    'Pacotes Duplicados': 'Paquetes duplicados',
+    'Possíveis Duplicados': 'Posibles duplicados',
+    'Pacotes não Localizados em auditoria': 'Paquetes no localizados en auditoría',
+    'Pacote sem Produto': 'Paquete sin producto',
+    'Bingo': 'Bingo',
+    'Faltando': 'Faltante',
+    'Outra': 'Otra',
     'Sem sessão ativa': 'Sin sesión activa',
     'Sessão atual': 'Sesión actual',
     'Sessões finalizadas': 'Sesiones finalizadas',
@@ -309,60 +324,12 @@
   }
 
   function criarSeletor() {
-    if (document.getElementById('meli-idioma')) return;
+    var botao = document.getElementById('meli-idioma-toggle');
+    if (!botao || botao.dataset.tradutorAtivo === 'true') return;
 
-    var caixa = document.createElement('div');
-    caixa.id = 'meli-idioma';
-    caixa.setAttribute('data-sem-traducao', 'true');
-
-    caixa.style.cssText = [
-      'display:inline-flex',
-      'align-items:center',
-      'gap:6px',
-      'box-sizing:border-box',
-      'width:auto',
-      'max-width:100%',
-      'margin:0 0 0 auto',
-      'padding:4px 0',
-      'font:13px sans-serif',
-      'flex:0 0 auto'
-    ].join(';');
-
-    var rotulo = document.createElement('label');
-    rotulo.htmlFor = 'meli-idioma-select';
-    rotulo.textContent = 'Idioma / Language:';
-    rotulo.style.cssText = 'white-space:nowrap';
-
-    var seletor = document.createElement('select');
-    seletor.id = 'meli-idioma-select';
-    seletor.setAttribute('data-sem-traducao', 'true');
-
-    seletor.style.cssText = [
-      'width:auto',
-      'max-width:130px',
-      'padding:5px 7px',
-      'border:1px solid #ccc',
-      'border-radius:6px',
-      'background:#fff',
-      'color:#222',
-      'font:inherit',
-      'flex:0 0 auto'
-    ].join(';');
-
-    [
-      { value: 'pt', label: 'Português' },
-      { value: 'es', label: 'Español' }
-    ].forEach(function (item) {
-      var opcao = document.createElement('option');
-      opcao.value = item.value;
-      opcao.textContent = item.label;
-      seletor.appendChild(opcao);
-    });
-
-    seletor.value = idioma;
-
-    seletor.addEventListener('change', function () {
-      idioma = seletor.value === 'es' ? 'es' : 'pt';
+    botao.dataset.tradutorAtivo = 'true';
+    botao.addEventListener('click', function () {
+      idioma = idioma === 'es' ? 'pt' : 'es';
 
       try {
         localStorage.setItem(CHAVE_IDIOMA, idioma);
@@ -370,47 +337,6 @@
 
       aplicarIdioma();
     });
-
-    caixa.appendChild(rotulo);
-    caixa.appendChild(seletor);
-
-    var navegacao = Array.from(
-      document.querySelectorAll('a, button')
-    ).filter(function (el) {
-      var texto = el.textContent.trim();
-
-      return texto === 'Sessão atual' ||
-             texto === 'Histórico' ||
-             texto === 'Sesión actual' ||
-             texto === 'Historial';
-    });
-
-    var destino;
-
-    if (navegacao.length) {
-      destino = navegacao[0].parentElement;
-    } else {
-      destino =
-        document.querySelector('header nav') ||
-        document.querySelector('header') ||
-        document.querySelector('.header') ||
-        document.querySelector('main') ||
-        document.body;
-    }
-
-    destino.appendChild(caixa);
-
-    var estiloDestino = window.getComputedStyle(destino);
-
-    if (estiloDestino.display !== 'flex' &&
-        estiloDestino.display !== 'inline-flex') {
-      destino.style.display = 'flex';
-    }
-
-    destino.style.alignItems = 'center';
-    destino.style.flexWrap = 'wrap';
-    destino.style.gap = '10px';
-    caixa.style.marginLeft = 'auto';
   }
 
   function instalarTraducaoRelatorios() {
@@ -465,8 +391,12 @@
 
     traduzirArvore(document.body);
 
-    var seletor = document.getElementById('meli-idioma-select');
-    if (seletor) seletor.value = idioma;
+    var botao = document.getElementById('meli-idioma-toggle');
+    if (botao) {
+      botao.textContent = 'PT | ES';
+      botao.setAttribute('aria-label', idioma === 'es' ? 'Cambiar idioma a portugués' : 'Cambiar idioma a español');
+      botao.title = idioma === 'es' ? 'Cambiar a portugués' : 'Cambiar a español';
+    }
 
     instalarTraducaoRelatorios();
 

@@ -1317,3 +1317,8 @@ dialog.modal[id^="dlg-xpt-"] {
 @media (max-width: 420px) {
   #nex-rotas-auditoria .nex-saca-dialog .nex-saca-acoes .botao--primario { order: -1; }
 }
+
+
+/* Seletor de idioma: exclusivo da tela inicial, sem alterar o fluxo dos m?dulos. */
+#tela-app { position: relative; }
+#tela-app #meli-idioma-toggle { position: absolute; top: 0; right: 0; min-width: 5.5rem; padding: .45rem .7rem; font-size: .85rem; line-height: 1.2; }
