@@ -378,8 +378,15 @@
     Array.prototype.forEach.call(el.nav.querySelectorAll('button'), function (b) { var on = b.dataset.aba === ui.aba; b.classList.toggle('is-ativo', on); b.setAttribute('aria-pressed', String(on)); });
   }
   function renderTudo(forcar) {
+    var scrollX = window.scrollX || window.pageXOffset || 0;
+    var scrollY = window.scrollY || window.pageYOffset || 0;
+    function restaurarRolagem() {
+      window.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
+    }
     renderSetores(); renderAtivos(forcar); renderFuncionarios(); renderHistorico();
     el.aviso.hidden = !avisoArmazenamento; el.aviso.textContent = avisoArmazenamento || ''; renderAba();
+    restaurarRolagem();
+    if (window.requestAnimationFrame) window.requestAnimationFrame(restaurarRolagem);
   }
 
   // ------------------------------------------------------------------ backup do módulo

@@ -840,3 +840,8 @@ Comece agora pela Fase 0 na pasta oficial do projeto. Use Remote Desktop conform
 - Rota e Saca são opcionais. Quando preenchidas, devem ser escolhidas dos cadastros da operação ativa em Gaiolas e Auditoria; a Saca é filtrada pela Rota selecionada.
 - A ocorrência salva o identificador estável da saca (`sacaId`) além da rota e do número exibidos. Assim, a relação permanece correta mesmo se a numeração da saca for alterada.
 - Uma ocorrência vinculada a uma saca caracteriza divergência nessa saca. O resumo mantém o total auditado e contabiliza a saca vinculada entre as divergências, sem duplicar a contagem quando houver mais de uma ocorrência para a mesma saca.
+
+
+## NEX — ação de auditoria rápida por número da saca — 06/11/2026
+
+Na área Gaiolas e Auditoria, a ação **Auditar Saca** permite informar o número de uma saca e localizar automaticamente a rota correspondente dentro da operação ativa. O usuário informa também o nome do auditor e confirma ou cancela. A confirmação usa o mecanismo `NexOperations.auditSaca` existente, preservando o histórico e a persistência. Números inexistentes ou ambíguos não podem ser confirmados. A auditoria individual já existente em cada cartão de saca permanece disponível.

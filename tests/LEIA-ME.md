@@ -13,6 +13,7 @@ Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional, r
     node tests/e2e/auth-gate.test.js                  # login, acesso, sync, conflito, backup e upload de foto XPT (Auth/Storage simulados)
     node tests/e2e/auth-layout.test.js                # tela de autenticação em 7 larguras (320–1280 px)
     node tests/e2e/nex-abas.test.js                   # Abas NEX, distribuição inicial de sacas, quantidades, ocorrências e relatórios
+    node tests/e2e/nex-auditoria-rapida.test.js        # Auditoria rápida por número, rota automática e confirmação
     node tests/e2e/nex-distribuicao-sacas.test.js     # Sequência natural, confirmação/cancelamento e substituição da Optimization
     node tests/e2e/nex-edicao-saca.test.js            # Edição pelo card, renumeração da sequência e preservação das auditorias
     node tests/e2e/nex-regressao.test.js              # NEX, filtros, histórico, backup e impressão PDF
@@ -20,7 +21,8 @@ Cobrem: leitura de QR, regras de Intervalos/XPT, filtros por data operacional, r
     node tests/e2e/nex-cancelamento.test.js          # Cancelamento de operação NEX e preservação no histórico
     node tests/e2e/nex-foto-relatorio.test.js       # Foto, vínculo da ocorrência com rota/saca cadastrada e divergência no relatório
     node tests/e2e/intervalos.test.js                 # Intervalos, filtros, relógio simulado e impressão PDF
-    node tests/e2e/qr-scanner.test.js                  # Interpretação de QR e alternativa manual (sem câmera física)
+    node tests/e2e/qr-scanner.test.js                  # Captura manual NEX, sem leitura automática, com câmera simulada
+    node tests/e2e/xpt-camera.test.js                  # Captura manual XPT e preservação da rolagem
     node tests/e2e/responsive-layout.test.js           # NEX/XPT/Intervalos em 8 larguras (320–1440 px)
     node tests/e2e/xpt-auditoria.test.js               # Auditoria XPT, G/V/P, persistência e filtros
     node tests/e2e/xpt-importacao-planilha.test.js     # Importação, substituição, validação e preservação de dados

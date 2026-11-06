@@ -13,7 +13,7 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/styles.css">
-<link rel="stylesheet" href="css/modulos.css?v=28">
+<link rel="stylesheet" href="css/modulos.css?v=29">
 <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
@@ -242,12 +242,17 @@
             <input type="text" id="input-codigo" name="codigo" autocomplete="off" required placeholder="Escaneie ou digite o código do produto">
           </div>
           <div class="nex-scanner-controles">
-            <button type="button" id="btn-abrir-camera" class="botao botao--secundario">Escanear pela câmera</button>
+            <button type="button" id="btn-abrir-camera" class="botao botao--secundario">Abrir câmera</button>
+            <button type="button" id="btn-capturar-camera" class="botao botao--primario" hidden>Capturar código</button>
             <button type="button" id="btn-fechar-camera" class="botao botao--texto" hidden>Fechar câmera</button>
             <label for="select-camera" class="campo-inline-label" id="label-select-camera" hidden>Câmera</label>
             <select id="select-camera" hidden></select>
           </div>
-          <video id="video-camera" class="nex-ocorrencia-video" playsinline muted hidden></video>
+          <div id="area-camera" class="scanner-visualizador" hidden>
+            <video id="video-camera" class="nex-ocorrencia-video" playsinline muted hidden></video>
+            <span class="scanner-moldura" aria-hidden="true"></span>
+            <span class="scanner-instrucao">Posicione o QR Code ou código de barras dentro da área</span>
+          </div>
           <p id="aviso-camera" class="texto-aviso nex-ocorrencia-aviso" aria-live="polite"></p>
           <div class="nex-foto-ocorrencia-controles"><button type="button" id="btn-foto-ocorrencia" class="botao botao--secundario">Tirar foto da ocorrência</button><input type="file" id="input-foto-ocorrencia" accept="image/*" capture="environment" hidden><span id="status-foto-ocorrencia" class="texto-apoio" aria-live="polite">Foto opcional para registrar evidências.</span></div>
           </section>
@@ -525,7 +530,7 @@
 <script src="js/intervalos-regras.js"></script>
 <script src="js/relatorios-historico.js"></script>
 <script src="js/app.js?v=26"></script>
-<script src="js/nex-tabs.js?v=24"></script>
+<script src="js/nex-tabs.js?v=25"></script>
 <script src="js/intervalos.js"></script>
 <script src="js/xpt-regras.js"></script>
 <script src="js/fotos.js"></script>

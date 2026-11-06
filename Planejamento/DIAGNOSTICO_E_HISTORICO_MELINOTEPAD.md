@@ -690,3 +690,59 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - **Copiar Relatório Completo** copia o texto integral, com todas as sacas, status, ocorrências e detalhes.
 - **Preparar relatório PDF** mantém a impressão do relatório completo e detalhado.
 - As três ações ficam disponíveis tanto na prévia da operação quanto no detalhe da sessão no histórico. A cópia completa respeita eventuais edições feitas na caixa de texto do histórico.
+
+
+## Captura manual pela câmera e preservação da rolagem — 06/11/2026
+
+- O serviço compartilhado de câmera passou a abrir somente a transmissão de vídeo. A detecção por `BarcodeDetector` ocorre uma única vez, exclusivamente após o acionamento de **Capturar código**.
+- O comportamento foi aplicado às ocorrências dos módulos NEX e XPT. A captura válida preenche o identificador interpretado; conteúdo inválido ou ausência de código não preenche campos e permite nova tentativa sem fechar a câmera.
+- As duas interfaces exibem uma moldura de enquadramento e uma instrução para posicionar o QR Code/código de barras. A seleção de câmera continua disponível no NEX.
+- Ao fechar ou concluir a captura, as faixas da câmera são interrompidas e a referência de vídeo é liberada, permitindo reabrir a câmera.
+- As renderizações da lista de ocorrências NEX, telas/abas e filtros XPT, e atualização geral de Intervalos preservam a posição de rolagem. Focos após captura/registro e ao refazer a busca em gaiolas XPT usam `preventScroll` quando aplicável.
+- Cache estático incrementado para `v44`.
+
+### Arquivos alterados
+
+- `js/scanner.js`, `js/app.js`, `js/xpt.js`, `js/nex-tabs.js`, `js/intervalos.js`
+- `index.html`, `css/modulos.css`, `service-worker.js`
+- `tests/e2e/qr-scanner.test.js`, `tests/e2e/xpt-camera.test.js`, `tests/LEIA-ME.md`
+
+### Validações
+
+- Testes unitários: **87/87 aprovados**.
+- E2E de captura NEX: **7/7 etapas aprovadas**, incluindo ausência de detecção automática, leitura sob comando, tratamento de QR inválido, preservação de zeros à esquerda e rolagem.
+- E2E XPT: captura manual e preservação de rolagem após registrar ocorrência aprovadas.
+- E2E XPT auditoria: aprovado.
+- Responsividade: **8 larguras × 3 módulos**, sem overflow horizontal nem erros JavaScript.
+- E2E NEX abas e tela inicial: aprovados.
+- `node --check` nos arquivos JavaScript alterados e `git diff --check`: aprovados.
+- `nex-regressao.test.js`: 30 etapas passaram e uma asserção falhou na pré-visualização do relatório, que esperava o rótulo `Pacotes avariados e retirados`. A divergência não foi alterada nesta tarefa e requer revisão separada.
+- Não foi validada câmera física em celular; os testes de captura usam câmera simulada do Chromium.
+- Não foi executado commit, push ou deploy.
+
+- Validação adicional em 06/11/2026: `tests/e2e/intervalos.test.js` — **20/20 etapas aprovadas** após a proteção da rolagem no módulo Intervalos.
+
+
+## Auditoria rápida de saca por número — 06/11/2026
+
+- Na área **Gaiolas e Auditoria**, foi adicionada a ação **Auditar Saca**, ao lado de **Adicionar rota** e **Adicionar sacas em lote**.
+- A ação abre um cartão de diálogo com campo para número da saca, identificação automática da rota e campo para nome da pessoa responsável.
+- A busca percorre as sacas individuais cadastradas em todas as rotas da operação ativa. O número é normalizado para a mesma regra já usada nos cadastros (sem zeros à esquerda).
+- O cartão apresenta `Saca: 103 · Rota: K2` quando encontra exatamente uma correspondência. Saca inexistente ou número duplicado entre rotas bloqueia a confirmação.
+- **Confirmar** grava auditoria concluída usando `NexOperations.auditSaca`, mantendo o histórico e a persistência existentes. **Cancelar** fecha sem gravar dados.
+- A ação rápida não remove nem substitui o botão de auditoria que já existe no cartão individual de cada saca.
+- Em operações sem sacas individuais cadastradas, a ação fica desabilitada.
+
+### Arquivos desta melhoria
+
+- `js/nex-tabs.js`
+- `css/modulos.css`
+- `index.html` (versões dos assets atualizadas)
+- `service-worker.js` (cache `v45`)
+- `tests/e2e/nex-auditoria-rapida.test.js` e `tests/LEIA-ME.md`
+
+### Validação
+
+- E2E da auditoria rápida em viewport de 390 px e 1280 px: aprovado; valida localização automática de rota, saca inexistente, nome obrigatório, cancelamento sem gravação e confirmação persistida na rota/saca corretas.
+- Não foram alteradas as regras de distribuição, cadastro ou identificadores das sacas.
+- Sem commit, push ou deploy.

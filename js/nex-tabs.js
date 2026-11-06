@@ -485,6 +485,110 @@
         return true;
       });
   }
+  function abrirDialogoAuditarSaca(api, rotas) {
+    criarDialogoNex('Auditar Saca', 'Informe o número da saca. A rota será identificada automaticamente a partir dos cadastros desta operação.', 'Confirmar auditoria',
+      function (corpo) {
+        var campoNumero = criarElemento('label', 'nex-campo');
+        campoNumero.appendChild(criarElemento('span', 'nex-campo__rotulo', 'Número da saca'));
+        var inputNumero = document.createElement('input');
+        inputNumero.className = 'nex-campo__input';
+        inputNumero.inputMode = 'numeric';
+        inputNumero.pattern = '[0-9]+';
+        inputNumero.placeholder = 'Ex.: 103';
+        inputNumero.autocomplete = 'off';
+        inputNumero.required = true;
+        campoNumero.appendChild(inputNumero);
+        corpo.appendChild(campoNumero);
+
+        var identificacao = criarElemento('div', 'nex-auditoria-rapida__identificacao');
+        identificacao.setAttribute('aria-live', 'polite');
+        identificacao.appendChild(criarElemento('span', 'nex-auditoria-rapida__rotulo', 'Identificação da saca'));
+        var valor = criarElemento('strong', 'nex-auditoria-rapida__valor', 'Informe o número para localizar a rota.');
+        identificacao.appendChild(valor);
+        corpo.appendChild(identificacao);
+
+        var campoAuditor = criarElemento('label', 'nex-campo');
+        campoAuditor.appendChild(criarElemento('span', 'nex-campo__rotulo', 'Nome da pessoa que realizou a auditoria'));
+        var inputAuditor = document.createElement('input');
+        inputAuditor.className = 'nex-campo__input';
+        inputAuditor.type = 'text';
+        inputAuditor.maxLength = 100;
+        inputAuditor.placeholder = 'Nome do auditor';
+        inputAuditor.autocomplete = 'name';
+        inputAuditor.required = true;
+        campoAuditor.appendChild(inputAuditor);
+        corpo.appendChild(campoAuditor);
+
+        var encontrada = null;
+        function localizar() {
+          var texto = inputNumero.value.trim();
+          encontrada = null;
+          identificacao.classList.remove('is-encontrada', 'is-nao-encontrada', 'is-ambigua');
+          if (!texto) {
+            valor.textContent = 'Informe o número para localizar a rota.';
+            return null;
+          }
+          if (!/^\d+$/.test(texto) || !Number.isSafeInteger(Number(texto)) || Number(texto) < 1) {
+            valor.textContent = 'Digite um número de saca válido.';
+            identificacao.classList.add('is-nao-encontrada');
+            return null;
+          }
+          var numero = String(Number(texto));
+          var correspondencias = [];
+          rotas.forEach(function (rota) {
+            (rota.sacasIndividuais || []).forEach(function (saca) {
+              if (String(Number(saca.numero)) === numero) correspondencias.push({ rota: rota, saca: saca });
+            });
+          });
+          if (correspondencias.length === 1) {
+            encontrada = correspondencias[0];
+            valor.textContent = 'Saca: ' + numero + '   ·   Rota: ' + encontrada.rota.rota;
+            identificacao.classList.add('is-encontrada');
+          } else if (correspondencias.length > 1) {
+            valor.textContent = 'Número duplicado em mais de uma rota. Corrija o cadastro antes de auditar.';
+            identificacao.classList.add('is-ambigua');
+          } else {
+            valor.textContent = 'Saca ' + numero + ' não encontrada nesta operação.';
+            identificacao.classList.add('is-nao-encontrada');
+          }
+          return encontrada;
+        }
+        inputNumero.addEventListener('input', localizar);
+        return { foco: inputNumero, numero: inputNumero, auditor: inputAuditor, localizar: localizar };
+      },
+      function (campos, erro) {
+        var alvo = campos.localizar();
+        var auditor = campos.auditor.value.trim();
+        if (!campos.numero.value.trim()) {
+          erro.textContent = 'Informe o número da saca.';
+          erro.hidden = false;
+          campos.numero.focus();
+          return false;
+        }
+        if (!alvo) {
+          erro.textContent = 'Não foi possível identificar uma única saca com esse número. Confira o cadastro.';
+          erro.hidden = false;
+          campos.numero.focus();
+          return false;
+        }
+        if (!auditor) {
+          erro.textContent = 'Informe o nome da pessoa que realizou a auditoria.';
+          erro.hidden = false;
+          campos.auditor.focus();
+          return false;
+        }
+        var resultado = api.auditSaca(alvo.rota.rota, alvo.saca.id, auditor, 'concluida', '');
+        if (!resultado.sucesso) {
+          erro.textContent = resultado.erro || 'Não foi possível registrar a auditoria.';
+          erro.hidden = false;
+          return false;
+        }
+        rotasAbertas[alvo.rota.rota] = true;
+        renderRotas();
+        return true;
+      });
+  }
+
   function ocorrenciasDaSaca(saca, sessao) {
     var chave = String(Number(saca.numero));
     return (sessao && Array.isArray(sessao.occurrences) ? sessao.occurrences : []).filter(function (o) {
@@ -555,6 +659,14 @@
     if (!rotas.length) addSacasRotas.title = 'Cadastre ou importe uma rota antes de adicionar sacas.';
     addSacasRotas.addEventListener('click', function () { abrirDialogoSacasMultiplasRotas(api, rotas); });
     routeActions.appendChild(addSacasRotas);
+    var auditSaca = document.createElement('button');
+    auditSaca.type = 'button';
+    auditSaca.className = 'botao botao--secundario nex-auditar-saca-rapido';
+    auditSaca.textContent = 'Auditar Saca';
+    auditSaca.disabled = sacas.length === 0;
+    if (!sacas.length) auditSaca.title = 'Cadastre ou importe as sacas antes de iniciar uma auditoria.';
+    auditSaca.addEventListener('click', function () { abrirDialogoAuditarSaca(api, rotas); });
+    routeActions.appendChild(auditSaca);
     routeList.appendChild(routeActions);
     if (!rotas.length) { routeList.appendChild(criarElemento('p', 'texto-apoio', 'As rotas importadas ou cadastradas manualmente aparecerão aqui.')); return; }
     var termoBusca = buscaSaca.value.trim().toLocaleLowerCase('pt-BR');
@@ -705,7 +817,7 @@
     });
     if (focus) {
       var selected = tabs.filter(function (item) { return item.getAttribute('data-nex-tab') === name; })[0];
-      if (selected) selected.focus();
+      if (selected) { try { selected.focus({ preventScroll: true }); } catch (_) { selected.focus(); } }
     }
     if (name === 'gaiolas') renderRotas();
   }

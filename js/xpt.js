@@ -351,6 +351,8 @@
   // ================================================================ gaiolas e auditoria
   function renderGaiolas() {
     var o = op(); UI.limpar(el.pGaiolas); if (!o) return;
+    var scrollX = global.scrollX || global.pageXOffset || 0;
+    var scrollY = global.scrollY || global.pageYOffset || 0;
     var a = X.resumoAuditoria(o.gaiolas);
     var cont = function (v, r, id) { return h('div', { class: 'contador' }, [h('span', { class: 'contador__valor', id: id, text: v }), h('span', { class: 'contador__rotulo', text: r })]); };
     function criarSelectVeiculo(g, prefixo) {
@@ -380,7 +382,7 @@
     
     var veiculoFiltro = select('xg-filtro-veiculo', [['*', 'Todos os veículos'], ['sem_veiculo', 'Sem veículo']].concat(o.veiculos.map(function (v) { return [v.id, v.placa]; })), ui.filtroVeiculo);
     var busca = h('input', { type: 'search', id: 'xg-busca', placeholder: 'Buscar rota, tipo, status, auditor ou veículo', value: ui.busca, 'aria-label': 'Buscar rota, tipo, status, auditor ou veículo' });
-    function rerenderBusca() { ui.busca = busca.value; var pos = busca.value.length; renderGaiolas(); var n = document.getElementById('xg-busca'); if (n) { n.focus(); n.setSelectionRange(pos, pos); } }
+    function rerenderBusca() { ui.busca = busca.value; var pos = busca.value.length; renderGaiolas(); var n = document.getElementById('xg-busca'); if (n) { try { n.focus({ preventScroll: true }); } catch (_) { n.focus(); } n.setSelectionRange(pos, pos); } }
     filtro.addEventListener('change', function () { ui.filtroAud = filtro.value; renderGaiolas(); });
     veiculoFiltro.addEventListener('change', function () { ui.filtroVeiculo = veiculoFiltro.value; renderGaiolas(); });
     busca.addEventListener('input', rerenderBusca);
@@ -452,6 +454,11 @@
       h('p', { class: 'texto-apoio', id: 'xg-contagem', text: itens.length + ' de ' + o.gaiolas.length + ' rota(s)' }),
       h('div', { class: 'tabela-rolavel xpt-tabela-desktop' }, [h('table', { class: 'tabela-modulo' }, [thead(['Rota', 'Qnts.', 'Auditoria', 'Auditor', 'Veículo', '']), corpo])]),
       listaMobile]));
+    function restaurarRolagemGaiolas() {
+      global.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
+    }
+    restaurarRolagemGaiolas();
+    if (global.requestAnimationFrame) global.requestAnimationFrame(restaurarRolagemGaiolas);
   }
   function dialogoExcluirGaiola(gaiolaId) {
     var o = op(), gaiola = o && o.gaiolas.filter(function (g) { return g.id === gaiolaId; })[0];
@@ -610,22 +617,48 @@
     var outra = h('input', { type: 'text', id: 'xoc-outra', placeholder: 'Descreva a categoria, se selecionou Outra' });
     var nota = h('textarea', { id: 'xoc-nota', rows: '2', placeholder: 'Observa\u00e7\u00f5es (opcional)' });
     var video = h('video', { id: 'xoc-video', hidden: true, autoplay: true, muted: true, playsinline: true, class: 'xpt-camera-video' });
-    var abrirCamera = h('button', { type: 'button', class: 'botao botao--secundario', id: 'xoc-abrir-camera', text: 'Escanear pela c\u00e2mera' });
-    var fecharCamera = h('button', { type: 'button', class: 'botao botao--texto', id: 'xoc-fechar-camera', text: 'Fechar c\u00e2mera', hidden: true });
+    var areaCamera = h('div', { id: 'xoc-area-camera', class: 'scanner-visualizador', hidden: true }, [
+      video,
+      h('span', { class: 'scanner-moldura', 'aria-hidden': 'true' }),
+      h('span', { class: 'scanner-instrucao', text: 'Posicione o QR Code ou código de barras dentro da área' })
+    ]);
+    var abrirCamera = h('button', { type: 'button', class: 'botao botao--secundario', id: 'xoc-abrir-camera', text: 'Abrir câmera' });
+    var capturarCamera = h('button', { type: 'button', class: 'botao botao--primario', id: 'xoc-capturar-camera', text: 'Capturar código', hidden: true });
+    var fecharCamera = h('button', { type: 'button', class: 'botao botao--texto', id: 'xoc-fechar-camera', text: 'Fechar câmera', hidden: true });
     var avisoCamera = h('p', { class: 'texto-apoio', id: 'xoc-aviso-camera', role: 'status' });
     var erro = aviso();
-    function pararCamera() { if (Scanner) Scanner.parar(); video.hidden = true; fecharCamera.hidden = true; abrirCamera.hidden = false; }
+    function pararCamera() {
+      if (Scanner) Scanner.parar();
+      areaCamera.hidden = true; video.hidden = true;
+      capturarCamera.hidden = true; capturarCamera.disabled = false; capturarCamera.textContent = 'Capturar código';
+      fecharCamera.hidden = true; abrirCamera.hidden = false;
+    }
     abrirCamera.addEventListener('click', function () {
       avisoCamera.textContent = '';
       if (!Scanner || !Scanner.cameraSuportada() || !Scanner.barcodeDetectorSuportado()) {
-        avisoCamera.textContent = 'Leitura pela c\u00e2mera indispon\u00edvel neste navegador. Digite o c\u00f3digo manualmente.'; return;
+        avisoCamera.textContent = 'Captura pela câmera indisponível neste navegador. Digite o código manualmente.'; return;
       }
-      video.hidden = false; abrirCamera.hidden = true; fecharCamera.hidden = false;
-      Scanner.iniciar(video, null, function (valor, formato) {
-        produto.value = valor; avisoCamera.textContent = 'C\u00f3digo lido (' + formato + '). Confira antes de registrar.';
-        pararCamera(); produto.focus();
-      }, function (mensagem) { avisoCamera.textContent = mensagem; pararCamera(); },
-      function (bruto, motivo) { avisoCamera.textContent = 'C\u00f3digo n\u00e3o reconhecido (' + motivo + '). Tente novamente ou digite manualmente.'; }).catch(function () {});
+      areaCamera.hidden = false; video.hidden = false;
+      abrirCamera.hidden = true; capturarCamera.hidden = false; fecharCamera.hidden = false;
+      Scanner.iniciar(video, null).catch(function (e) {
+        avisoCamera.textContent = e && e.message ? e.message : 'Não foi possível abrir a câmera.';
+        pararCamera();
+      });
+    });
+    capturarCamera.addEventListener('click', function () {
+      capturarCamera.disabled = true; capturarCamera.textContent = 'Capturando…';
+      Scanner.capturar(video, function (valor, formato) {
+        produto.value = valor;
+        avisoCamera.textContent = 'Código capturado (' + formato + '). Confira antes de registrar.';
+        pararCamera();
+        try { produto.focus({ preventScroll: true }); } catch (_) { produto.focus(); }
+      }, function (bruto, motivo) {
+        avisoCamera.textContent = 'Código não reconhecido (' + motivo + '). Ajuste a posição e tente capturar novamente.';
+      }).catch(function (e) {
+        avisoCamera.textContent = e && e.message ? e.message : 'Falha ao capturar o código. Tente novamente.';
+      }).then(function () {
+        if (!areaCamera.hidden) { capturarCamera.disabled = false; capturarCamera.textContent = 'Capturar código'; }
+      });
     });
     fecharCamera.addEventListener('click', function () { pararCamera(); avisoCamera.textContent = ''; });
     el.pOcorrencias.appendChild(h('section', { class: 'cartao' }, [
@@ -646,7 +679,7 @@
         h('div', { class: 'xpt-form-grupo' }, [
           h('h4', { text: 'Identifica\u00e7\u00e3o do produto' }),
           h('div', { class: 'xpt-grid' }, [UI.campo('Categoria', categoria), UI.campo('Identificador do produto', produto),
-            h('div', { class: 'xpt-scanner-controls' }, [abrirCamera, fecharCamera]), video, avisoCamera])
+            h('div', { class: 'xpt-scanner-controls' }, [abrirCamera, capturarCamera, fecharCamera]), areaCamera, avisoCamera])
         ]),
         h('div', { class: 'xpt-form-grupo' }, [
           h('h4', { text: 'Localiza\u00e7\u00e3o' }),
@@ -1057,6 +1090,8 @@
   }
 
   function renderAba() {
+    var scrollX = global.scrollX || global.pageXOffset || 0;
+    var scrollY = global.scrollY || global.pageYOffset || 0;
     if (ui.aba !== 'ocorrencias' && Scanner) Scanner.parar();
     var mapa = { quantidades: el.pQuant, gaiolas: el.pGaiolas, ocorrencias: el.pOcorrencias, veiculos: el.pVeiculos, relatorios: el.pRelatorios };
     Object.keys(mapa).forEach(function (k) { mapa[k].hidden = k !== ui.aba; });
@@ -1069,10 +1104,22 @@
     else if (ui.aba === 'ocorrencias') renderOcorrencias();
     else if (ui.aba === 'veiculos') renderVeiculos();
     else if (ui.aba === 'relatorios') renderRelatorios();
+    global.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
+    if (global.requestAnimationFrame) global.requestAnimationFrame(function () {
+      global.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
+    });
   }
 
   function renderTudo() {
     if (!el.raiz) return;
+    var scrollX = global.scrollX || global.pageXOffset || 0;
+    var scrollY = global.scrollY || global.pageYOffset || 0;
+    function restaurarRolagem() {
+      global.scrollTo(scrollX, scrollY);
+      if (global.requestAnimationFrame) {
+        global.requestAnimationFrame(function () { global.scrollTo(scrollX, scrollY); });
+      }
+    }
     renderLista();
     var telaHistorico = ui.tela === 'historico';
     el.navPrincipal.hidden = !!ui.opId;
@@ -1085,11 +1132,13 @@
     var o = op();
     if (!o) {
       el.listaOps.hidden = false; el.detalhe.hidden = true;
+      restaurarRolagem();
       return;
     }
     el.listaOps.hidden = true; el.detalhe.hidden = false;
     renderCabecalho();
     renderAba();
+    restaurarRolagem();
   }
 
   function init() {

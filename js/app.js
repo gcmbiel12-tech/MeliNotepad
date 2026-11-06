@@ -53,7 +53,7 @@
       'painel-sessao-ativa', 'btn-editar-totais', 'btn-nova-sessao-bloqueio',
       'info-data', 'info-sacas', 'info-pacotes', 'info-rotas-wrap', 'info-rotas-hybrid',
       'form-editar-totais', 'input-sacas-edit', 'input-pacotes-edit', 'btn-cancelar-editar-totais',
-      'btn-abrir-camera', 'btn-fechar-camera', 'label-select-camera', 'select-camera', 'video-camera', 'aviso-camera',
+      'btn-abrir-camera', 'btn-capturar-camera', 'btn-fechar-camera', 'area-camera', 'label-select-camera', 'select-camera', 'video-camera', 'aviso-camera',
       'form-registrar-ocorrencia', 'input-codigo', 'select-categoria', 'ajuda-categoria', 'input-observacao',
       'input-tipo-produto', 'input-rota-ocorrencia', 'input-saca-ocorrencia', 'input-gaiola-correta', 'input-encontrado-por',
       'input-data-hora-ocorrencia', 'input-descricao-outra', 'campo-categoria-outra',
@@ -329,6 +329,8 @@
   function renderListaOcorrencias() {
     var sessao = sessaoAtiva();
     if (!sessao) return;
+    var scrollX = window.scrollX || window.pageXOffset || 0;
+    var scrollY = window.scrollY || window.pageYOffset || 0;
 
     var total = sessao.occurrences.length;
     var pendentes = sessao.occurrences.filter(function (o) { return o.status === C.STATUS.PENDENTE; }).length;
@@ -348,6 +350,11 @@
     filtradas.forEach(function (o) {
       $.listaOcorrencias.appendChild(criarItemOcorrencia(o, false));
     });
+    function restaurarRolagem() {
+      window.scrollTo({ left: scrollX, top: scrollY, behavior: 'instant' });
+    }
+    restaurarRolagem();
+    if (window.requestAnimationFrame) window.requestAnimationFrame(restaurarRolagem);
   }
 
   // -----------------------------------------------------------------------
@@ -840,7 +847,11 @@
 
   function resetarUiCamera() {
     $.btnAbrirCamera.hidden = false;
+    $.btnCapturarCamera.hidden = true;
+    $.btnCapturarCamera.disabled = false;
+    $.btnCapturarCamera.textContent = 'Capturar código';
     $.btnFecharCamera.hidden = true;
+    $.areaCamera.hidden = true;
     $.videoCamera.hidden = true;
     $.selectCamera.hidden = true;
     $.labelSelectCamera.hidden = true;
@@ -850,12 +861,12 @@
     Scanner.parar();
     resetarUiCamera();
     $.inputCodigo.value = U.normalizarTexto(valor);
-    $.avisoCamera.textContent = 'Código lido (' + formato + '). Confira e registre abaixo.';
-    $.selectCategoria.focus();
+    $.avisoCamera.textContent = 'Código capturado (' + formato + '). Confira e registre abaixo.';
+    try { $.selectCategoria.focus({ preventScroll: true }); } catch (_) { $.selectCategoria.focus(); }
   }
 
   function aoCodigoNaoReconhecido(bruto, motivo) {
-    $.avisoCamera.textContent = 'Código não reconhecido (' + motivo + ') Nada foi preenchido; aponte para outro código ou digite manualmente.';
+    $.avisoCamera.textContent = 'Código não reconhecido (' + motivo + '). Nada foi preenchido; ajuste a posição e tente capturar novamente.';
   }
 
   function aoErroCamera(mensagem) {
@@ -863,17 +874,8 @@
     $.avisoCamera.textContent = mensagem;
   }
 
-  function abrirCamera() {
-    $.avisoCamera.textContent = '';
-    if (!Scanner.cameraSuportada() || !Scanner.barcodeDetectorSuportado()) {
-      aoErroCamera('Este navegador não é compatível com a leitura de código pela câmera. Digite o código manualmente abaixo.');
-      return;
-    }
-    $.videoCamera.hidden = false;
-    $.btnAbrirCamera.hidden = true;
-    $.btnFecharCamera.hidden = false;
-
-    Scanner.iniciar($.videoCamera, null, aoDetectarCodigo, aoErroCamera, aoCodigoNaoReconhecido).then(function () {
+  function iniciarStreamCamera(deviceId) {
+    Scanner.iniciar($.videoCamera, deviceId).then(function () {
       return Scanner.listarCameras();
     }).then(function (cameras) {
       if (cameras.length > 1) {
@@ -887,7 +889,36 @@
         $.selectCamera.hidden = false;
         $.labelSelectCamera.hidden = false;
       }
-    }).catch(function () { /* erro já tratado em aoErroCamera */ });
+    }).catch(function (erro) {
+      aoErroCamera(erro && erro.message ? erro.message : 'Não foi possível abrir a câmera.');
+    });
+  }
+
+  function abrirCamera() {
+    $.avisoCamera.textContent = '';
+    if (!Scanner.cameraSuportada() || !Scanner.barcodeDetectorSuportado()) {
+      aoErroCamera('Este navegador não é compatível com a captura de códigos pela câmera. Digite o código manualmente abaixo.');
+      return;
+    }
+    $.areaCamera.hidden = false;
+    $.videoCamera.hidden = false;
+    $.btnAbrirCamera.hidden = true;
+    $.btnCapturarCamera.hidden = false;
+    $.btnFecharCamera.hidden = false;
+    iniciarStreamCamera(null);
+  }
+
+  function capturarCodigoCamera() {
+    $.btnCapturarCamera.disabled = true;
+    $.btnCapturarCamera.textContent = 'Capturando…';
+    Scanner.capturar($.videoCamera, aoDetectarCodigo, aoCodigoNaoReconhecido).catch(function (erro) {
+      $.avisoCamera.textContent = erro && erro.message ? erro.message : 'Falha ao capturar o código. Tente novamente.';
+    }).then(function () {
+      if (!$.areaCamera.hidden) {
+        $.btnCapturarCamera.disabled = false;
+        $.btnCapturarCamera.textContent = 'Capturar código';
+      }
+    });
   }
 
   function fecharCamera() {
@@ -899,7 +930,7 @@
   function aoTrocarCamera() {
     var deviceId = $.selectCamera.value;
     Scanner.parar();
-    Scanner.iniciar($.videoCamera, deviceId, aoDetectarCodigo, aoErroCamera, aoCodigoNaoReconhecido);
+    iniciarStreamCamera(deviceId);
   }
 
   // -----------------------------------------------------------------------
@@ -1063,7 +1094,7 @@
       $.inputDataHoraOcorrencia.value = U.paraDatetimeLocal(U.agora());
       $.campoCategoriaOutra.hidden = true;
       limparSelecaoDeStatus();
-      $.inputCodigo.focus();
+      try { $.inputCodigo.focus({ preventScroll: true }); } catch (_) { $.inputCodigo.focus(); }
       toast('Ocorrência registrada.', 'sucesso');
     });
   }
@@ -1441,6 +1472,7 @@
     $.btnBloqueioDescartar.addEventListener('click', aoClicarBloqueioDescartar);
 
     $.btnAbrirCamera.addEventListener('click', abrirCamera);
+    $.btnCapturarCamera.addEventListener('click', capturarCodigoCamera);
     $.btnFecharCamera.addEventListener('click', fecharCamera);
     $.selectCamera.addEventListener('change', aoTrocarCamera);
     $.btnFotoOcorrencia.addEventListener('click', function () { $.inputFotoOcorrencia.click(); });

@@ -1322,3 +1322,71 @@ dialog.modal[id^="dlg-xpt-"] {
 /* Seletor de idioma: exclusivo da tela inicial, sem alterar o fluxo dos m?dulos. */
 #tela-app { position: relative; }
 #tela-app #meli-idioma-toggle { position: absolute; top: 0; right: 0; min-width: 5.5rem; padding: .45rem .7rem; font-size: .85rem; line-height: 1.2; }
+
+/* Captura manual de códigos — enquadramento visível, sem leitura automática. */
+.scanner-visualizador {
+  position: relative;
+  width: 100%;
+  max-width: 640px;
+  aspect-ratio: 16 / 9;
+  min-height: 180px;
+  margin: .65rem 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #111;
+}
+.scanner-visualizador[hidden] { display: none !important; }
+.scanner-visualizador video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  object-fit: cover;
+}
+.scanner-visualizador video[hidden] { display: none !important; }
+.scanner-moldura {
+  position: absolute;
+  inset: 19% 13%;
+  border: 2px solid rgba(255,255,255,.95);
+  border-radius: 10px;
+  box-shadow: 0 0 0 999px rgba(0,0,0,.17);
+  pointer-events: none;
+}
+.scanner-instrucao {
+  position: absolute;
+  left: .5rem;
+  right: .5rem;
+  bottom: .5rem;
+  padding: .4rem .55rem;
+  border-radius: 7px;
+  background: rgba(0,0,0,.68);
+  color: #fff;
+  font-size: .78rem;
+  line-height: 1.25;
+  text-align: center;
+  pointer-events: none;
+}
+.nex-scanner-controles { display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; }
+.nex-scanner-controles .botao { min-height:42px; }
+
+
+/* NEX — auditoria rápida por número da saca, com rota identificada automaticamente. */
+#nex-rotas-auditoria .nex-auditoria-rapida__identificacao {
+  display:flex; flex-direction:column; gap:.3rem; min-width:0; padding:.85rem 1rem;
+  border:1px solid #d8d5cc; border-radius:10px; background:#f7f6f2;
+}
+#nex-rotas-auditoria .nex-auditoria-rapida__rotulo { color:#625f57; font-size:.78rem; font-weight:700; }
+#nex-rotas-auditoria .nex-auditoria-rapida__valor { color:#37352f; font-size:1.05rem; line-height:1.4; overflow-wrap:anywhere; }
+#nex-rotas-auditoria .nex-auditoria-rapida__identificacao.is-encontrada { border-color:#9bc9a7; background:#edf8ef; }
+#nex-rotas-auditoria .nex-auditoria-rapida__identificacao.is-encontrada .nex-auditoria-rapida__valor { color:#205d32; }
+#nex-rotas-auditoria .nex-auditoria-rapida__identificacao.is-nao-encontrada,
+#nex-rotas-auditoria .nex-auditoria-rapida__identificacao.is-ambigua { border-color:#e6b6ae; background:#fff3f1; }
+#nex-rotas-auditoria .nex-auditoria-rapida__identificacao.is-nao-encontrada .nex-auditoria-rapida__valor,
+#nex-rotas-auditoria .nex-auditoria-rapida__identificacao.is-ambigua .nex-auditoria-rapida__valor { color:#922f25; }
+#nex-rotas-auditoria .nex-auditar-saca-rapido { border-color:#b9c8e5; }
+@media (max-width:600px) {
+  #nex-rotas-auditoria .nex-rota-acoes { display:grid; grid-template-columns:minmax(0,1fr); }
+  #nex-rotas-auditoria .nex-rota-acoes .botao { width:100%; min-height:44px; }
+}
+
+#nex-rotas-auditoria .nex-rota-acoes { gap:.55rem; flex-wrap:wrap; }
