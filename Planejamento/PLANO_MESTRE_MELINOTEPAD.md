@@ -882,6 +882,8 @@ Este estado atualiza as propostas anteriores do módulo QR Sacas. Registros hist
 - O módulo deve exibir rotas e sacas, preservando a importação da planilha NEX.
 - Ações globais disponíveis: Selecionar Tudo, Deselecionar Tudo e Imprimir. A seleção individual de cada saca também permanece disponível.
 - O botão de impressão só fica habilitado quando há sacas selecionadas.
+- Há um controle universal de quantidade, padrão 6, e um controle numérico individual por rota. Cada rota acompanha o universal até receber uma configuração própria; limpar o campo individual restaura o valor universal. A quantidade efetiva é aplicada a cada saca selecionada da rota e não altera o cadastro nem o payload QR.
+- Os textos explicativos redundantes do cabeçalho e da seção de importação foram removidos; os títulos e a área funcional de importação permanecem.
 - A impressão exige payload QR real e válido para cada saca selecionada. O campo assignment deve corresponder à numeração atual. Não gerar payload, container_id ou facility_id artificialmente; se faltar associação, bloquear a impressão e informar os números afetados.
 - Não exibir nem manter no QR Sacas funcionalidades de auditoria, pacote, pendência ou ocorrência.
 - A largura do painel deve aproveitar melhor o espaço em desktop sem provocar overflow em dispositivos móveis.

@@ -49,6 +49,8 @@
   }
   var selecionadas = Object.create(null);
   var expandidas = Object.create(null);
+  var quantidadeCopias = 6;
+  var copiasPorRota = Object.create(null);
   var statusImportacao = '';
   var ultimaRolagemInteracao = null;
   var app = null;
@@ -163,12 +165,10 @@
     var topo = criar('header', 'qr-sacas__topo');
     topo.appendChild(criar('p', 'tela-inicial-modulo__eyebrow', 'MELINOTEPAD / QR SACAS'));
     topo.appendChild(criar('h1', '', 'QR Sacas'));
-    topo.appendChild(criar('p', 'texto-apoio', 'Organize as rotas e consulte as sacas cadastradas.'));
     app.appendChild(topo);
 
     var importacao = criar('section', 'cartao nex-importacao qr-sacas__importacao');
     importacao.appendChild(criar('h2', 'nex-importacao__titulo', 'Importar planilha'));
-    importacao.appendChild(criar('p', 'texto-apoio', 'Importe a mesma planilha do NEX. As rotas HYBRID e suas sacas individuais serão criadas em sequência global.'));
     var arquivo = criar('input', '');
     arquivo.type = 'file'; arquivo.id = 'qr-sacas-arquivo'; arquivo.accept = '.xlsx,.csv'; arquivo.hidden = true;
     var areaImportacao = criar('div', 'nex-importacao__area');
@@ -203,6 +203,28 @@
     painel.appendChild(filtros);
     busca.addEventListener('input', function () { filtroBuscaQR = busca.value; atualizarListaRotasQR(listaRotas); });
     var acoesRotas = criar('div', 'nex-rota-acoes qr-sacas__acoes-rotas');
+    var controleCopiasGlobal = criar('label', 'qr-sacas__controle-copias-global');
+    var valorCopiasGlobal = criar('input', 'qr-sacas__controle-copias-global-valor');
+    valorCopiasGlobal.type = 'number';
+    valorCopiasGlobal.min = '1';
+    valorCopiasGlobal.step = '1';
+    valorCopiasGlobal.inputMode = 'numeric';
+    valorCopiasGlobal.value = String(quantidadeCopias);
+    valorCopiasGlobal.setAttribute('aria-label', 'Quantidade de c\u00f3pias por saca para todas as rotas');
+    valorCopiasGlobal.title = 'Quantidade de c\u00f3pias aplicada a todas as rotas. Padr\u00e3o: 6.';
+    valorCopiasGlobal.addEventListener('input', function () {
+      var digitado = valorCopiasGlobal.value.trim();
+      var quantidade = Number(digitado);
+      if (digitado && Number.isSafeInteger(quantidade) && quantidade >= 1) quantidadeCopias = quantidade;
+    });
+    valorCopiasGlobal.addEventListener('change', function () {
+      var quantidade = Number(valorCopiasGlobal.value);
+      quantidadeCopias = valorCopiasGlobal.value && Number.isSafeInteger(quantidade) && quantidade >= 1 ? quantidade : 6;
+      valorCopiasGlobal.value = String(quantidadeCopias);
+      atualizarControlesCopiasRotas();
+    });
+    controleCopiasGlobal.appendChild(valorCopiasGlobal);
+    acoesRotas.appendChild(controleCopiasGlobal);
     acoesRotas.appendChild(botao('+ Rota', 'botao--primario', function () {
       var nome = global.prompt('Nome da nova rota:');
       if (nome === null) return;
@@ -251,6 +273,37 @@
 
   var filtroBuscaQR = '';
 
+  function atualizarControlesCopiasRotas() {
+    if (!app) return;
+    app.querySelectorAll('.qr-sacas__controle-copias-rota-valor').forEach(function (entrada) {
+      var rotaId = entrada.getAttribute('data-rota-id');
+      if (!Object.prototype.hasOwnProperty.call(copiasPorRota, rotaId)) entrada.value = String(quantidadeCopias);
+    });
+  }
+
+  function criarControleCopiasRota(rota) {
+    var controle = criar('label', 'qr-sacas__controle-copias-rota');
+    var entrada = criar('input', 'qr-sacas__controle-copias-rota-valor');
+    entrada.type = 'number';
+    entrada.min = '1';
+    entrada.step = '1';
+    entrada.inputMode = 'numeric';
+    entrada.value = String(Object.prototype.hasOwnProperty.call(copiasPorRota, rota.id) ? copiasPorRota[rota.id] : quantidadeCopias);
+    entrada.setAttribute('data-rota-id', rota.id);
+    entrada.setAttribute('aria-label', 'Quantidade de c?pias por saca da rota ' + rota.nome);
+    entrada.title = 'Quantidade individual desta rota. O valor universal atual ? ' + quantidadeCopias + '.';
+    entrada.addEventListener('change', function () {
+      var digitado = entrada.value.trim();
+      var quantidade = Number(digitado);
+      if (!digitado) delete copiasPorRota[rota.id];
+      else if (Number.isSafeInteger(quantidade) && quantidade >= 1) copiasPorRota[rota.id] = quantidade;
+      else delete copiasPorRota[rota.id];
+      entrada.value = String(Object.prototype.hasOwnProperty.call(copiasPorRota, rota.id) ? copiasPorRota[rota.id] : quantidadeCopias);
+    });
+    controle.appendChild(entrada);
+    return controle;
+  }
+
   function atualizarListaRotasQR(lista) {
     while (lista.firstChild) lista.removeChild(lista.firstChild);
     var termo = filtroBuscaQR.trim().toLocaleLowerCase('pt-BR');
@@ -281,6 +334,7 @@
       var removerRota = botao('Retirar rota', 'botao--secundario nex-remover-rota', function () { retirarRota(rota.id); });
       removerRota.setAttribute('aria-label', 'Retirar rota ' + rota.nome);
       barra.appendChild(removerRota);
+      barra.appendChild(criarControleCopiasRota(rota));
       card.appendChild(barra);
 
       var conteudo = criar('div', 'nex-rota-conteudo qr-sacas__rota-conteudo');
@@ -416,7 +470,8 @@
     if (!rota || !global.confirm('Retirar a rota ' + rota.nome + '? Todas as sacas vinculadas tambem serao removidas deste aparelho.')) return;
     if (salvar(function (estado) { estado.rotas = estado.rotas.filter(function (r) { return r.id !== rotaId; }); })) {
       Object.keys(selecionadas).forEach(function (k) { if (k.indexOf(rotaId + ':') === 0) delete selecionadas[k]; });
-      delete expandidas[rotaId]; manterRolagem(renderizar); UI.avisar('Rota retirada.', 'sucesso');
+      delete expandidas[rotaId];
+      manterRolagem(renderizar); UI.avisar('Rota retirada.', 'sucesso');
     }
   }
 
@@ -670,10 +725,13 @@
         rotaAtual = item.rota;
         conteudo += '<h2 class="rota">' + escapar(rotaAtual) + '</h2>';
       }
-      var qr = global.qrcode(0, 'M');
-      qr.addData(JSON.stringify(item.saca.payload), 'Byte');
-      qr.make();
-      conteudo += '<article class="etiqueta"><strong class="numero">Saca ' + escapar(item.saca.numero) + '</strong>' + qr.createSvgTag(5, 2) + '</article>';
+      var copiasItem = Math.max(1, Number(item.copias) || 6);
+      for (var copia = 0; copia < copiasItem; copia++) {
+        var qr = global.qrcode(0, 'M');
+        qr.addData(JSON.stringify(item.saca.payload), 'Byte');
+        qr.make();
+        conteudo += '<article class="etiqueta"><strong class="numero">Saca ' + escapar(item.saca.numero) + '</strong>' + qr.createSvgTag(5, 2) + '</article>';
+      }
     });
     janela.document.open();
     janela.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>QR Sacas - Impressão</title><style>@page{size:A4;margin:9mm}*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#111;margin:0}.rota{font-size:17px;margin:0 0 8mm;padding-bottom:2mm;border-bottom:1px solid #aaa;break-after:avoid}.etiqueta{display:inline-flex;vertical-align:top;width:48%;min-height:68mm;margin:0 1% 5mm 0;padding:4mm;border:1px dashed #999;flex-direction:column;align-items:center;justify-content:center;break-inside:avoid}.numero{font-size:24px;margin-bottom:3mm}.etiqueta svg{width:48mm;height:48mm;max-width:100%}@media print{.etiqueta{break-inside:avoid}}</style></head><body>' + conteudo + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},350)});</script></body></html>');
@@ -682,7 +740,11 @@
   function imprimirSelecionadas() {
     var itens = [];
     dados.rotas.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true, sensitivity: 'base' }); }).forEach(function (rota) {
-      rota.sacas.forEach(function (saca) { if (selecionadas[chaveSaca(rota.id, saca.id)]) itens.push({ rota: rota.nome, saca: saca }); });
+      rota.sacas.forEach(function (saca) {
+        if (selecionadas[chaveSaca(rota.id, saca.id)]) {
+          itens.push({ rota: rota.nome, saca: saca, copias: Object.prototype.hasOwnProperty.call(copiasPorRota, rota.id) ? copiasPorRota[rota.id] : quantidadeCopias });
+        }
+      });
     });
     imprimirItens(itens);
   }

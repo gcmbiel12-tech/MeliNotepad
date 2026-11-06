@@ -47,6 +47,9 @@
 @media (max-width: 600px) {
   #modulo-qr-sacas .qr-sacas__acoes-rotas { display: grid; grid-template-columns: minmax(0,1fr); }
   #modulo-qr-sacas .qr-sacas__acoes-rotas .botao { width: 100%; }
+  #modulo-qr-sacas .qr-sacas__controle-copias-global { justify-content: space-between; width: 100%; box-sizing: border-box; }
+  #modulo-qr-sacas .qr-sacas__controle-copias-rota { gap:.2rem; padding:.1rem .2rem; }
+  #modulo-qr-sacas .qr-sacas__controle-copias-rota-valor { width:2.8rem; }
   #modulo-qr-sacas .nex-rota-card { padding: .2rem .5rem; }
   #modulo-qr-sacas .nex-rota-barra { gap: .25rem; }
   #modulo-qr-sacas .nex-remover-rota { max-width: 88px; white-space: normal; font-size: .72rem; padding: .35rem; }
@@ -86,6 +89,37 @@
   border-color: var(--cor-azul, #2478df);
   box-shadow: 0 0 0 1px var(--cor-azul, #2478df);
 }
+#modulo-qr-sacas .qr-sacas__controle-copias-global {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 42px;
+  padding: .25rem .65rem;
+  border: 1px solid var(--cor-borda, #d5d2ca);
+  border-radius: 9px;
+  background: var(--cor-papel, #fff);
+  color: var(--cor-tinta, #292929);
+  font-size: .88rem;
+  font-weight: 700;
+}
+#modulo-qr-sacas .qr-sacas__controle-copias-global-valor {
+  width: 4.2rem;
+  min-width: 0;
+  height: 34px;
+  padding: 2px 4px;
+  border: 1px solid var(--cor-borda, #d5d2ca);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#modulo-qr-sacas .qr-sacas__controle-copias-global-valor:focus-visible { outline: 2px solid var(--cor-azul, #2478df); outline-offset: 1px; }
+#modulo-qr-sacas .qr-sacas__controle-copias-rota { display:inline-flex; flex:0 0 auto; align-items:center; gap:.3rem; min-height:38px; padding:.15rem .35rem; border:1px solid var(--cor-borda,#d5d2ca); border-radius:8px; background:var(--cor-papel,#fff); color:var(--cor-tinta,#292929); font-size:.78rem; font-weight:700; }
+#modulo-qr-sacas .qr-sacas__controle-copias-rota-valor { width:3.2rem; min-width:0; height:30px; padding:2px 3px; border:1px solid var(--cor-borda,#d5d2ca); border-radius:5px; background:transparent; color:inherit; font:inherit; text-align:center; font-variant-numeric:tabular-nums; }
+#modulo-qr-sacas .qr-sacas__controle-copias-rota-valor:focus-visible { outline:2px solid var(--cor-azul,#2478df); outline-offset:1px; }
+
 @media (min-width: 720px) {
   main[data-modulo="qr-sacas"] { width: 100%; max-width: 1500px; }
   #modulo-qr-sacas .qr-sacas__painel-rotas { width: 100%; }
