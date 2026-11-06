@@ -845,3 +845,44 @@ Comece agora pela Fase 0 na pasta oficial do projeto. Use Remote Desktop conform
 ## NEX — ação de auditoria rápida por número da saca — 06/11/2026
 
 Na área Gaiolas e Auditoria, a ação **Auditar Saca** permite informar o número de uma saca e localizar automaticamente a rota correspondente dentro da operação ativa. O usuário informa também o nome do auditor e confirma ou cancela. A confirmação usa o mecanismo `NexOperations.auditSaca` existente, preservando o histórico e a persistência. Números inexistentes ou ambíguos não podem ser confirmados. A auditoria individual já existente em cada cartão de saca permanece disponível.
+
+## Novo módulo QR Sacas — implementação inicial (06/11/2026)
+
+- Adicionado módulo independente QR Sacas, terceiro cartão da tela inicial (NEX, XPT, QR Sacas, Intervalos), com navegação própria e estilo alinhado aos módulos existentes.
+- Importa QR Codes de PDF (renderização local com PDF.js + leitura com jsQR), JSON e CSV. O payload aceito exige container_id, facility_id e assignment; não gera identificadores por fórmula.
+- A importação é direcionada a uma rota escolhida pelo usuário. Cada rota mantém suas próprias sacas; duplicidades de numeração na mesma rota são ignoradas.
+- Permite selecionar rotas inteiras, sacas individuais, selecionar/deselecionar tudo e imprimir seleção organizada por rota.
+- Impressão personalizada é restrita à rota aberta e aceita números separados por vírgula, intervalos e combinações (ex.: 10,11,15; 1-10; 1-5,8,10-15). Números ausentes bloqueiam a impressão.
+- Editar uma saca recalcula a sequência das sacas seguintes naquela rota e atualiza o campo assignment do payload. container_id e facility_id permanecem inalterados; não há geração por fórmula.
+- Dados locais são persistidos em chave separada do navegador (melinotepad_qr_sacas_v1). O navegador não permite gravar automaticamente na pasta raiz do projeto; há exportação de backup JSON para o usuário salvar manualmente nessa pasta.
+- Bibliotecas locais incluídas: PDF.js 3.11.174, jsQR 1.4.0 e qrcode-generator 2.0.4; não dependem de CDN em tempo de execução.
+- Importação PDF tem limite de 25 MB e 500 páginas. A leitura rasteriza as páginas e tenta localizar múltiplos QR Codes em cada página.
+- Pendência de validação: testar PDFs reais do usuário, especialmente páginas com vários códigos pequenos, além de impressão física, comportamento em celular e persistência/backup em dispositivos diferentes.
+
+- Validação automatizada desta etapa: 92 testes unitários aprovados; E2E QR Sacas com importação JSON, edição/renumeração, seleção e preparação de impressão aprovado; E2E PDF sintético com dois QR Codes na mesma página aprovado após leitura em regiões sobrepostas.
+
+
+### QR Sacas — importação inicial das rotas
+
+A primeira importação do QR Sacas deve reutilizar o leitor de planilhas do NEX (`NexPlanilha`), com suporte a XLSX/CSV, filtragem HYBRID e aproveitamento de rota, quantidade de sacas e pacotes estimados. Totais estimados devem permanecer distintos dos QR Codes reais importados; não gerar payloads ou identificadores artificiais. A interface de upload deve manter o padrão visual do NEX.
+
+### QR Sacas — distribuição e auditoria no padrão NEX — 06/11/2026
+
+- A importação da Optimization cria sacas individuais por rota, em vez de registrar somente as quantidades estimadas.
+- A distribuição segue a regra implementada no NEX: rotas HYBRID ordenadas naturalmente, numeração global contínua começando em 1 e quantidade individual conforme a coluna Quantidade de sacas.
+- Reimportar pede confirmação e substitui as sacas individuais e auditorias anteriores, mantendo rotas ausentes cadastradas e vazias, como no NEX.
+- Cada saca possui ID local, número, payload QR ainda nulo e histórico de auditorias. Não são inventados container_id, facility_id ou assignment.
+- A tela apresenta rotas expansíveis, contagem de sacas/auditadas/pendentes, cadastro manual de saca, edição de numeração e registro/histórico de auditoria. A associação do payload QR e a impressão permanecem para uma etapa posterior.
+- O armazenamento continua independente do NEX.
+
+## QR Sacas — estado funcional vigente (06/11/2026)
+
+Este estado atualiza as propostas anteriores do módulo QR Sacas. Registros históricos que descrevem auditorias, pacotes, pendências ou ocorrências referem-se a etapas anteriores e não são requisitos da interface atual.
+
+- O módulo deve exibir rotas e sacas, preservando a importação da planilha NEX.
+- Ações globais disponíveis: Selecionar Tudo, Deselecionar Tudo e Imprimir. A seleção individual de cada saca também permanece disponível.
+- O botão de impressão só fica habilitado quando há sacas selecionadas.
+- A impressão exige payload QR real e válido para cada saca selecionada. O campo assignment deve corresponder à numeração atual. Não gerar payload, container_id ou facility_id artificialmente; se faltar associação, bloquear a impressão e informar os números afetados.
+- Não exibir nem manter no QR Sacas funcionalidades de auditoria, pacote, pendência ou ocorrência.
+- A largura do painel deve aproveitar melhor o espaço em desktop sem provocar overflow em dispositivos móveis.
+- A origem e o fluxo definitivo para associar os QR Codes reais às sacas ainda serão definidos com o usuário. Não antecipar essa decisão.

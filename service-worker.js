@@ -13,7 +13,7 @@
  * incremente CACHE_VERSION abaixo. Veja o README para o passo a passo.
  */
 
-var CACHE_VERSION = 'v45';
+var CACHE_VERSION = 'v49';
 var CACHE_NAME = 'melinotepad-estatico-' + CACHE_VERSION;
 
 var ARQUIVOS_ESSENCIAIS = [
@@ -22,6 +22,7 @@ var ARQUIVOS_ESSENCIAIS = [
   './css/styles.css',
   './css/modulos.css',
   './css/auth.css',
+  './css/qr-sacas.css',
   './js/supabase-config.js',
   './js/supabase-auth.js',
   './js/supabase-sync.js',
@@ -31,12 +32,18 @@ var ARQUIVOS_ESSENCIAIS = [
   './js/utils.js',
   './js/storage.js',
   './js/vendor/xlsx.full.min.js',
+  './js/vendor/pdf.min.js',
+  './js/vendor/pdf.worker.min.js',
+  './js/vendor/jsQR.js',
+  './js/vendor/qrcode.js',
   './js/nex-planilha.js',
   './js/nex-tabs.js',
   './js/scanner.js',
   './js/report.js',
   './js/app.js',
   './js/modulo-store.js',
+  './js/qr-sacas-regras.js',
+  './js/qr-sacas.js',
   './js/shell.js',
   './js/telas-iniciais.js',
   './js/tradutor.js',

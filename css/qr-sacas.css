@@ -1,0 +1,93 @@
+/* Estilos do modulo QR Sacas. */
+#modulo-qr-sacas { gap: 1rem; }
+#modulo-qr-sacas #qr-sacas-app { display: grid; gap: 1rem; min-width: 0; }
+#modulo-qr-sacas .qr-sacas__topo { max-width: 980px; margin: .25rem 0 1rem; }
+#modulo-qr-sacas .qr-sacas__topo h1 { margin: .2rem 0 .45rem; letter-spacing: -.02em; }
+#modulo-qr-sacas .qr-sacas__topo p { max-width: 760px; }
+#modulo-qr-sacas .qr-sacas__importacao { display: grid; gap: .8rem; margin: 0; padding: 1rem; border-radius: 14px; }
+#modulo-qr-sacas .qr-sacas__importacao h2 { margin: 0; }
+#modulo-qr-sacas .qr-sacas__importacao .nex-importacao__area { width: 100%; box-sizing: border-box; }
+#modulo-qr-sacas .qr-sacas__importacao .nex-importacao__area:focus-visible { outline: 3px solid rgba(218,177,26,.25); outline-offset: 2px; }
+#modulo-qr-sacas .qr-sacas__importacao .nex-importacao__estado { min-width: 0; }
+#modulo-qr-sacas .qr-sacas__importacao .qr-sacas__status { display: block; }
+#modulo-qr-sacas .qr-sacas__importacao .qr-sacas__status[hidden] { display: none; }
+#modulo-qr-sacas .qr-sacas__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; }
+#modulo-qr-sacas .qr-sacas__status { margin: 0; padding: .7rem .8rem; border-radius: 9px; background: #f4f2ec; color: #4c493f; font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; }
+#modulo-qr-sacas .qr-sacas__status.is-erro { background: #fff0ee; color: #922820; }
+#modulo-qr-sacas .qr-sacas__status.is-sucesso { background: #edf8f0; color: #21683b; }
+#modulo-qr-sacas .qr-sacas__status[hidden] { display: none !important; }
+
+#modulo-qr-sacas .qr-sacas__painel-rotas { display: grid; gap: .75rem; min-width: 0; }
+#modulo-qr-sacas .qr-sacas__busca { display: block; width: 100%; min-width: 0; min-height: 46px; padding: .7rem .85rem; border: 1px solid var(--cor-borda,#d6d3ca); border-radius: .7rem; background: var(--cor-papel,#fff); color: inherit; font: inherit; box-sizing: border-box; }
+#modulo-qr-sacas .qr-sacas__busca:focus { outline: 3px solid rgba(218,177,26,.25); border-color: var(--cor-tinta,#222); }
+#modulo-qr-sacas .qr-sacas__acoes-rotas { justify-content: flex-start; flex-wrap: wrap; gap: .6rem; margin: .15rem 0; }
+#modulo-qr-sacas .qr-sacas__lista-rotas { display: grid; grid-template-columns: minmax(0,1fr); gap: .55rem; margin-top: 0; }
+
+/* Mesmas barras de rota, dimensões e estados usados pelo NEX. */
+#modulo-qr-sacas .nex-rota-card { display: block; min-width: 0; margin: 0; padding: .25rem .75rem; border: 1px solid var(--cor-borda,#d8d8d8); border-radius: .8rem; background: var(--superficie,#fff); box-shadow: none; transition: border-color .15s ease, box-shadow .15s ease; }
+#modulo-qr-sacas .nex-rota-card.is-aberta { border-color: var(--cor-tinta,#292929); box-shadow: 0 5px 18px rgba(25,25,25,.075); }
+#modulo-qr-sacas .nex-rota-barra { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+#modulo-qr-sacas .nex-rota-toggle { display: flex; flex: 1 1 auto; align-items: center; justify-content: space-between; gap: .75rem; width: auto; min-width: 0; min-height: 58px; padding: .65rem .4rem; border: 0; border-radius: .65rem; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+#modulo-qr-sacas .nex-rota-toggle:hover { background: #faf8f3; }
+#modulo-qr-sacas .nex-rota-toggle__info { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .85rem; min-width: 0; }
+#modulo-qr-sacas .nex-rota-nome { font-size: 1.08rem; font-weight: 800; overflow-wrap: anywhere; }
+#modulo-qr-sacas .nex-rota-resumo { color: var(--cor-tinta-suave,#666); font-size: .86rem; }
+#modulo-qr-sacas .nex-rota-chevron { flex: 0 0 auto; display: grid; place-items: center; width: 1.8rem; height: 1.8rem; border-radius: 50%; background: #f2f0e9; font-size: 1.2rem; font-weight: 700; }
+#modulo-qr-sacas .nex-rota-conteudo { display: grid; gap: .75rem; padding: .6rem .35rem .75rem; border-top: 1px solid var(--cor-borda,#e5e1d8); }
+#modulo-qr-sacas .nex-rota-conteudo[hidden] { display: none !important; }
+#modulo-qr-sacas .nex-rota-detalhes { margin: 0; font-size: .82rem; }
+#modulo-qr-sacas .nex-remover-rota { justify-self: start; min-height: 38px; }
+#modulo-qr-sacas .nex-acoes-sacas { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+#modulo-qr-sacas .nex-adicionar-saca { min-height: 42px; }
+
+/* Mesma apresentação das sacas: números em linha e modal sob demanda. */
+#modulo-qr-sacas .nex-lista-sacas { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .5rem; }
+#modulo-qr-sacas .nex-saca-numero { display: inline-flex; align-items: center; justify-content: center; min-width: 46px; min-height: 44px; padding: .45rem .7rem; border: 1px solid #d8d5cc; border-radius: .65rem; background: #fff; color: var(--cor-tinta,#292929); font: inherit; font-weight: 800; cursor: default; }
+
+@media (max-width: 600px) {
+  #modulo-qr-sacas .qr-sacas__acoes-rotas { display: grid; grid-template-columns: minmax(0,1fr); }
+  #modulo-qr-sacas .qr-sacas__acoes-rotas .botao { width: 100%; }
+  #modulo-qr-sacas .nex-rota-card { padding: .2rem .5rem; }
+  #modulo-qr-sacas .nex-rota-barra { gap: .25rem; }
+  #modulo-qr-sacas .nex-remover-rota { max-width: 88px; white-space: normal; font-size: .72rem; padding: .35rem; }
+  #modulo-qr-sacas .nex-rota-toggle { min-height: 58px; padding: .55rem .15rem; }
+  #modulo-qr-sacas .nex-rota-toggle__info { display: grid; gap: .2rem; }
+  #modulo-qr-sacas .nex-rota-resumo { font-size: .76rem; }
+  #modulo-qr-sacas .nex-rota-conteudo > .nex-remover-rota { justify-self: start; max-width: none; }
+  #modulo-qr-sacas .nex-acoes-sacas { display: grid; grid-template-columns: minmax(0,1fr); }
+  #modulo-qr-sacas .nex-acoes-sacas .botao { width: 100%; }
+  #modulo-qr-sacas .nex-adicionar-saca { width: 100%; }
+  #modulo-qr-sacas .nex-saca-numero { min-width: 44px; min-height: 44px; }
+    }
+@media print { #qr-sacas-app { display: none !important; } }
+/* Atalho circular para editar a numeração diretamente no card da saca. */
+#modulo-qr-sacas .qr-sacas__saca-card { position: relative; display: inline-flex; flex-direction: column; align-items: center; min-width: 46px; }
+#modulo-qr-sacas .qr-sacas__saca-card > .nex-saca-numero { padding-right: 1.9rem; }
+#modulo-qr-sacas .qr-sacas__trocar-numero { position: absolute; top: -7px; right: -7px; z-index: 2; display: grid; place-items: center; width: 25px; height: 25px; min-width: 25px; min-height: 25px; padding: 0; border: 2px solid #fff; border-radius: 50%; background: #2478df; color: #fff; font: 700 14px/1 Arial,sans-serif; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+#modulo-qr-sacas .qr-sacas__trocar-numero:hover { background: #155fbd; transform: scale(1.06); }
+#modulo-qr-sacas .qr-sacas__trocar-numero:focus-visible { outline: 3px solid rgba(36,120,223,.3); outline-offset: 2px; }
+#modulo-qr-sacas .qr-sacas__edicao-inline { display: flex; align-items: center; gap: .3rem; margin-top: .45rem; }
+#modulo-qr-sacas .qr-sacas__edicao-inline[hidden] { display: none !important; }
+#modulo-qr-sacas .qr-sacas__edicao-inline-input { width: 5.2rem; min-width: 0; height: 36px; padding: .3rem .45rem; border: 1px solid var(--cor-borda,#d8d5cc); border-radius: 7px; background: var(--cor-papel,#fff); color: inherit; font: inherit; font-size: .9rem; }
+#modulo-qr-sacas .qr-sacas__edicao-inline button { display: grid; place-items: center; width: 34px; height: 34px; min-width: 34px; padding: 0; border: 0; border-radius: 50%; color: #fff; font-size: 1.1rem; font-weight: 800; cursor: pointer; }
+#modulo-qr-sacas .qr-sacas__edicao-inline-confirmar { background: #2478df; }
+#modulo-qr-sacas .qr-sacas__edicao-inline-cancelar { background: #777; }
+
+/* Selecao das sacas para preparar a impressao. */
+#modulo-qr-sacas .qr-sacas__selecao-resumo { margin: -.35rem 0 0; color: var(--cor-tinta-suave, #666); font-size: .88rem; }
+#modulo-qr-sacas .qr-sacas__acoes-rotas .botao:disabled { opacity: .48; cursor: not-allowed; }
+#modulo-qr-sacas .qr-sacas__saca-card { position: relative; }
+#modulo-qr-sacas .qr-sacas__selecao {
+  position: absolute; top: -7px; left: -7px; z-index: 3;
+  width: 19px; height: 19px; margin: 0; accent-color: var(--cor-azul, #2478df);
+  cursor: pointer;
+}
+#modulo-qr-sacas .qr-sacas__saca-card.is-selecionada > .nex-saca-numero {
+  border-color: var(--cor-azul, #2478df);
+  box-shadow: 0 0 0 1px var(--cor-azul, #2478df);
+}
+@media (min-width: 720px) {
+  main[data-modulo="qr-sacas"] { width: 100%; max-width: 1500px; }
+  #modulo-qr-sacas .qr-sacas__painel-rotas { width: 100%; }
+  #modulo-qr-sacas .qr-sacas__lista-rotas { grid-template-columns: minmax(0, 1fr); }
+}

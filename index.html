@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>MeliNotepad — NEX, XPT e Intervalos</title>
-<meta name="description" content="MeliNotepad: conferência NEX, operação XPT e controle de intervalos dos funcionários.">
+<meta name="description" content="MeliNotepad: conferência NEX, operação XPT, QR Sacas e controle de intervalos.">
 <meta name="theme-color" content="#FFD400">
 <meta name="application-name" content="MeliNotepad">
 <meta name="apple-mobile-web-app-title" content="MeliNotepad">
@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="css/styles.css">
 <link rel="stylesheet" href="css/modulos.css?v=29">
 <link rel="stylesheet" href="css/auth.css">
+<link rel="stylesheet" href="css/qr-sacas.css">
 </head>
 <body>
 
@@ -112,6 +113,7 @@
     <div class="tela-inicial-modulo__grade">
       <article class="cartao tela-inicial-modulo__destaque"><h2>NEX</h2><p class="texto-apoio">Rotas, sacas e auditorias.</p><button type="button" class="botao botao--primario" data-abrir-modulo="nex">Abrir NEX</button></article>
       <article class="cartao"><h2>XPT</h2><p class="texto-apoio">Operações, carregamento e auditorias.</p><button type="button" class="botao botao--secundario" data-abrir-modulo="xpt">Abrir XPT</button></article>
+      <article class="cartao"><h2>QR Sacas</h2><p class="texto-apoio">Organize e imprima QR Codes por rota.</p><button type="button" class="botao botao--secundario" data-abrir-modulo="qr-sacas">Abrir QR Sacas</button></article>
       <article class="cartao"><h2>Intervalos</h2><p class="texto-apoio">Intervalos ativos, funcionários e histórico.</p><button type="button" class="botao botao--secundario" data-abrir-modulo="intervalos">Abrir Intervalos</button></article>
     </div>
   </section>
@@ -434,6 +436,7 @@
   <section id="modulo-xpt" class="modulo" hidden aria-label="XPT"><section id="tela-summary-xpt" class="tela-inicial-modulo" aria-labelledby="summary-xpt-titulo"><header class="tela-inicial-modulo__cabecalho"><p class="tela-inicial-modulo__eyebrow">MELINOTEPAD / XPT</p><h1 id="summary-xpt-titulo">Expedição operacional</h1><p class="texto-apoio">Acesse as operações, auditorias, carregamentos e relatórios do XPT.</p></header><div class="tela-inicial-modulo__grade"><article class="cartao tela-inicial-modulo__destaque"><p class="tela-inicial-modulo__eyebrow">OPERAÇÕES</p><h2>Operações e histórico</h2><p class="texto-apoio" id="summary-xpt-descricao">Inicie uma operação ou retome uma operação em andamento.</p><button type="button" class="botao botao--primario" id="summary-xpt-operacoes">Abrir operações</button></article><article class="cartao"><h2>Auditoria e carregamento</h2><p class="texto-apoio">Continue nas áreas existentes de gaiolas, ocorrências e veículos.</p><button type="button" class="botao botao--secundario" id="summary-xpt-auditoria">Abrir auditoria</button></article><article class="cartao"><h2>Relatórios</h2><p class="texto-apoio">Consulte relatórios da operação selecionada e do histórico.</p><button type="button" class="botao botao--secundario" id="summary-xpt-relatorios">Abrir relatórios</button></article></div></section><div id="xpt-app"></div></section>
 
   <!-- ======================= MÓDULO INTERVALOS ======================= -->
+  <section id="modulo-qr-sacas" class="modulo" hidden aria-label="QR Sacas"><div id="qr-sacas-app"></div></section>
   <section id="modulo-intervalos" class="modulo" hidden aria-label="Controle de Intervalos"><section id="tela-summary-intervalos" class="tela-inicial-modulo" aria-labelledby="summary-intervalos-titulo"><header class="tela-inicial-modulo__cabecalho"><p class="tela-inicial-modulo__eyebrow">MELINOTEPAD / INTERVALOS</p><h1 id="summary-intervalos-titulo">Controle de intervalos</h1><p class="texto-apoio">Gerencie funcionários, intervalos ativos e histórico.</p></header><div class="tela-inicial-modulo__grade"><article class="cartao tela-inicial-modulo__destaque"><h2>Intervalos ativos</h2><p class="texto-apoio">Acompanhe os intervalos em andamento e os registros de funcionários.</p><button type="button" class="botao botao--primario" id="summary-intervalos-ativos">Abrir intervalos ativos</button></article><article class="cartao"><h2>Funcionários e histórico</h2><p class="texto-apoio">Acesse os cadastros e os registros anteriores.</p><button type="button" class="botao botao--secundario" id="summary-intervalos-cadastros">Abrir funcionários</button><button type="button" class="botao botao--secundario" id="summary-intervalos-historico">Abrir histórico</button></article></div></section><div id="intervalos-app"></div></section>
 
 </main>
@@ -527,6 +530,11 @@
 <script src="js/report.js"></script>
 <script src="js/modulo-store.js"></script>
 <script src="js/shell.js"></script>
+<script src="js/vendor/pdf.min.js"></script>
+<script src="js/vendor/jsQR.js"></script>
+<script src="js/vendor/qrcode.js"></script>
+<script src="js/qr-sacas-regras.js"></script>
+<script src="js/qr-sacas.js"></script>
 <script src="js/intervalos-regras.js"></script>
 <script src="js/relatorios-historico.js"></script>
 <script src="js/app.js?v=26"></script>

@@ -746,3 +746,55 @@ Esta rodada manteve a sincronização operacional como etapa posterior. Não vin
 - E2E da auditoria rápida em viewport de 390 px e 1280 px: aprovado; valida localização automática de rota, saca inexistente, nome obrigatório, cancelamento sem gravação e confirmação persistida na rota/saca corretas.
 - Não foram alteradas as regras de distribuição, cadastro ou identificadores das sacas.
 - Sem commit, push ou deploy.
+
+## QR Sacas — registro técnico inicial (06/11/2026)
+
+- Integração adicionada sem acoplar QR Sacas aos dados de sessão do NEX ou às operações do XPT.
+- Armazenamento separado via ModStore/LocalStorage; não sincroniza entre dispositivos. Backup JSON manual disponível.
+- A edição de numeração atualiza assignment e aplica deslocamento igual às sacas posteriores na ordem importada, preservando container_id, facility_id e IDs locais.
+- O leitor PDF usa PDF.js e jsQR locais; o gerador de impressão usa qrcode-generator local. Licenças e versões estão registradas em js/vendor.
+- Testes específicos foram adicionados para parser de intervalos, validação de payload, renumeração e fluxo básico de importação/impressão. Resultados serão registrados após execução.
+
+- Testes executados: 92/92 unitários aprovados; fluxo E2E JSON/edição/seleção/impressão aprovado; importação E2E de PDF sintético com dois QR Codes na mesma página aprovada. Ainda falta validar os PDFs reais usados no trabalho e a impressão física.
+
+
+## QR Sacas — importação da planilha NEX — 06/11/2026
+
+- A área de importação do QR Sacas foi alinhada visualmente ao NEX, com seleção de arquivo, arrastar e soltar, estados de leitura e mensagens de resultado.
+- O upload agora utiliza diretamente `MeliNotepad.NexPlanilha.analisarArquivo`, aceitando os mesmos formatos `.xlsx` e `.csv` e as mesmas colunas/regras do NEX (somente linhas HYBRID).
+- São importadas as rotas e os totais de sacas e pacotes estimados. Rotas já existentes são atualizadas sem apagar QR Codes cadastrados; rotas que não aparecem no novo arquivo são preservadas.
+- A quantidade estimada da planilha fica separada da quantidade de QR Codes efetivamente cadastrados. Nenhum payload, container_id ou assignment é inventado pela planilha.
+- E2E dedicado com CSV: aprovado; valida rotas HYBRID, totais, preservação da ausência de payloads e layout em 390 px. `node --check`, `git diff --check` e localhost HTTP 200 aprovados.
+- A importação de QR payloads via PDF/JSON/CSV precisa de uma etapa de interface própria para continuar acessível; não foi misturada à importação da planilha nesta alteração.
+
+## QR Sacas — sacas individuais e auditoria no fluxo NEX — 06/11/2026
+
+### Causa identificada
+- A implementação anterior chamava somente o parser NexPlanilha.analisarArquivo e persistia metadados da Optimization. Não executava a etapa gerarSacasIndividuais usada pelo NEX ao iniciar/atualizar a operação. Por isso mostrava quantidades previstas, mas não criava as sacas individuais.
+
+### Alterações
+- js/qr-sacas.js: a importação agora gera cada saca individual a partir da quantidade de cada rota HYBRID, com numeração global sequencial iniciada em 1 e rotas em ordem natural alfanumérica. Rotas não presentes são mantidas vazias. A reimportação pede confirmação antes de substituir sacas e auditorias anteriores.
+- js/qr-sacas.js: cada saca tem estado de auditoria, ações de edição e auditoria, status visual e histórico. Cadastro manual recebe número de saca, não payload QR.
+- js/qr-sacas-regras.js: edição de numeração aceita sacas sem payload; quando existir payload QR associado, o assignment continua acompanhando a renumeração.
+- css/qr-sacas.css: cartões e estados de auditoria alinhados visualmente ao padrão NEX.
+- tests/e2e/qr-sacas-import-planilha.test.js: atualizado para validar geração de 18 sacas em duas rotas, sequência 1–18, ausência de payload fictício, registro de auditoria e viewport móvel.
+- service-worker.js: cache atualizado para v48.
+
+### Limite desta etapa
+- Os QR payloads reais (container_id, facility_id, assignment) ainda não são associados às sacas criadas nesta importação. A associação/importação dos QR Codes e impressão ficam para a próxima etapa, conforme solicitado.
+- Os dados QR preexistentes podem ser substituídos pela reimportação; a confirmação avisa que sacas e auditorias atuais serão substituídas.
+
+## QR Sacas — estado vigente da interface e impressão (06/11/2026)
+
+Este registro atualiza e prevalece sobre as descrições anteriores do módulo QR Sacas que mencionam auditorias, pacotes, pendências ou ocorrências. Essas descrições permanecem no histórico para explicar etapas anteriores, mas não representam o comportamento atual.
+
+- O módulo QR Sacas não possui fluxo de auditoria, pacote, pendência ou ocorrência. Esses elementos foram removidos da interface e da lógica do módulo.
+- A importação da planilha NEX permanece disponível e é responsável por criar/atualizar rotas e sacas individuais. Os payloads reais de QR não são inventados pela planilha.
+- A seleção pode ser individual ou global: Selecionar Tudo e Deselecionar Tudo abrangem as sacas de todas as rotas, inclusive as recolhidas. O contador informa o total selecionado.
+- Imprimir fica desabilitado sem seleção. Antes de gerar a impressão, o módulo valida se cada saca selecionada possui payload completo e assignment correspondente ao número atual. Se faltar payload, informa os números e bloqueia a impressão.
+- A origem/fluxo definitivo para associar os QR Codes reais às sacas continua pendente de decisão. Não assumir que a importação da planilha fornece esses códigos.
+- No desktop, o painel de rotas ocupa uma área mais larga; em telas móveis, a lista permanece em uma coluna.
+- Arquivos desta etapa: js/qr-sacas.js, css/qr-sacas.css, tests/e2e/qr-sacas-import-planilha.test.js, além das integrações do módulo no HTML, shell, tela inicial, tradutor e service worker.
+- Validação: node --check nos arquivos JS alterados; node --test tests/unit/qr-sacas-regras.test.js (5/5); node tests/e2e/qr-sacas-import-planilha.test.js (aprovado, incluindo seleção, bloqueio sem payload, impressão com payload válido e largura desktop); node tests/e2e/nex-abas.test.js (aprovado); git diff --check sem erros de whitespace.
+- Os E2E legados qr-sacas.test.js e qr-sacas-pdf.test.js ainda usam seletores de uma interface anterior e não foram considerados aprovados nesta etapa.
+- Os arquivos operacionais Planejamento/Aduana.csv, Planejamento/audited_shipments.csv e backups locais em dados/qr-sacas/ não fazem parte do código-fonte e não devem ser versionados.

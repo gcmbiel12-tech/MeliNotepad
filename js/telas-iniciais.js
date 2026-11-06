@@ -42,6 +42,16 @@
   }
 
   function mostrarResumo(modulo) {
+    var qrApp = byId('qr-sacas-app');
+    if (qrApp) qrApp.hidden = modulo !== 'qr-sacas';
+    if (modulo === 'qr-sacas') {
+      var navNex = byId('nex-abas-principais');
+      if (navNex) navNex.hidden = true;
+      var landingNex = byId('nex-tela-iniciar-operacao');
+      if (landingNex) landingNex.hidden = true;
+      ['nex', 'xpt', 'intervalos'].forEach(function (m) { var s = byId('tela-summary-' + m); if (s) s.hidden = true; var a = byId(m + '-app'); if (a) a.hidden = true; });
+      return;
+    }
     ['nex', 'xpt', 'intervalos'].forEach(function (m) {
       var summary = byId('tela-summary-' + m);
       if (summary) summary.hidden = m !== modulo;
@@ -90,7 +100,7 @@
       var summary = byId('tela-summary-' + m);
       if (summary) summary.hidden = true;
     });
-    ['xpt-app', 'intervalos-app'].forEach(function (id) {
+    ['xpt-app', 'intervalos-app', 'qr-sacas-app'].forEach(function (id) {
       var app = byId(id);
       if (app) app.hidden = true;
     });
@@ -187,7 +197,7 @@
     document.addEventListener('melios:modulo', atualizarResumoNex);
 
     var hash = (global.location.hash || '').replace(/^#\/?/, '');
-    var modulo = ['nex', 'xpt', 'intervalos'].indexOf(hash) >= 0 ? hash : null;
+    var modulo = ['nex', 'xpt', 'qr-sacas', 'intervalos'].indexOf(hash) >= 0 ? hash : null;
     if (modulo) mostrarResumo(modulo);
   }
 

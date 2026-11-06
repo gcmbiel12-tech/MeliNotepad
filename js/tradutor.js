@@ -206,7 +206,31 @@
     'Manhã': 'Mañana',
     'Bom dia': 'Buenos días',
     'Boa tarde': 'Buenas tardes',
-    'Boa noite': 'Buenas noches'
+    'Boa noite': 'Buenas noches',
+    'QR Sacas': 'QR Sacas',
+    'Organize e imprima QR Codes por rota.': 'Organice e imprima códigos QR por ruta.',
+    'Abrir QR Sacas': 'Abrir QR Sacas',
+    'Importar QR Codes': 'Importar códigos QR',
+    'Selecione a rota de destino e importe um PDF com QR Codes, um JSON ou um CSV com container_id, facility_id e assignment.': 'Seleccione la ruta de destino e importe un PDF con códigos QR, un JSON o un CSV con container_id, facility_id y assignment.',
+    'Adicionar códigos à rota': 'Añadir códigos a la ruta',
+    'Arquivo de códigos': 'Archivo de códigos',
+    'Importar arquivo': 'Importar archivo',
+    'Exportar backup JSON': 'Exportar copia JSON',
+    'Adicionar rota': 'Añadir ruta',
+    'Nome da nova rota': 'Nombre de la nueva ruta',
+    'Selecionar Tudo': 'Seleccionar todo',
+    'Deselecionar Tudo': 'Deseleccionar todo',
+    'Imprimir selecionadas': 'Imprimir seleccionadas',
+    'selecionadas': 'seleccionadas',
+    'Imprimir selecionadas da rota': 'Imprimir seleccionadas de la ruta',
+    'Imprimir números desta rota': 'Imprimir números de esta ruta',
+    'Imprimir números': 'Imprimir números',
+    'Editar numeração': 'Editar numeración',
+    'Novo número da saca': 'Nuevo número de la saca',
+    'As sacas seguintes desta rota serão renumeradas em sequência. O campo assignment do QR Code também será atualizado.': 'Las sacas siguientes de esta ruta se renumerarán en secuencia. El campo assignment del código QR también se actualizará.',
+    'Retirar rota': 'Retirar ruta',
+    'Nenhuma saca nesta rota. Importe um arquivo ou adicione um QR Code.': 'No hay sacas en esta ruta. Importe un archivo o añada un código QR.',
+    'Crie uma rota para começar a organizar seus QR Codes.': 'Cree una ruta para empezar a organizar sus códigos QR.'
   };
 
   var CHAVES = Object.keys(DICIONARIO).sort(function (a, b) {

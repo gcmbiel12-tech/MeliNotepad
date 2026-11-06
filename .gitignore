@@ -14,3 +14,7 @@ tests/test-results/
 /wip/
 /inventario-melinotepad.csv
 /supabase/.temp/
+
+# backups operacionais locais de QR Sacas (nao versionar)
+/dados/qr-sacas/*
+!/dados/qr-sacas/README.md

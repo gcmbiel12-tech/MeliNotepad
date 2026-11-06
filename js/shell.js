@@ -7,7 +7,7 @@
 (function (global) {
   'use strict';
   var NS = global.MeliNotepad = global.MeliNotepad || {};
-  var MODULOS = ['app', 'nex', 'xpt', 'intervalos'];
+  var MODULOS = ['app', 'nex', 'xpt', 'qr-sacas', 'intervalos'];
   var CHAVE_UI = 'melinotepad_ui_v1';
   var atual = null;
 
