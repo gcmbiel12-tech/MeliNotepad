@@ -1,0 +1,599 @@
+Saca 1
+{"container_id":1652050,"facility_id":"SSC2","assignment":"1"}
+
+Saca 2
+{"container_id":5938612,"facility_id":"SSC2","assignment":"2"}
+
+Saca 3
+{"container_id":5938619,"facility_id":"SSC2","assignment":"3"}
+
+Saca 4
+{"container_id":5938626,"facility_id":"SSC2","assignment":"4"}
+
+Saca 5
+{"container_id":5938633,"facility_id":"SSC2","assignment":"5"}
+
+Saca 6
+{"container_id":5938640,"facility_id":"SSC2","assignment":"6"}
+
+Saca 7
+{"container_id":5938647,"facility_id":"SSC2","assignment":"7"}
+
+Saca 8
+{"container_id":5938654,"facility_id":"SSC2","assignment":"8"}
+
+Saca 9
+{"container_id":5938661,"facility_id":"SSC2","assignment":"9"}
+
+Saca 10
+{"container_id":5938668,"facility_id":"SSC2","assignment":"10"}
+
+Saca 11
+{"container_id":5938675,"facility_id":"SSC2","assignment":"11"}
+
+Saca 12
+{"container_id":5938682,"facility_id":"SSC2","assignment":"12"}
+
+Saca 13
+{"container_id":5938689,"facility_id":"SSC2","assignment":"13"}
+
+Saca 14
+{"container_id":5938696,"facility_id":"SSC2","assignment":"14"}
+
+Saca 15
+{"container_id":5938703,"facility_id":"SSC2","assignment":"15"}
+
+Saca 16
+{"container_id":5938710,"facility_id":"SSC2","assignment":"16"}
+
+Saca 17
+{"container_id":5938717,"facility_id":"SSC2","assignment":"17"}
+
+Saca 18
+{"container_id":5938724,"facility_id":"SSC2","assignment":"18"}
+
+Saca 19
+{"container_id":5938731,"facility_id":"SSC2","assignment":"19"}
+
+Saca 20
+{"container_id":5938738,"facility_id":"SSC2","assignment":"20"}
+
+Saca 21
+{"container_id":5938745,"facility_id":"SSC2","assignment":"21"}
+
+Saca 22
+{"container_id":5938752,"facility_id":"SSC2","assignment":"22"}
+
+Saca 23
+{"container_id":5938759,"facility_id":"SSC2","assignment":"23"}
+
+Saca 24
+{"container_id":5938766,"facility_id":"SSC2","assignment":"24"}
+
+Saca 25
+{"container_id":5938773,"facility_id":"SSC2","assignment":"25"}
+
+Saca 26
+{"container_id":5938780,"facility_id":"SSC2","assignment":"26"}
+
+Saca 27
+{"container_id":5938787,"facility_id":"SSC2","assignment":"27"}
+
+Saca 28
+{"container_id":5938794,"facility_id":"SSC2","assignment":"28"}
+
+Saca 29
+{"container_id":5938801,"facility_id":"SSC2","assignment":"29"}
+
+Saca 30
+{"container_id":5938808,"facility_id":"SSC2","assignment":"30"}
+
+Saca 31
+{"container_id":5938815,"facility_id":"SSC2","assignment":"31"}
+
+Saca 32
+{"container_id":5938822,"facility_id":"SSC2","assignment":"32"}
+
+Saca 33
+{"container_id":5938829,"facility_id":"SSC2","assignment":"33"}
+
+Saca 34
+{"container_id":5938836,"facility_id":"SSC2","assignment":"34"}
+
+Saca 35
+{"container_id":5938843,"facility_id":"SSC2","assignment":"35"}
+
+Saca 36
+{"container_id":5938850,"facility_id":"SSC2","assignment":"36"}
+
+Saca 37
+{"container_id":5938857,"facility_id":"SSC2","assignment":"37"}
+
+Saca 38
+{"container_id":5938864,"facility_id":"SSC2","assignment":"38"}
+
+Saca 39
+{"container_id":5938871,"facility_id":"SSC2","assignment":"39"}
+
+Saca 40
+{"container_id":5938878,"facility_id":"SSC2","assignment":"40"}
+
+Saca 41
+{"container_id":5938885,"facility_id":"SSC2","assignment":"41"}
+
+Saca 42
+{"container_id":5938892,"facility_id":"SSC2","assignment":"42"}
+
+Saca 43
+{"container_id":5938899,"facility_id":"SSC2","assignment":"43"}
+
+Saca 44
+{"container_id":5938906,"facility_id":"SSC2","assignment":"44"}
+
+Saca 45
+{"container_id":5938913,"facility_id":"SSC2","assignment":"45"}
+
+Saca 46
+{"container_id":5938920,"facility_id":"SSC2","assignment":"46"}
+
+Saca 47
+{"container_id":5938927,"facility_id":"SSC2","assignment":"47"}
+
+Saca 48
+{"container_id":5938934,"facility_id":"SSC2","assignment":"48"}
+
+Saca 49
+{"container_id":5938941,"facility_id":"SSC2","assignment":"49"}
+
+Saca 50
+{"container_id":5938948,"facility_id":"SSC2","assignment":"50"}
+
+Saca 51
+{"container_id":5938955,"facility_id":"SSC2","assignment":"51"}
+
+Saca 52
+{"container_id":5938962,"facility_id":"SSC2","assignment":"52"}
+
+Saca 53
+{"container_id":5938969,"facility_id":"SSC2","assignment":"53"}
+
+Saca 54
+{"container_id":5938976,"facility_id":"SSC2","assignment":"54"}
+
+Saca 55
+{"container_id":5938983,"facility_id":"SSC2","assignment":"55"}
+
+Saca 56
+{"container_id":5938990,"facility_id":"SSC2","assignment":"56"}
+
+Saca 57
+{"container_id":5938997,"facility_id":"SSC2","assignment":"57"}
+
+Saca 58
+{"container_id":5939004,"facility_id":"SSC2","assignment":"58"}
+
+Saca 59
+{"container_id":5939011,"facility_id":"SSC2","assignment":"59"}
+
+Saca 60
+{"container_id":5939018,"facility_id":"SSC2","assignment":"60"}
+
+Saca 61
+{"container_id":5939025,"facility_id":"SSC2","assignment":"61"}
+
+Saca 62
+{"container_id":5939032,"facility_id":"SSC2","assignment":"62"}
+
+Saca 63
+{"container_id":5939039,"facility_id":"SSC2","assignment":"63"}
+
+Saca 64
+{"container_id":5939046,"facility_id":"SSC2","assignment":"64"}
+
+Saca 65
+{"container_id":5939053,"facility_id":"SSC2","assignment":"65"}
+
+Saca 66
+{"container_id":5939060,"facility_id":"SSC2","assignment":"66"}
+
+Saca 67
+{"container_id":5939067,"facility_id":"SSC2","assignment":"67"}
+
+Saca 68
+{"container_id":5939074,"facility_id":"SSC2","assignment":"68"}
+
+Saca 69
+{"container_id":5939081,"facility_id":"SSC2","assignment":"69"}
+
+Saca 70
+{"container_id":5939088,"facility_id":"SSC2","assignment":"70"}
+
+Saca 71
+{"container_id":5939753,"facility_id":"SSC2","assignment":"71"}
+
+Saca 72
+{"container_id":5939760,"facility_id":"SSC2","assignment":"72"}
+
+Saca 73
+{"container_id":5939767,"facility_id":"SSC2","assignment":"73"}
+
+Saca 74
+{"container_id":5939774,"facility_id":"SSC2","assignment":"74"}
+
+Saca 75
+{"container_id":5939781,"facility_id":"SSC2","assignment":"75"}
+
+Saca 76
+{"container_id":5939788,"facility_id":"SSC2","assignment":"76"}
+
+Saca 77
+{"container_id":5939795,"facility_id":"SSC2","assignment":"77"}
+
+Saca 78
+{"container_id":5939802,"facility_id":"SSC2","assignment":"78"}
+
+Saca 79
+{"container_id":5939809,"facility_id":"SSC2","assignment":"79"}
+
+Saca 80
+{"container_id":5939816,"facility_id":"SSC2","assignment":"80"}
+
+Saca 81
+{"container_id":5939823,"facility_id":"SSC2","assignment":"81"}
+
+Saca 82
+{"container_id":5939830,"facility_id":"SSC2","assignment":"82"}
+
+Saca 83
+{"container_id":5939837,"facility_id":"SSC2","assignment":"83"}
+
+Saca 84
+{"container_id":5939844,"facility_id":"SSC2","assignment":"84"}
+
+Saca 85
+{"container_id":5939851,"facility_id":"SSC2","assignment":"85"}
+
+Saca 86
+{"container_id":5939858,"facility_id":"SSC2","assignment":"86"}
+
+Saca 87
+{"container_id":5939865,"facility_id":"SSC2","assignment":"87"}
+
+Saca 88
+{"container_id":5939872,"facility_id":"SSC2","assignment":"88"}
+
+Saca 89
+{"container_id":5939879,"facility_id":"SSC2","assignment":"89"}
+
+Saca 90
+{"container_id":5939886,"facility_id":"SSC2","assignment":"90"}
+
+Saca 91
+{"container_id":5939893,"facility_id":"SSC2","assignment":"91"}
+
+Saca 92
+{"container_id":5939900,"facility_id":"SSC2","assignment":"92"}
+
+Saca 93
+{"container_id":5939907,"facility_id":"SSC2","assignment":"93"}
+
+Saca 94
+{"container_id":5939914,"facility_id":"SSC2","assignment":"94"}
+
+Saca 95
+{"container_id":5939921,"facility_id":"SSC2","assignment":"95"}
+
+Saca 96
+{"container_id":5939928,"facility_id":"SSC2","assignment":"96"}
+
+Saca 97
+{"container_id":5939935,"facility_id":"SSC2","assignment":"97"}
+
+Saca 98
+{"container_id":5939942,"facility_id":"SSC2","assignment":"98"}
+
+Saca 99
+{"container_id":5939949,"facility_id":"SSC2","assignment":"99"}
+
+Saca 100
+{"container_id":5939956,"facility_id":"SSC2","assignment":"100"}
+
+Saca 101
+{"container_id":5939963,"facility_id":"SSC2","assignment":"101"}
+
+Saca 102
+{"container_id":5939970,"facility_id":"SSC2","assignment":"102"}
+
+Saca 103
+{"container_id":5939977,"facility_id":"SSC2","assignment":"103"}
+
+Saca 104
+{"container_id":5939984,"facility_id":"SSC2","assignment":"104"}
+
+Saca 105
+{"container_id":5939991,"facility_id":"SSC2","assignment":"105"}
+
+Saca 106
+{"container_id":5939998,"facility_id":"SSC2","assignment":"106"}
+
+Saca 107
+{"container_id":5940005,"facility_id":"SSC2","assignment":"107"}
+
+Saca 108
+{"container_id":5940012,"facility_id":"SSC2","assignment":"108"}
+
+Saca 109
+{"container_id":5940019,"facility_id":"SSC2","assignment":"109"}
+
+Saca 110
+{"container_id":5940026,"facility_id":"SSC2","assignment":"110"}
+
+Saca 111
+{"container_id":5940033,"facility_id":"SSC2","assignment":"111"}
+
+Saca 112
+{"container_id":5940040,"facility_id":"SSC2","assignment":"112"}
+
+Saca 113
+{"container_id":5940047,"facility_id":"SSC2","assignment":"113"}
+
+Saca 114
+{"container_id":5940054,"facility_id":"SSC2","assignment":"114"}
+
+Saca 115
+{"container_id":5940061,"facility_id":"SSC2","assignment":"115"}
+
+Saca 116
+{"container_id":5940068,"facility_id":"SSC2","assignment":"116"}
+
+Saca 117
+{"container_id":5940075,"facility_id":"SSC2","assignment":"117"}
+
+Saca 118
+{"container_id":5940082,"facility_id":"SSC2","assignment":"118"}
+
+Saca 119
+{"container_id":5940089,"facility_id":"SSC2","assignment":"119"}
+
+Saca 120
+{"container_id":5940096,"facility_id":"SSC2","assignment":"120"}
+
+Saca 121
+{"container_id":5940103,"facility_id":"SSC2","assignment":"121"}
+
+Saca 122
+{"container_id":5940110,"facility_id":"SSC2","assignment":"122"}
+
+Saca 123
+{"container_id":5940117,"facility_id":"SSC2","assignment":"123"}
+
+Saca 124
+{"container_id":5940124,"facility_id":"SSC2","assignment":"124"}
+
+Saca 125
+{"container_id":5940131,"facility_id":"SSC2","assignment":"125"}
+
+Saca 126
+{"container_id":5940138,"facility_id":"SSC2","assignment":"126"}
+
+Saca 127
+{"container_id":5940145,"facility_id":"SSC2","assignment":"127"}
+
+Saca 128
+{"container_id":5940152,"facility_id":"SSC2","assignment":"128"}
+
+Saca 129
+{"container_id":5940159,"facility_id":"SSC2","assignment":"129"}
+
+Saca 130
+{"container_id":5940166,"facility_id":"SSC2","assignment":"130"}
+
+Saca 131
+{"container_id":5940173,"facility_id":"SSC2","assignment":"131"}
+
+Saca 132
+{"container_id":5940180,"facility_id":"SSC2","assignment":"132"}
+
+Saca 133
+{"container_id":5940187,"facility_id":"SSC2","assignment":"133"}
+
+Saca 134
+{"container_id":5940194,"facility_id":"SSC2","assignment":"134"}
+
+Saca 135
+{"container_id":5940201,"facility_id":"SSC2","assignment":"135"}
+
+Saca 136
+{"container_id":5940208,"facility_id":"SSC2","assignment":"136"}
+
+Saca 137
+{"container_id":5940215,"facility_id":"SSC2","assignment":"137"}
+
+Saca 138
+{"container_id":5940222,"facility_id":"SSC2","assignment":"138"}
+
+Saca 139
+{"container_id":5940229,"facility_id":"SSC2","assignment":"139"}
+
+Saca 140
+{"container_id":5940236,"facility_id":"SSC2","assignment":"140"}
+
+Saca 141
+{"container_id":5940243,"facility_id":"SSC2","assignment":"141"}
+
+Saca 142
+{"container_id":5940250,"facility_id":"SSC2","assignment":"142"}
+
+Saca 143
+{"container_id":5940257,"facility_id":"SSC2","assignment":"143"}
+
+Saca 144
+{"container_id":5940264,"facility_id":"SSC2","assignment":"144"}
+
+Saca 145
+{"container_id":5940271,"facility_id":"SSC2","assignment":"145"}
+
+Saca 146
+{"container_id":5940278,"facility_id":"SSC2","assignment":"146"}
+
+Saca 147
+{"container_id":5940285,"facility_id":"SSC2","assignment":"147"}
+
+Saca 148
+{"container_id":5940292,"facility_id":"SSC2","assignment":"148"}
+
+Saca 149
+{"container_id":5940299,"facility_id":"SSC2","assignment":"149"}
+
+Saca 150
+{"container_id":5940306,"facility_id":"SSC2","assignment":"150"}
+
+Saca 151
+{"container_id":5940313,"facility_id":"SSC2","assignment":"151"}
+
+Saca 152
+{"container_id":5940320,"facility_id":"SSC2","assignment":"152"}
+
+Saca 153
+{"container_id":5940327,"facility_id":"SSC2","assignment":"153"}
+
+Saca 154
+{"container_id":5940334,"facility_id":"SSC2","assignment":"154"}
+
+Saca 155
+{"container_id":5940341,"facility_id":"SSC2","assignment":"155"}
+
+Saca 156
+{"container_id":5940348,"facility_id":"SSC2","assignment":"156"}
+
+Saca 157
+{"container_id":5940355,"facility_id":"SSC2","assignment":"157"}
+
+Saca 158
+{"container_id":5940362,"facility_id":"SSC2","assignment":"158"}
+
+Saca 159
+{"container_id":5940369,"facility_id":"SSC2","assignment":"159"}
+
+Saca 160
+{"container_id":5940376,"facility_id":"SSC2","assignment":"160"}
+
+Saca 161
+{"container_id":5940383,"facility_id":"SSC2","assignment":"161"}
+
+Saca 162
+{"container_id":5940390,"facility_id":"SSC2","assignment":"162"}
+
+Saca 163
+{"container_id":5940397,"facility_id":"SSC2","assignment":"163"}
+
+Saca 164
+{"container_id":5940404,"facility_id":"SSC2","assignment":"164"}
+
+Saca 165
+{"container_id":5940411,"facility_id":"SSC2","assignment":"165"}
+
+Saca 166
+{"container_id":5940418,"facility_id":"SSC2","assignment":"166"}
+
+Saca 167
+{"container_id":5940425,"facility_id":"SSC2","assignment":"167"}
+
+Saca 168
+{"container_id":5940432,"facility_id":"SSC2","assignment":"168"}
+
+Saca 169
+{"container_id":5940439,"facility_id":"SSC2","assignment":"169"}
+
+Saca 170
+{"container_id":5940446,"facility_id":"SSC2","assignment":"170"}
+
+Saca 171
+{"container_id":5940453,"facility_id":"SSC2","assignment":"171"}
+
+Saca 172
+{"container_id":5940460,"facility_id":"SSC2","assignment":"172"}
+
+Saca 173
+{"container_id":5940467,"facility_id":"SSC2","assignment":"173"}
+
+Saca 174
+{"container_id":5940474,"facility_id":"SSC2","assignment":"174"}
+
+Saca 175
+{"container_id":5940481,"facility_id":"SSC2","assignment":"175"}
+
+Saca 176
+{"container_id":5940488,"facility_id":"SSC2","assignment":"176"}
+
+Saca 177
+{"container_id":5940495,"facility_id":"SSC2","assignment":"177"}
+
+Saca 178
+{"container_id":5940502,"facility_id":"SSC2","assignment":"178"}
+
+Saca 179
+{"container_id":5940509,"facility_id":"SSC2","assignment":"179"}
+
+Saca 180
+{"container_id":5940516,"facility_id":"SSC2","assignment":"180"}
+
+Saca 181
+{"container_id":5940523,"facility_id":"SSC2","assignment":"181"}
+
+Saca 182
+{"container_id":5940530,"facility_id":"SSC2","assignment":"182"}
+
+Saca 183
+{"container_id":5940537,"facility_id":"SSC2","assignment":"183"}
+
+Saca 184
+{"container_id":5940544,"facility_id":"SSC2","assignment":"184"}
+
+Saca 185
+{"container_id":5940551,"facility_id":"SSC2","assignment":"185"}
+
+Saca 186
+{"container_id":5940558,"facility_id":"SSC2","assignment":"186"}
+
+Saca 187
+{"container_id":5940565,"facility_id":"SSC2","assignment":"187"}
+
+Saca 188
+{"container_id":5940572,"facility_id":"SSC2","assignment":"188"}
+
+Saca 189
+{"container_id":5940579,"facility_id":"SSC2","assignment":"189"}
+
+Saca 190
+{"container_id":5940586,"facility_id":"SSC2","assignment":"190"}
+
+Saca 191
+{"container_id":5940593,"facility_id":"SSC2","assignment":"191"}
+
+Saca 192
+{"container_id":5940600,"facility_id":"SSC2","assignment":"192"}
+
+Saca 193
+{"container_id":5940607,"facility_id":"SSC2","assignment":"193"}
+
+Saca 194
+{"container_id":5940614,"facility_id":"SSC2","assignment":"194"}
+
+Saca 195
+{"container_id":5940621,"facility_id":"SSC2","assignment":"195"}
+
+Saca 196
+{"container_id":5940628,"facility_id":"SSC2","assignment":"196"}
+
+Saca 197
+{"container_id":5940635,"facility_id":"SSC2","assignment":"197"}
+
+Saca 198
+{"container_id":5940642,"facility_id":"SSC2","assignment":"198"}
+
+Saca 199
+{"container_id":5940649,"facility_id":"SSC2","assignment":"199"}
+
+Saca 200
+{"container_id":5940656,"facility_id":"SSC2","assignment":"200"}

@@ -51,6 +51,7 @@
   var expandidas = Object.create(null);
   var quantidadeCopias = 6;
   var copiasPorRota = Object.create(null);
+  var ultimaSolicitacaoImpressao = 0;
   var statusImportacao = '';
   var ultimaRolagemInteracao = null;
   var app = null;
@@ -79,6 +80,77 @@
   function escapar(valor) {
     return String(valor == null ? '' : valor).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  var catalogoPayloads = null;
+  var promessaCatalogoPayloads = null;
+
+  function carregarCatalogoPayloads() {
+    if (catalogoPayloads) return Promise.resolve(catalogoPayloads);
+    if (promessaCatalogoPayloads) return promessaCatalogoPayloads;
+    if (typeof global.fetch !== 'function') return Promise.reject(new Error('O navegador não permite carregar o catálogo de QR Codes.'));
+    promessaCatalogoPayloads = global.fetch('dados/qr-sacas/Sacas-1-200.txt', { cache: 'no-store' }).then(function (resposta) {
+      if (!resposta.ok) throw new Error('Catálogo de QR Codes indisponível (' + resposta.status + ').');
+      return resposta.text();
+    }).then(function (texto) {
+      var catalogo = Object.create(null);
+      var expressao = /^Saca\s+(\d+)\s*\r?\n(\{[^\r\n]+\})/gm;
+      var correspondencia;
+      while ((correspondencia = expressao.exec(texto))) {
+        var numeroBruto = correspondencia[1];
+        var numero = String(Number(numeroBruto));
+        var leitura = Regras.interpretarPayload(correspondencia[2]);
+        if (!Regras.numeroInteiro(numeroBruto) || numeroBruto !== numero ||
+            !leitura.valido || leitura.payload.assignment !== numero ||
+            !Number.isSafeInteger(Number(leitura.payload.container_id)) || Number(leitura.payload.container_id) <= 0 ||
+            catalogo[numero]) {
+          throw new Error('O catalogo de QR Codes contem registro invalido ou duplicado na saca ' + numero + '.');
+        }
+        catalogo[numero] = leitura.payload;
+      }
+      var numerosCatalogo = Object.keys(catalogo);
+      if (numerosCatalogo.length !== 200 ||
+          numerosCatalogo.some(function (numero, indice) { return Number(numero) !== indice + 1; })) {
+        throw new Error('O catalogo de QR Codes deve conter exatamente as sacas de 1 a 200. Registros encontrados: ' + numerosCatalogo.length + '.');
+      }
+      catalogoPayloads = catalogo;
+      return catalogoPayloads;
+    }).catch(function (erro) {
+      promessaCatalogoPayloads = null;
+      throw erro;
+    });
+    return promessaCatalogoPayloads;
+  }
+
+  function aplicarCatalogoPayloads(estado) {
+    var associados = 0;
+    var conflitos = [];
+    if (!catalogoPayloads) return { associados: associados, conflitos: conflitos };
+    estado.rotas.forEach(function (rota) {
+      rota.sacas.forEach(function (saca) {
+        var payload = catalogoPayloads[String(Number(saca.numero))];
+        if (!payload) return;
+        if (!saca.payload) {
+          saca.payload = {
+            container_id: payload.container_id,
+            facility_id: payload.facility_id,
+            assignment: payload.assignment
+          };
+          associados++;
+        } else if (String(saca.payload.assignment) !== String(saca.numero)) {
+          conflitos.push(String(saca.numero));
+        }
+      });
+    });
+    return { associados: associados, conflitos: conflitos };
+  }
+
+  function temPayloadCatalogoPendente(estado) {
+    if (!catalogoPayloads) return false;
+    return estado.rotas.some(function (rota) {
+      return rota.sacas.some(function (saca) {
+        return !saca.payload && !!catalogoPayloads[String(Number(saca.numero))];
+      });
     });
   }
   function salvar(mutacao) {
@@ -123,9 +195,11 @@
     var total = totalSelecionadas();
     var resumo = document.getElementById('qr-sacas-selecao-resumo');
     var botaoImprimir = document.getElementById('qr-sacas-imprimir');
+    var botaoImprimirZebra = document.getElementById('qr-sacas-imprimir-zebra');
     var botaoLimpar = document.getElementById('qr-sacas-deselecionar-tudo');
     if (resumo) resumo.textContent = total + (total === 1 ? ' saca selecionada' : ' sacas selecionadas');
     if (botaoImprimir) botaoImprimir.disabled = total === 0;
+    if (botaoImprimirZebra) botaoImprimirZebra.disabled = total === 0;
     if (botaoLimpar) botaoLimpar.disabled = total === 0;
   }
   function selecionarTodasSacas() {
@@ -273,6 +347,10 @@
     imprimir.id = 'qr-sacas-imprimir';
     imprimir.disabled = totalSelecionadas() === 0;
     acoesRotas.appendChild(imprimir);
+    var imprimirZebra = botao('Imprimir Zebra', 'botao--secundario', function () { imprimirSelecionadas('zebra'); });
+    imprimirZebra.id = 'qr-sacas-imprimir-zebra';
+    imprimirZebra.disabled = totalSelecionadas() === 0;
+    acoesRotas.appendChild(imprimirZebra);
     painel.appendChild(acoesRotas);
     var resumoSelecao = criar('p', 'qr-sacas__selecao-resumo', totalSelecionadas() + (totalSelecionadas() === 1 ? ' saca selecionada' : ' sacas selecionadas'));
     resumoSelecao.id = 'qr-sacas-selecao-resumo';
@@ -674,11 +752,13 @@
     if (botaoImportar) botaoImportar.disabled = true;
     mensagemStatus('Lendo e validando a planilha...', 'info');
     NS.NexPlanilha.analisarArquivo(arquivo).then(function (resultado) {
+      return carregarCatalogoPayloads().catch(function () { return null; }).then(function () {
       if (!resultado || !Array.isArray(resultado.rotas) || !resultado.rotas.length) {
         throw new Error('A planilha n\u00e3o cont\u00e9m rotas HYBRID para importar.');
       }
       var importadas = 0;
       var atualizadas = 0;
+      var associacaoCatalogo = { associados: 0, conflitos: [] };
       var gravacao = store.mutar(function (estado) {
         estado.rotas.forEach(function (rota) { rota.sacas = []; delete rota.pacotesEstimados; });
         var rotasOrdenadas = resultado.rotas.slice().sort(function (a, b) {
@@ -708,14 +788,17 @@
             destino.sacas.push({ id: id('saca'), numero: String(proximoNumero++), payload: null });
           }
         });
+        associacaoCatalogo = aplicarCatalogoPayloads(estado);
         return true;
       });
       if (!gravacao.sucesso) throw new Error(gravacao.erro || 'N\u00e3o foi poss\u00edvel salvar as rotas importadas.');
       dados = gravacao.dados;
       selecionadas = Object.create(null);
       mensagemStatus('Importa\u00e7\u00e3o conclu\u00edda: ' + resultado.rotas.length + ' rota(s) e ' +
-        resultado.totalSacas + ' sacas. ' + importadas + ' rota(s) adicionada(s) e ' + atualizadas + ' atualizada(s).', 'sucesso');
+        resultado.totalSacas + ' sacas. ' + importadas + ' rota(s) adicionada(s) e ' + atualizadas +
+        ' atualizada(s). ' + associacaoCatalogo.associados + ' QR Codes associados.', 'sucesso');
       manterRolagem(renderizar);
+      });
     }).catch(function (erro) {
       mensagemStatus(erro && erro.message ? erro.message : 'N\u00e3o foi poss\u00edvel importar a planilha.', 'erro');
     }).then(function () {
@@ -731,43 +814,88 @@
     UI.avisar('Backup QR Sacas preparado. Salve o arquivo em dados/qr-sacas/ para manter uma cópia no projeto.', 'sucesso');
   }
 
-  function imprimirItens(itens) {
-    var semPayload = (itens || []).filter(function (item) {
-      var payload = item.saca && item.saca.payload;
-      return !payload || payload.container_id === undefined || payload.container_id === null ||
-        typeof payload.facility_id !== 'string' || !payload.facility_id.trim() ||
-        String(payload.assignment) !== String(item.saca.numero);
-    });
-    if (semPayload.length) {
-      UI.avisar('Nao foi possivel imprimir. Falta QR Code correspondente para as sacas: ' +
-        semPayload.map(function (item) { return item.saca.numero; }).join(', ') +
-        '. A numeracao importada da planilha ainda nao possui os payloads dos QR Codes.', 'erro');
+  function imprimirItens(itens, formato) {
+    formato = formato === 'zebra' ? 'zebra' : 'a4';
+    if (Date.now() - ultimaSolicitacaoImpressao < 1500) {
+      UI.avisar('Wait briefly before starting another print.', 'erro');
       return;
     }
-    if (!itens || !itens.length) { UI.avisar('Nenhuma saca selecionada para impressão.', 'erro'); return; }
-    if (typeof global.qrcode !== 'function') { UI.avisar('O gerador de QR Code não foi carregado.', 'erro'); return; }
-    var janela = global.open('', '_blank');
-    if (!janela) { UI.avisar('O navegador bloqueou a janela de impressão. Permita pop-ups para este site.', 'erro'); return; }
-    var conteudo = '';
-    var rotaAtual = null;
+    if (!itens || !itens.length) { UI.avisar('Nenhuma saca selecionada para impressǜo.', 'erro'); return; }
+    var semPayload = [];
+    var assignments = Object.create(null);
+    var totalEtiquetas = 0;
     itens.forEach(function (item) {
-      if (item.rota !== rotaAtual) {
-        rotaAtual = item.rota;
-        conteudo += '<h2 class="rota">' + escapar(rotaAtual) + '</h2>';
+      var leitura = Regras.interpretarPayload(item.saca && item.saca.payload);
+      var numero = String(item.saca && item.saca.numero);
+      var copias = item.copias === undefined || item.copias === null ? 6 : Number(item.copias);
+      if (!leitura.valido || leitura.payload.assignment !== numero ||
+          !Number.isSafeInteger(Number(leitura.payload.container_id)) || Number(leitura.payload.container_id) <= 0) {
+        semPayload.push(numero);
+        return;
       }
-      var copiasItem = Math.max(1, Number(item.copias) || 6);
-      for (var copia = 0; copia < copiasItem; copia++) {
-        var qr = global.qrcode(0, 'M');
-        qr.addData(JSON.stringify(item.saca.payload), 'Byte');
-        qr.make();
-        conteudo += '<article class="etiqueta"><strong class="numero">Saca ' + escapar(item.saca.numero) + '</strong>' + qr.createSvgTag(5, 2) + '</article>';
+      if (assignments[leitura.payload.assignment]) {
+        semPayload.push(numero + ' (assignment duplicado ' + leitura.payload.assignment + ')');
+        return;
       }
+      assignments[leitura.payload.assignment] = true;
+      if (!Number.isSafeInteger(copias) || copias < 1) {
+        semPayload.push(numero + ' (quantidade invǭlida)');
+        return;
+      }
+      totalEtiquetas += copias;
     });
+    if (semPayload.length) {
+      UI.avisar('Impressǜo bloqueada. Corrija os QR Codes ou assignments destas sacas: ' + semPayload.join(', ') + '.', 'erro');
+      return;
+    }
+    if (totalEtiquetas > 2000) {
+      UI.avisar('Impressǜo bloqueada: o trabalho teria ' + totalEtiquetas +
+        ' etiquetas. Divida em trabalhos menores (limite de seguranǟa: 2.000).', 'erro');
+      return;
+    }
+    if (totalEtiquetas > 300 && !global.confirm('Este trabalho gerarǭ ' + totalEtiquetas +
+        ' etiquetas. A preparaǟǜo pode levar algum tempo. Deseja continuar?')) return;
+    if (typeof global.qrcode !== 'function') { UI.avisar('O gerador de QR Code nǜo foi carregado.', 'erro'); return; }
+    var janela = global.open('', '_blank');
+    if (!janela) {
+      UI.avisar('O navegador bloqueou a janela de impressǜo. Permita pop-ups para este site.', 'erro');
+      return;
+    }
+    var conteudo = '';
+    try {
+      itens.forEach(function (item) {
+        var copiasItem = item.copias === undefined || item.copias === null ? 6 : Number(item.copias);
+        for (var copia = 0; copia < copiasItem; copia++) {
+          var qr = global.qrcode(0, 'M');
+          qr.addData(JSON.stringify(item.saca.payload), 'Byte');
+          qr.make();
+          if (formato === 'zebra') {
+            conteudo += '<article class="etiqueta"><section class="face face-info"><strong class="rota">' + escapar(item.rota) + '</strong>' +
+              '<strong class="numero">SACA ' + escapar(item.saca.numero) + '</strong></section>' +
+              '<section class="face face-qr"><span class="marcador-dobra">DOBRA</span>' + qr.createSvgTag(5, 2) + '</section></article>';
+          } else {
+            conteudo += '<article class="etiqueta"><strong class="rota">' + escapar(item.rota) + '</strong>' +
+              qr.createSvgTag(5, 2) +
+              '<strong class="numero">SACA ' + escapar(item.saca.numero) + '</strong></article>';
+          }
+        }
+      });
+    } catch (erroGeracao) {
+      try { janela.close(); } catch (erroFechar) {}
+      UI.avisar('Nǜo foi possǧvel gerar as etiquetas. Nenhum trabalho foi enviado ǭ impressora. ' +
+        (erroGeracao && erroGeracao.message ? erroGeracao.message : ''), 'erro');
+      return;
+    }
+    var estilo = formato === 'zebra' ?
+      '@page{size:100mm 150mm;margin:0}*{box-sizing:border-box}html,body{width:100mm;margin:0;padding:0;font:14px Arial,sans-serif;color:#172033;background:#fff}.folha{width:100mm;margin:0;padding:0}.etiqueta{display:grid;grid-template-rows:75mm 75mm;width:100mm;height:150mm;margin:0;padding:0;overflow:hidden;break-after:page;break-inside:avoid;background:#fff}.etiqueta:last-child{break-after:auto}.face{width:100mm;height:75mm;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}.face-info{flex-direction:column;gap:13mm;padding:7mm}.rota{display:flex;align-items:center;justify-content:center;min-width:28mm;min-height:14mm;padding:2mm 6mm;border:0.6mm solid #172033;border-radius:2mm;color:#172033;font-size:22pt;font-weight:800;line-height:1;letter-spacing:.08em}.numero{display:block;margin:0;color:#172033;font-size:27pt;font-weight:800;line-height:1;letter-spacing:.035em}.face-qr{border-top:0.6mm dotted #303846;padding:0}.face-qr svg{display:block;width:64mm;height:64mm;max-width:64mm;max-height:64mm;flex:0 0 auto}.marcador-dobra{position:absolute;top:0;left:50%;transform:translate(-50%,-50%);padding:0 2.5mm;background:#fff;color:#172033;font-size:7pt;font-weight:800;letter-spacing:.1em;line-height:1.2}@media screen{body{padding:8mm;background:#e9edf2}.etiqueta{margin:0 auto 8mm;box-shadow:0 2px 10px rgba(20,32,50,.12)}}' :
+      '@page{size:A4;margin:2mm}*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#172033;margin:0;background:#fff}.folha{display:grid;grid-template-columns:repeat(2,100mm);grid-auto-rows:144mm;gap:4mm;align-content:start;justify-content:center}.etiqueta{display:flex;width:100mm;height:144mm;max-width:100mm;max-height:144mm;padding:5mm 4mm;border:1px solid #d7dce5;border-radius:3mm;flex-direction:column;align-items:center;justify-content:space-between;break-inside:avoid;background:#fff;overflow:hidden}.rota{display:block;margin:0;color:#172033;font-size:24pt;font-weight:800;line-height:1;letter-spacing:.06em}.etiqueta svg{display:block;width:88mm;height:88mm;max-width:100%;flex:0 0 auto}.numero{display:block;margin:0;color:#172033;font-size:20pt;font-weight:800;line-height:1;letter-spacing:.04em}@media screen{body{padding:8mm;background:#f3f5f8}.folha{width:max-content;margin:0 auto}.etiqueta{box-shadow:0 2px 8px rgba(20,32,50,.08)}}@media print{.folha{gap:4mm}.etiqueta{border:1px solid #cfd5df;border-radius:2mm;break-inside:avoid}}';
     janela.document.open();
-    janela.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>QR Sacas - Impressão</title><style>@page{size:A4;margin:9mm}*{box-sizing:border-box}body{font:14px Arial,sans-serif;color:#111;margin:0}.rota{font-size:17px;margin:0 0 8mm;padding-bottom:2mm;border-bottom:1px solid #aaa;break-after:avoid}.etiqueta{display:inline-flex;vertical-align:top;width:48%;min-height:68mm;margin:0 1% 5mm 0;padding:4mm;border:1px dashed #999;flex-direction:column;align-items:center;justify-content:center;break-inside:avoid}.numero{font-size:24px;margin-bottom:3mm}.etiqueta svg{width:48mm;height:48mm;max-width:100%}@media print{.etiqueta{break-inside:avoid}}</style></head><body>' + conteudo + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print()},350)});</script></body></html>');
+    janela.document.write('<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>QR Sacas - Impressǜo ' + (formato === 'zebra' ? 'Zebra' : 'A4') + '</title><style>' + estilo + '</style></head><body><main class="folha">' + conteudo + '</main><script>window.addEventListener("load",function(){setTimeout(function(){window.print()},350)});</script></body></html>');
     janela.document.close();
+    ultimaSolicitacaoImpressao = Date.now();
   }
-  function imprimirSelecionadas() {
+
+  function imprimirSelecionadas(formato) {
     var itens = [];
     dados.rotas.slice().sort(function (a, b) { return a.nome.localeCompare(b.nome, 'pt-BR', { numeric: true, sensitivity: 'base' }); }).forEach(function (rota) {
       rota.sacas.forEach(function (saca) {
@@ -776,7 +904,7 @@
         }
       });
     });
-    imprimirItens(itens);
+    imprimirItens(itens, formato);
   }
   function imprimirFaixa(rota, texto) {
     var resultado = Regras.parsearSelecao(texto);
@@ -795,6 +923,17 @@
       ultimaRolagemInteracao = { x: global.scrollX || 0, y: global.scrollY || 0, quando: Date.now() };
     }, true);
     renderizar();
+    carregarCatalogoPayloads().then(function () {
+      if (!temPayloadCatalogoPendente(store.carregar().dados)) return;
+      var gravacaoCatalogo = store.mutar(function (estado) {
+        aplicarCatalogoPayloads(estado);
+        return true;
+      });
+      if (gravacaoCatalogo.sucesso) dados = gravacaoCatalogo.dados;
+      renderizar();
+    }).catch(function (erro) {
+      if (global.console && typeof global.console.warn === 'function') global.console.warn(erro);
+    });
   }
 
   document.addEventListener('melios:modulo', function (e) {
