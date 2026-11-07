@@ -27,6 +27,8 @@
 #modulo-qr-sacas .nex-rota-card { display: block; min-width: 0; margin: 0; padding: .25rem .75rem; border: 1px solid var(--cor-borda,#d8d8d8); border-radius: .8rem; background: var(--superficie,#fff); box-shadow: none; transition: border-color .15s ease, box-shadow .15s ease; }
 #modulo-qr-sacas .nex-rota-card.is-aberta { border-color: var(--cor-tinta,#292929); box-shadow: 0 5px 18px rgba(25,25,25,.075); }
 #modulo-qr-sacas .nex-rota-barra { display: flex; align-items: center; gap: .65rem; min-width: 0; }
+#modulo-qr-sacas .qr-sacas__selecao-rota { flex: 0 0 auto; width: 19px; height: 19px; margin: 0 .1rem 0 0; accent-color: var(--cor-azul, #2478df); cursor: pointer; }
+#modulo-qr-sacas .qr-sacas__selecao-rota:disabled { cursor: not-allowed; opacity: .45; }
 #modulo-qr-sacas .nex-rota-toggle { display: flex; flex: 1 1 auto; align-items: center; justify-content: space-between; gap: .75rem; width: auto; min-width: 0; min-height: 58px; padding: .65rem .4rem; border: 0; border-radius: .65rem; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 #modulo-qr-sacas .nex-rota-toggle:hover { background: #faf8f3; }
 #modulo-qr-sacas .nex-rota-toggle__info { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .85rem; min-width: 0; }

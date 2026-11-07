@@ -139,6 +139,19 @@
     selecionadas = Object.create(null);
     renderizar();
   }
+  function selecionarSacasRota(rotaId) {
+    var rota = rotaPorId(rotaId);
+    if (!rota) return;
+    var todasSelecionadas = rota.sacas.length > 0 && rota.sacas.every(function (saca) {
+      return !!selecionadas[chaveSaca(rota.id, saca.id)];
+    });
+    rota.sacas.forEach(function (saca) {
+      var chave = chaveSaca(rota.id, saca.id);
+      if (todasSelecionadas) delete selecionadas[chave];
+      else selecionadas[chave] = true;
+    });
+    manterRolagem(renderizar);
+  }
   function atualizarSelectRota(select, selecionada) {
     var vazio = criar('option', '', 'Selecione a rota');
     vazio.value = '';
@@ -330,6 +343,18 @@
       toggle.appendChild(info);
       toggle.appendChild(criar('span', 'nex-rota-chevron', abertas ? '−' : '+'));
       var barra = criar('div', 'nex-rota-barra');
+      var selecionadasNaRota = todas.filter(function (saca) {
+        return !!selecionadas[chaveSaca(rota.id, saca.id)];
+      }).length;
+      var selecionarRota = criar('input', 'qr-sacas__selecao-rota');
+      selecionarRota.type = 'checkbox';
+      selecionarRota.checked = todas.length > 0 && selecionadasNaRota === todas.length;
+      selecionarRota.indeterminate = selecionadasNaRota > 0 && selecionadasNaRota < todas.length;
+      selecionarRota.disabled = todas.length === 0;
+      selecionarRota.setAttribute('aria-label', 'Selecionar todas as ' + todas.length + ' sacas da rota ' + rota.nome);
+      selecionarRota.title = 'Selecionar ou desmarcar todas as sacas desta rota';
+      selecionarRota.addEventListener('change', function () { selecionarSacasRota(rota.id); });
+      barra.appendChild(selecionarRota);
       barra.appendChild(toggle);
       var removerRota = botao('Retirar rota', 'botao--secundario nex-remover-rota', function () { retirarRota(rota.id); });
       removerRota.setAttribute('aria-label', 'Retirar rota ' + rota.nome);
@@ -356,6 +381,11 @@
           if (caixaSelecao.checked) selecionadas[chave] = true;
           else delete selecionadas[chave];
           cartaoSaca.classList.toggle('is-selecionada', caixaSelecao.checked);
+          var totalSelecionadasRota = todas.filter(function (item) {
+            return !!selecionadas[chaveSaca(rota.id, item.id)];
+          }).length;
+          selecionarRota.checked = todas.length > 0 && totalSelecionadasRota === todas.length;
+          selecionarRota.indeterminate = totalSelecionadasRota > 0 && totalSelecionadasRota < todas.length;
           atualizarResumoSelecao();
         });
         cartaoSaca.appendChild(caixaSelecao);
